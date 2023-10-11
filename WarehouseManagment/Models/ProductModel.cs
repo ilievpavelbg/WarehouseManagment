@@ -15,7 +15,7 @@ namespace WarehouseManagment.Models
         public Composition? FirstComposition { get; set; }
         public Composition? SecondComposition { get; set; }
         public Category? Category { get; set; }
-        public Size? Size { get; set; }
+        public Data.Size? Size { get; set; }
         public JeansSize? JeansSize { get; set; }
         public byte[]? Barcode { get; set; } = null!;
     }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using WarehouseManagment.Barcode;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
@@ -47,6 +48,11 @@ namespace WarehouseManagment.Services
                 }
 
                 await _repository.AddAsync(product);
+                await _repository.SaveChangesAsync();
+
+                string productId = product.Id.ToString();
+                product.Barcode = BarcodeService.GenerateBarcodeImage(productId);
+
                 await _repository.SaveChangesAsync();
             }
             catch (Exception)
