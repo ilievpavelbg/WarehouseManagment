@@ -1,0 +1,160 @@
+﻿@model ProductModel
+
+@{
+    ViewData["Title"] = $"Редактиране артикул #{Model.SKU}";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<div class="alert alert-success" id="successMessage" role="alert" style="display: none;"></div>
+<div class="alert alert-danger" id="errorMessage" role="alert" style="display: none;"></div>
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <form id="editForm">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input asp-for="SKU" type="hidden" autocomplete="off" class="form-control" />
+            <input asp-for="Id" type="hidden" autocomplete="off" class="form-control" />
+            <div class="form-group text-center mb-3">
+                <label asp-for="Description" class="control-label">Описание</label>
+                <input asp-for="Description" type="text" autocomplete="off" class="form-control" />
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="Price" class="control-label">Цена</label>
+                <input asp-for="Price" type="number" min="0" autocomplete="off" class="form-control" />
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="Quantity" class="control-label">Количество</label>
+                <input asp-for="Quantity" type="number" min="0" autocomplete="off" class="form-control" />
+                <span asp-validation-for="Quantity" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="Genre" class="control-label">Пол</label>
+                <select asp-for="Genre" class="form-control">
+                    <option value="@Model.Genre" selected></option>
+                    @foreach (var genreValue in Enum.GetValues(typeof(WarehouseManagment.Data.Genre)))
+                    {
+                        <option value="@genreValue">@genreValue</option>
+                    }
+                </select>
+                <span asp-validation-for="Genre" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="FirstComposition" class="control-label">Състав 1</label>
+                <select asp-for="FirstComposition" class="form-control">
+                    <option value="@Model.FirstComposition" selected></option>
+                    @foreach (var compositionValue in Enum.GetValues(typeof(WarehouseManagment.Data.Composition)))
+                    {
+                        <option value="@compositionValue">@compositionValue</option>
+                    }
+                </select>
+                <span asp-validation-for="FirstComposition" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="SecondComposition" class="control-label">Състав 2</label>
+                <select asp-for="SecondComposition" class="form-control">
+                    <option value="@Model.SecondComposition" selected></option>
+                    @foreach (var compositionValue in Enum.GetValues(typeof(WarehouseManagment.Data.Composition)))
+                    {
+                        <option value="@compositionValue">@compositionValue</option>
+                    }
+                </select>
+                <span asp-validation-for="SecondComposition" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="Category" class="control-label">Категория</label>
+                <select asp-for="Category" id="categoryDropdown" class="form-control">
+                    <option value="@Model.Category" selected></option>
+                    @foreach (var categoryValue in Enum.GetValues(typeof(WarehouseManagment.Data.Category)))
+                    {
+                        <option value="@categoryValue">@categoryValue</option>
+                    }
+                </select>
+                <span asp-validation-for="Category" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3" id="size">
+                <label asp-for="Size" class="control-label">Размер</label>
+                <select asp-for="Size" class="form-control">
+                    <option value="@Model.Size" selected></option>
+                    @foreach (var sizeValue in Enum.GetValues(typeof(WarehouseManagment.Data.Size)))
+                    {
+                        <option value="@sizeValue">@sizeValue</option>
+                    }
+                </select>
+                <span asp-validation-for="Size" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3" id="jeansSize">
+                <label asp-for="JeansSize" class="control-label">Размер</label>
+                <select asp-for="JeansSize" class="form-control">
+                    <option value="@Model.JeansSize" selected></option>
+                    @foreach (var jeansSizeValue in Enum.GetValues(typeof(WarehouseManagment.Data.JeansSize)))
+                    {
+                        int enumValue = (int)jeansSizeValue;
+                        <option value="@enumValue">@enumValue</option>
+                    }
+                </select>
+                <span asp-validation-for="JeansSize" class="text-danger"></span>
+            </div>
+            <div class="text-center">
+                <button id="submitBtn" class="btn btn-primary">Редактирай</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts{
+    <script>
+        $(document).ready(function () {
+            $('#size').show();
+            $('#jeansSize').hide();
+
+            $('#categoryDropdown').change(function () {
+
+                var selectedCategory = $(this).val();
+
+                if (selectedCategory === "Дънки") {
+                    $('#size').hide();
+                    $('#jeansSize').show();
+                } else {
+                    $('#size').show();
+                    $('#jeansSize').hide();
+                }
+            })
+
+            $('#submitBtn').click(function (e) {
+                e.preventDefault();
+
+                var formData = $('#editForm').serialize();
+
+                $.ajax({
+                    type: "POST",
+                    url: "/Product/Edit",
+                    data: formData,
+                    dataType: "json",
+                    success: function (response) {
+                        if (response.success === true) {
+                            setTimeout(function () {
+                                window.location.href = "/Product/All";
+                            }, 3000);
+                            $('#successMessage').text(response.message);
+                            $('#successMessage').show();
+                            
+                        } else {
+                            $('#errorMessage').text(response.message);
+                            $('#errorMessage').show();
+
+                            setTimeout(function () {
+                                $('#errorMessage').hide();
+                            }, 3000);
+                        }
+                    },
+                    error: function () {
+                        
+                    }
+                });
+            });
+        })
+    </script>
+
+}

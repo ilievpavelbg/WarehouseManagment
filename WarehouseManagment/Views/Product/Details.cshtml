@@ -1,0 +1,71 @@
+﻿@model ProductModel
+
+@{
+    ViewData["Title"] = $"Детайли за артикул #{Model.SKU}";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<div class="container mt-5">
+    <div class="row justify-content-around">
+        <div class="col-4">
+            <table class="table table-striped text-large customFontSizeDetails">
+                <tbody>
+                    <tr>
+                        <td>ID :</td>
+                        <td>@Model.Id</td>
+                    </tr>
+                    <tr>
+                        <td>Описание :</td>
+                        <td>@Model.Description</td>
+                    </tr>
+                    <tr>
+                        <td>Цена :</td>
+                        <td>@Model.Price лв.</td>
+                    </tr>
+                    <tr>
+                        <td>Количество :</td>
+                        <td>@Model.Quantity бр.</td>
+                    </tr>
+                    <tr>
+                        <td>Пол :</td>
+                        <td>@Model.Genre</td>
+                    </tr>
+                    <tr>
+                        <td>Състав 1 :</td>
+                        <td>@Model.FirstComposition</td>
+                    </tr>
+                    <tr>
+                        <td>Състав 2 :</td>
+                        <td>@Model.SecondComposition</td>
+                    </tr>
+                    <tr>
+                        <td>Категория :</td>
+                        <td>@Model.Category</td>
+                    </tr>
+                   @if(Model.Size != null){
+                        <tr>
+                            <td>Размер :</td>
+                            <td>@Model.Size</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        <tr>
+                            <td>Размер :</td>
+                            <td>@Model.JeansSize</td>
+                        </tr>
+                    }
+                    <tr>
+                        <td>Баркод :</td>
+                        <td>@Model.Barcode</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="col-3">
+                <a class="btn btn-primary" href="/Product/All">Назад</a>
+            </div>
+        </div>
+    </div>
+</div>
+

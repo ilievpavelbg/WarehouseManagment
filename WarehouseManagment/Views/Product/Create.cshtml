@@ -1,0 +1,169 @@
+﻿@model ProductModel
+
+@{
+    ViewData["Title"] = "Създай артикул";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<div class="alert alert-success" id="successMessage" role="alert" style="display: none;"></div>
+<div class="alert alert-danger" id="errorMessage" role="alert" style="display: none;"></div>
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <form id="createForm">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="SKU" class="control-label">Артикулен номер</label>
+                <input asp-for="SKU" type="text" autocomplete="off" class="form-control" placeholder="Въведи артикулен номер - полето е задължително" />
+                <span asp-validation-for="SKU" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="Description" class="control-label">Описание</label>
+                <input asp-for="Description" type="text" autocomplete="off" class="form-control" placeholder="Въведи описание" />
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="Price" class="control-label">Цена</label>
+                <input asp-for="Price" type="number" min="0" autocomplete="off" class="form-control" placeholder="Въведете цена" />
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="Quantity" class="control-label">Количество</label>
+                <input asp-for="Quantity" type="number" min="0" autocomplete="off" class="form-control" placeholder="Въведете количество" />
+                <span asp-validation-for="Quantity" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="Genre" class="control-label">Пол</label>
+                <select asp-for="Genre" class="form-control">
+                    <option value="@null" selected>Избери пол</option>
+                    @foreach (var genreValue in Enum.GetValues(typeof(WarehouseManagment.Data.Genre)))
+                    {
+                        <option value="@genreValue">@genreValue</option>
+                    }
+                </select>
+                <span asp-validation-for="Genre" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="FirstComposition" class="control-label">Състав 1</label>
+                <select asp-for="FirstComposition" class="form-control">
+                    <option value="@null" selected>Избери състав</option>
+                    @foreach (var compositionValue in Enum.GetValues(typeof(WarehouseManagment.Data.Composition)))
+                    {
+                        <option value="@compositionValue">@compositionValue</option>
+                    }
+                </select>
+                <span asp-validation-for="FirstComposition" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="SecondComposition" class="control-label">Състав 2</label>
+                <select asp-for="SecondComposition" class="form-control">
+                    <option value="@null" selected>Избери състав</option>
+                    @foreach (var compositionValue in Enum.GetValues(typeof(WarehouseManagment.Data.Composition)))
+                    {
+                        <option value="@compositionValue">@compositionValue</option>
+                    }
+                </select>
+                <span asp-validation-for="SecondComposition" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="Category" class="control-label">Категория</label>
+                <select asp-for="Category" id="categoryDropdown" class="form-control">
+                    <option value="@null" selected>Избери категория</option>
+                    @foreach (var categoryValue in Enum.GetValues(typeof(WarehouseManagment.Data.Category)))
+                    {
+                        <option value="@categoryValue">@categoryValue</option>
+                    }
+                </select>
+                <span asp-validation-for="Category" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3" id="size">
+                <label asp-for="Size" class="control-label">Размер</label>
+                <select asp-for="Size" class="form-control">
+                    <option value="@null" selected>Избери размер</option>
+                    @foreach (var sizeValue in Enum.GetValues(typeof(WarehouseManagment.Data.Size)))
+                    {
+                        <option value="@sizeValue">@sizeValue</option>
+                    }
+                </select>
+                <span asp-validation-for="Size" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3" id="jeansSize">
+                <label asp-for="JeansSize" class="control-label">Размер</label>
+                <select asp-for="JeansSize" class="form-control">
+                    <option value="@null" selected>Избери размер</option>
+                    @foreach (var jeansSizeValue in Enum.GetValues(typeof(WarehouseManagment.Data.JeansSize)))
+                    {
+                        int enumValue = (int)jeansSizeValue;
+                        <option value="@enumValue">@enumValue</option>
+                    }
+                </select>
+                <span asp-validation-for="JeansSize" class="text-danger"></span>
+            </div>
+            <div class="text-center">
+                <button id="submitBtn" class="btn btn-primary">Създай</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#size').show();
+            $('#jeansSize').hide();
+
+            $('#categoryDropdown').change(function () {
+
+                var selectedCategory = $(this).val();
+
+                if (selectedCategory === "Дънки") {
+                    $('#size').hide();
+                    $('#jeansSize').show();
+                } else {
+                    $('#size').show();
+                    $('#jeansSize').hide();
+                }
+            })
+
+            $('#submitBtn').click(function (e) {
+                e.preventDefault();
+
+                var formData = $('#createForm').serialize();
+
+                $.ajax({
+                    type: "POST",
+                    url: "/Product/Create",
+                    data: formData,
+                    dataType: "json",
+                    success: function (response) {
+                        if (response.result === true) {
+                            $('#successMessage').text("Артикула е успешно създаден.");
+                            $('#successMessage').show();
+                            setTimeout(function () {
+                                window.location.href = "/Product/All";
+                            }, 3000);
+                        } else {
+                            $('#errorMessage').text("An error occurred while creating the product: " + response.message);
+                            $('#errorMessage').show();
+
+                            setTimeout(function () {
+                                $('#createForm')[0].reset();
+                            }, 4000);
+
+                            setTimeout(function () {
+                                window.location.href = "/Product/Create";
+                            }, 5000);
+                        }
+                    },
+                    error: function () {
+                        alert("Полето артикулен номер е задължително !");
+                    }
+                });
+            });
+
+        })
+    </script>
+    <partial name="_ValidationScriptsPartial" />
+}
+
