@@ -34,6 +34,7 @@ namespace WarehouseManagment.Factory
                 Category = product.Category,
                 Size = product.Size,
                 JeansSize = product.JeansSize,
+                Barcode = product.Barcode
             };
 
             return model;

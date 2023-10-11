@@ -58,7 +58,15 @@
                     }
                     <tr>
                         <td>Баркод :</td>
-                        <td>@Model.Barcode</td>
+                        @if(Model.Barcode != null)
+                        {
+                            <td><img src="data:image/jpeg;base64, @Convert.ToBase64String(Model.Barcode)" alt="Barcode" style="height : 50px;width : 200px;" /></td>
+                        }
+                        else
+                        {
+                            <td>N/A</td>
+                        }
+
                     </tr>
                 </tbody>
             </table>

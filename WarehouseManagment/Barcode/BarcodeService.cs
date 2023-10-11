@@ -8,7 +8,7 @@ namespace WarehouseManagment.Barcode
         {
             var myBarcode = BarcodeWriter.CreateBarcode(barcodeValue, BarcodeWriterEncoding.Code128);
 
-            myBarcode.ResizeTo(400, 100);
+            myBarcode.ResizeTo(200, 50);
 
             var barcodeBytes = myBarcode.ToJpegBinaryData();
 
