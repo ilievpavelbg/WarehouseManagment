@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using IronBarCode;
+using Microsoft.AspNetCore.Mvc;
+using OfficeOpenXml;
+using OfficeOpenXml.DataValidation;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
@@ -113,6 +116,51 @@ namespace WarehouseManagment.Controllers
                 return Json(new { response = false, message = ex.Message });
             }
             
+        }
+        public IActionResult CreateProduct()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UploadExcel(IFormFile excelFile)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View();
+            }
+
+            await _productService.CreateProductFromExcelAsync(excelFile);
+
+            return RedirectToAction("All");
+
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Print(int id)
+        {
+            var product = await _productService.GetProductByIdAsync(id);
+
+            string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            string fileName = "barcode.png";
+
+            string filePath = Path.Combine(desktopPath, fileName);
+
+            using (FileStream fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                fileStream.Write(product.Barcode, 0, product.Barcode.Length);
+            }
+
+            return RedirectToAction("All");
+
+        }
+
+        [HttpGet]
+        public IActionResult BarcodeScaner()
+        {
+            
+            return View();
+
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.EntityFrameworkCore;
+using OfficeOpenXml;
 using WarehouseManagment.Barcode;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
@@ -13,7 +15,7 @@ namespace WarehouseManagment.Services
 
         public ProductService(IRepository repository)
         {
-           _repository = repository;
+            _repository = repository;
         }
         public async Task CreateProductAsync(ProductModel model)
         {
@@ -57,7 +59,35 @@ namespace WarehouseManagment.Services
             }
             catch (Exception)
             {
-                throw ;
+                throw;
+            }
+        }
+
+        public async Task CreateProductFromExcelAsync(IFormFile excelFile)
+        {
+            if (excelFile != null && excelFile.Length > 0)
+            {
+                using (var package = new ExcelPackage(excelFile.OpenReadStream()))
+                {
+                    var worksheet = package.Workbook.Worksheets[0];
+
+                    for (int row = 2; row <= worksheet.Dimension.End.Row; row++)
+                    {
+                        if (TryValidateRow(worksheet, row, out var product))
+                        {
+                            await _repository.AddAsync(product);
+                            await _repository.SaveChangesAsync();
+
+                            string productId = product.Id.ToString();
+                            product.Barcode = BarcodeService.GenerateBarcodeImage(productId);
+                            await _repository.SaveChangesAsync();
+                        }
+                        else
+                        {
+                            // Handle validation errors or skip the row if invalid
+                        }
+                    }
+                }
             }
         }
 
@@ -113,7 +143,7 @@ namespace WarehouseManagment.Services
 
         public async Task<List<Product>> GetAllProductsAsync()
         {
-            return  await _repository.All<Product>().ToListAsync();
+            return await _repository.All<Product>().ToListAsync();
         }
 
         public async Task<Product> GetProductByIdAsync(int id)
@@ -139,5 +169,85 @@ namespace WarehouseManagment.Services
 
             return product;
         }
+
+        static bool TryValidateRow(ExcelWorksheet worksheet, int row, out Product product)
+        {
+            product = new Product();
+
+            string exelSKU = worksheet.Cells[row, 1].Value?.ToString();
+            string excelDescription = worksheet.Cells[row, 2].Value?.ToString();
+            string excelGenre = worksheet.Cells[row, 5].Value?.ToString();
+            string excelFirstComposition = worksheet.Cells[row, 6].Value?.ToString();
+            string excelSecondComposition = worksheet.Cells[row, 7].Value?.ToString();
+            string excelCategory = worksheet.Cells[row, 8].Value?.ToString();
+            var excelSizeValue = worksheet.Cells[row, 9].Value;
+
+            if (string.IsNullOrEmpty(exelSKU) || string.IsNullOrEmpty(excelDescription) ||
+                string.IsNullOrEmpty(excelGenre) || string.IsNullOrEmpty(excelFirstComposition) ||
+                string.IsNullOrEmpty(excelSecondComposition) || string.IsNullOrEmpty(excelCategory) ||
+                excelSizeValue == null)
+            {
+                return false; // Data is missing or invalid
+            }
+
+            if (!double.TryParse(worksheet.Cells[row, 3].Value?.ToString(), out double excelPrice) ||
+                !double.TryParse(worksheet.Cells[row, 4].Value?.ToString(), out double excelQuantity))
+            {
+                return false; // Price or quantity is not a valid number
+            }
+
+            product.SKU = exelSKU;
+            product.Description = excelDescription;
+            product.Price = excelPrice;
+            product.Quantity = (int)Math.Round(excelQuantity);
+
+            if (Enum.TryParse(excelGenre, true, out Genre genre) &&
+                Enum.TryParse(excelFirstComposition, true, out Composition firstComposition) &&
+                Enum.TryParse(excelSecondComposition, true, out Composition secondComposition) &&
+                Enum.TryParse(excelCategory, true, out Category category))
+            {
+                product.Genre = genre;
+                product.FirstComposition = firstComposition;
+                product.SecondComposition = secondComposition;
+                product.Category = category;
+            }
+            else
+            {
+                return false; // Invalid enum values
+            }
+
+            if (excelSizeValue is string)
+            {
+                var stringSize = excelSizeValue.ToString();
+                if (Enum.TryParse(stringSize, true, out Data.Size size))
+                {
+                    product.Size = size;
+                }
+                else
+                {
+                    return false; // Invalid size value
+                }
+            }
+            else if (excelSizeValue is double)
+            {
+                double numberSize = (double)excelSizeValue;
+                if (Enum.IsDefined(typeof(JeansSize), (int)numberSize))
+                {
+                    product.JeansSize = (JeansSize)Enum.ToObject(typeof(JeansSize), (int)numberSize);
+                }
+                else
+                {
+                    return false; // Invalid JeansSize value
+                }
+            }
+            else
+            {
+                return false; // Size value is not valid
+            }
+
+            return true;
+        }
+
+
     }
 }
