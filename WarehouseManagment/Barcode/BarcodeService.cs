@@ -9,6 +9,7 @@ namespace WarehouseManagment.Barcode
             var myBarcode = BarcodeWriter.CreateBarcode(productId, BarcodeWriterEncoding.Code128);
 
             myBarcode.ResizeTo(200, 50);
+            myBarcode.AddBarcodeValueTextBelowBarcode();
 
             var barcodeBytes = myBarcode.ToJpegBinaryData();
 

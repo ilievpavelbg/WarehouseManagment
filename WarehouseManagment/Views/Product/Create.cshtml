@@ -6,8 +6,8 @@
 
 <h1 class="text-center">@ViewData["Title"]</h1>
 
-<div class="alert alert-success" id="successMessage" role="alert" style="display: none;"></div>
-<div class="alert alert-danger" id="errorMessage" role="alert" style="display: none;"></div>
+<div class="alert alert-success" id="successMessageCreate" role="alert" style="display: none;"></div>
+<div class="alert alert-danger" id="errorMessageCreate" role="alert" style="display: none;"></div>
 <div class="row">
     <div class="col-md-6 offset-md-3">
         <form id="createForm">
@@ -138,14 +138,14 @@
                     dataType: "json",
                     success: function (response) {
                         if (response.result === true) {
-                            $('#successMessage').text("Артикула е успешно създаден.");
-                            $('#successMessage').show();
+                            $('#successMessageCreate').text("Артикула е успешно създаден.");
+                            $('#successMessageCreate').show();
                             setTimeout(function () {
                                 window.location.href = "/Product/All";
                             }, 3000);
                         } else {
-                            $('#errorMessage').text("An error occurred while creating the product: " + response.message);
-                            $('#errorMessage').show();
+                            $('#errorMessageCreate').text("An error occurred while creating the product: " + response.message);
+                            $('#errorMessageCreate').show();
 
                             setTimeout(function () {
                                 $('#createForm')[0].reset();
