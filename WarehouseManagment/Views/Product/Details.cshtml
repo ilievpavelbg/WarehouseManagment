@@ -6,6 +6,10 @@
 
 <h1 class="text-center">@ViewData["Title"]</h1>
 
+@{
+    var barcodeExist = Model.Barcode != null ? true : false;
+}
+
 <div class="container mt-5">
     <div class="row justify-content-around">
         <div class="col-4">
@@ -58,7 +62,7 @@
                     }
                     <tr>
                         <td>Баркод :</td>
-                        @if(Model.Barcode != null)
+                        @if (barcodeExist)
                         {
                             <td><img src="data:image/jpeg;base64, @Convert.ToBase64String(Model.Barcode)" alt="Barcode" style="height : 50px;width : 200px;" /></td>
                         }
@@ -70,12 +74,15 @@
                     </tr>
                 </tbody>
             </table>
-            <div class="col-3">
+            <div class="col-3 mt-3">
                 <a class="btn btn-primary" href="/Product/All">Назад</a>
             </div>
-            <div class="col-3">
-                <a class="btn btn-secondary" asp-action="Print" asp-controller="Product" asp-route-Id="@Model.Id">Принт</a>
-            </div>
+            @if (barcodeExist)
+            {
+                <div class="col-6 mt-3">
+                    <a class="btn btn-secondary btn-lg" asp-action="SaveBarcodeImage" asp-controller="Product" asp-route-Id="@Model.Id">Запази баркод като снимка</a>
+                </div>
+            }
         </div>
     </div>
 </div>

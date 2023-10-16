@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using WarehouseManagment.Models;
 
 namespace WarehouseManagment.Data
 {
-    public class ApplicationDbContext : IdentityDbContext
+    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
@@ -21,6 +20,5 @@ namespace WarehouseManagment.Data
 
         public DbSet<Product> Products { get; set; }
 
-        public DbSet<WarehouseManagment.Models.ProductModel>? ProductModel { get; set; }
     }
 }

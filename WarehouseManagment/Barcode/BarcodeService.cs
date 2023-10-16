@@ -10,7 +10,6 @@ namespace WarehouseManagment.Barcode
 
             myBarcode.ResizeTo(200, 50);
             myBarcode.AddBarcodeValueTextBelowBarcode();
-
             var barcodeBytes = myBarcode.ToJpegBinaryData();
 
             return barcodeBytes;
