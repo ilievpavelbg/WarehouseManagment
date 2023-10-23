@@ -127,9 +127,17 @@ namespace WarehouseManagment.Controllers
                 return View();
             }
 
-            await _productService.CreateProductFromExcelAsync(excelFile);
+            try
+            {
+                await _productService.CreateProductFromExcelAsync(excelFile);
 
-            return RedirectToAction("All");
+                return RedirectToAction("All");
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError(string.Empty, ex.Message);
+                return View();
+            }
 
         }
 

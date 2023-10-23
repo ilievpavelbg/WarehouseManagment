@@ -1,6 +1,21 @@
-﻿<form asp-action="CreateProductFromExcel" asp-controller="Product" method="post" enctype="multipart/form-data">
+﻿@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        @foreach (var modelState in ViewData.ModelState.Values)
+        {
+            foreach (var error in modelState.Errors)
+            {
+                @error.ErrorMessage
+            }
+        }
+    </div>
+}
+<form asp-action="CreateProductFromExcel" asp-controller="Product" method="post" enctype="multipart/form-data">
     <div class="mb-5 mt-5">
-        <input type="file" name="excelFile" />
+        <input type="file" name="ExcelFile">
     </div>
     <input class="btn btn-primary" type="submit" value="Upload Excel" />
 </form>
+
+
+

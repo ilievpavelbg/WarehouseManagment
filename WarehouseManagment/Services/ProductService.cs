@@ -67,10 +67,12 @@ namespace WarehouseManagment.Services
         {
             if (excelFile != null && excelFile.Length > 0)
             {
-                using (var package = new ExcelPackage(excelFile.OpenReadStream()))
-                {
-                    var worksheet = package.Workbook.Worksheets[0];
+                using var package = new ExcelPackage(excelFile.OpenReadStream());
 
+                var worksheet = package.Workbook.Worksheets[0];
+
+                try
+                {
                     for (int row = 2; row <= worksheet.Dimension.End.Row; row++)
                     {
                         if (TryValidateRow(worksheet, row, out var product))
@@ -78,15 +80,20 @@ namespace WarehouseManagment.Services
                             await _repository.AddAsync(product);
                             await _repository.SaveChangesAsync();
 
-                            string productId = product.Id.ToString();
+                            var productId = product.Id.ToString();
                             product.Barcode = BarcodeService.GenerateBarcodeImage(productId);
                             await _repository.SaveChangesAsync();
                         }
                         else
                         {
-                            // Handle validation errors or skip the row if invalid
+                            throw new Exception("Excel Table data validation error");
                         }
                     }
+                }
+                catch (Exception ex)
+                {
+
+                    throw new Exception(ex.Message);
                 }
             }
         }
@@ -174,12 +181,12 @@ namespace WarehouseManagment.Services
         {
             product = new Product();
 
-            string exelSKU = worksheet.Cells[row, 1].Value?.ToString();
-            string excelDescription = worksheet.Cells[row, 2].Value?.ToString();
-            string excelGenre = worksheet.Cells[row, 5].Value?.ToString();
-            string excelFirstComposition = worksheet.Cells[row, 6].Value?.ToString();
-            string excelSecondComposition = worksheet.Cells[row, 7].Value?.ToString();
-            string excelCategory = worksheet.Cells[row, 8].Value?.ToString();
+            string? exelSKU = worksheet.Cells[row, 1].Value?.ToString();
+            string? excelDescription = worksheet.Cells[row, 2].Value?.ToString()??null;
+            string excelGenre = worksheet.Cells[row, 5].Value.ToString();
+            string excelFirstComposition = worksheet.Cells[row, 6].Value.ToString();
+            string excelSecondComposition = worksheet.Cells[row, 7].Value.ToString();
+            string excelCategory = worksheet.Cells[row, 8].Value.ToString();
             var excelSizeValue = worksheet.Cells[row, 9].Value;
 
             if (string.IsNullOrEmpty(exelSKU) || string.IsNullOrEmpty(excelDescription) ||
