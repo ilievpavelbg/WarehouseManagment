@@ -6,6 +6,34 @@ namespace WarehouseManagment.Factory
 {
     public class FactoryService : IFactoryService
     {
+        public List<ProductInventoryModel> PrepareProductInventoryListModel(List<ProductInventory> productInventories)
+        {
+            var productInventoryList = new List<ProductInventoryModel>();
+
+            foreach (var productInventory in productInventories)
+            {
+                var productInventoryModel = PrepareProductInventoryModel(productInventory);
+                productInventoryList.Add(productInventoryModel);
+            }
+
+            return productInventoryList;
+        }
+
+        public ProductInventoryModel PrepareProductInventoryModel(ProductInventory productInventory)
+        {
+            var model = new ProductInventoryModel()
+            {
+              Id = productInventory.Id,
+              Size = productInventory.Size,
+              Quantity = productInventory.Quantity,
+              ProductSKU = productInventory.ProductSKU,
+              ProductId = productInventory.ProductId,
+              Barcode = productInventory.Barcode
+            };
+
+            return model;
+        }
+
         public List<ProductModel> PrepareProductListModel(List<Product> products)
         {
             var productsModel = new List<ProductModel>();
@@ -18,7 +46,6 @@ namespace WarehouseManagment.Factory
 
             return productsModel;
         }
-
         public ProductModel PrepareProductModel(Product product)
         {
             var model = new ProductModel()
@@ -26,15 +53,13 @@ namespace WarehouseManagment.Factory
                 Id = product.Id,
                 SKU = product.SKU,
                 Description = product.Description,
-                Price = product.Price,
-                Quantity = product.Quantity,
+                RetailPrice = product.RetailPrice,
+                WholesalePrice = product.WholesalePrice,
+                Color = product.Color,
                 Genre = product.Genre,
                 FirstComposition = product.FirstComposition,
                 SecondComposition = product.SecondComposition,
                 Category = product.Category,
-                Size = product.Size,
-                JeansSize = product.JeansSize,
-                Barcode = product.Barcode
             };
 
             return model;

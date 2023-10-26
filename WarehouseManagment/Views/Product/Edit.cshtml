@@ -20,14 +20,25 @@
                 <span asp-validation-for="Description" class="text-danger"></span>
             </div>
             <div class="form-group text-center mb-3">
-                <label asp-for="Price" class="control-label">Цена</label>
-                <input asp-for="Price" type="number" min="0" autocomplete="off" class="form-control" />
-                <span asp-validation-for="Price" class="text-danger"></span>
+                <label asp-for="RetailPrice" class="control-label">Цена на дребно</label>
+                <input asp-for="RetailPrice" type="number" min="0" autocomplete="off" class="form-control" />
+                <span asp-validation-for="RetailPrice" class="text-danger"></span>
             </div>
             <div class="form-group text-center mb-3">
-                <label asp-for="Quantity" class="control-label">Количество</label>
-                <input asp-for="Quantity" type="number" min="0" autocomplete="off" class="form-control" />
-                <span asp-validation-for="Quantity" class="text-danger"></span>
+                <label asp-for="WholesalePrice" class="control-label">Цена на едро</label>
+                <input asp-for="WholesalePrice" type="number" min="0" autocomplete="off" class="form-control" />
+                <span asp-validation-for="WholesalePrice" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="Color" class="control-label">Цвят</label>
+                <select asp-for="Color" class="form-control">
+                    <option value="@Model.Color" selected></option>
+                    @foreach (var colorValue in Enum.GetValues(typeof(WarehouseManagment.Data.Color)))
+                    {
+                        <option value="@colorValue">@colorValue</option>
+                    }
+                </select>
+                <span asp-validation-for="Genre" class="text-danger"></span>
             </div>
             <div class="form-group text-center mb-3">
                 <label asp-for="Genre" class="control-label">Пол</label>
@@ -73,7 +84,7 @@
                 </select>
                 <span asp-validation-for="Category" class="text-danger"></span>
             </div>
-            <div class="form-group text-center mb-3" id="size">
+@*             <div class="form-group text-center mb-3" id="size">
                 <label asp-for="Size" class="control-label">Размер</label>
                 <select asp-for="Size" class="form-control">
                     <option value="@Model.Size" selected></option>
@@ -83,8 +94,8 @@
                     }
                 </select>
                 <span asp-validation-for="Size" class="text-danger"></span>
-            </div>
-            <div class="form-group text-center mb-3" id="jeansSize">
+            </div> *@
+            @* <div class="form-group text-center mb-3" id="jeansSize">
                 <label asp-for="JeansSize" class="control-label">Размер</label>
                 <select asp-for="JeansSize" class="form-control">
                     <option value="@Model.JeansSize" selected></option>
@@ -95,7 +106,7 @@
                     }
                 </select>
                 <span asp-validation-for="JeansSize" class="text-danger"></span>
-            </div>
+            </div> *@
             <div class="text-center">
                 <button id="submitBtn" class="btn btn-primary">Редактирай</button>
             </div>
@@ -106,21 +117,21 @@
 @section Scripts{
     <script>
         $(document).ready(function () {
-            $('#size').show();
-            $('#jeansSize').hide();
+            // $('#size').show();
+            // $('#jeansSize').hide();
 
-            $('#categoryDropdown').change(function () {
+            // $('#categoryDropdown').change(function () {
 
-                var selectedCategory = $(this).val();
+            //     var selectedCategory = $(this).val();
 
-                if (selectedCategory === "Дънки") {
-                    $('#size').hide();
-                    $('#jeansSize').show();
-                } else {
-                    $('#size').show();
-                    $('#jeansSize').hide();
-                }
-            })
+            //     if (selectedCategory === "Дънки") {
+            //         $('#size').hide();
+            //         $('#jeansSize').show();
+            //     } else {
+            //         $('#size').show();
+            //         $('#jeansSize').hide();
+            //     }
+            // })
 
             $('#submitBtn').click(function (e) {
                 e.preventDefault();

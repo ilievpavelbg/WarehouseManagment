@@ -7,7 +7,7 @@
 <h1 class="text-center">@ViewData["Title"]</h1>
 
 @{
-    var barcodeExist = Model.Barcode != null ? true : false;
+    var barcodeExist = true;
 }
 
 <div class="container mt-5">
@@ -24,12 +24,16 @@
                         <td>@Model.Description</td>
                     </tr>
                     <tr>
-                        <td>Цена :</td>
-                        <td>@Model.Price лв.</td>
+                        <td>Цена на дребно :</td>
+                        <td>@Model.RetailPrice лв.</td>
                     </tr>
                     <tr>
-                        <td>Количество :</td>
-                        <td>@Model.Quantity бр.</td>
+                        <td>Цена на едро :</td>
+                        <td>@Model.WholesalePrice лв.</td>
+                    </tr>
+                    <tr>
+                        <td>Цвят :</td>
+                        <td>@Model.Color</td>
                     </tr>
                     <tr>
                         <td>Пол :</td>
@@ -47,20 +51,20 @@
                         <td>Категория :</td>
                         <td>@Model.Category</td>
                     </tr>
-                   @if(Model.Size != null){
+@*                    @if(Model.Size != null){
                         <tr>
                             <td>Размер :</td>
                             <td>@Model.Size</td>
                         </tr>
-                    }
-                    else
+                    } *@
+@*                     else
                     {
                         <tr>
                             <td>Размер :</td>
                             <td>@Model.JeansSize</td>
                         </tr>
-                    }
-                    <tr>
+                    } *@
+@*                     <tr>
                         <td>Баркод :</td>
                         @if (barcodeExist)
                         {
@@ -71,7 +75,7 @@
                             <td>N/A</td>
                         }
 
-                    </tr>
+                    </tr> *@
                 </tbody>
             </table>
             <div class="col-3 mt-3">

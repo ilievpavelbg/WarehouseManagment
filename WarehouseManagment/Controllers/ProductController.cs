@@ -153,7 +153,7 @@ namespace WarehouseManagment.Controllers
 
             using (FileStream fileStream = new FileStream(filePath, FileMode.Create))
             {
-                fileStream.Write(product.Barcode, 0, product.Barcode.Length);
+                //fileStream.Write(product.Barcode, 0, product.Barcode.Length);
             }
 
             return RedirectToAction("All");

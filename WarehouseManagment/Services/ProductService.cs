@@ -32,34 +32,24 @@ namespace WarehouseManagment.Services
                 {
                     SKU = model.SKU,
                     Description = model.Description,
-                    Price = model.Price,
-                    Quantity = model.Quantity,
+                    RetailPrice = model.RetailPrice,
+                    WholesalePrice = model.WholesalePrice,
+                    Color = model.Color,
                     Genre = model.Genre,
                     FirstComposition = model.FirstComposition,
                     SecondComposition = model.SecondComposition,
                     Category = model.Category
                 };
 
-                if (model.Size != null)
-                {
-                    product.Size = model.Size;
-                }
-                else
-                {
-                    product.JeansSize = model.JeansSize;
-                }
-
                 await _repository.AddAsync(product);
                 await _repository.SaveChangesAsync();
 
-                string productId = product.Id.ToString();
-                product.Barcode = BarcodeService.GenerateBarcodeImage(productId);
+                //product.Barcode = BarcodeService.GenerateBarcodeImage(productId);
 
-                await _repository.SaveChangesAsync();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                throw new Exception(ex.Message);
             }
         }
 
@@ -81,7 +71,7 @@ namespace WarehouseManagment.Services
                             await _repository.SaveChangesAsync();
 
                             var productId = product.Id.ToString();
-                            product.Barcode = BarcodeService.GenerateBarcodeImage(productId);
+                            //product.Barcode = BarcodeService.GenerateBarcodeImage(productId);
                             await _repository.SaveChangesAsync();
                         }
                         else
@@ -123,20 +113,12 @@ namespace WarehouseManagment.Services
                 }
 
                 product.Description = model.Description;
-                product.Price = model.Price;
-                product.Quantity = model.Quantity;
+                product.RetailPrice = model.RetailPrice;
+                product.WholesalePrice = model.WholesalePrice;
+                product.Color = model.Color;
                 product.Genre = model.Genre;
                 product.FirstComposition = model.FirstComposition;
                 product.SecondComposition = model.SecondComposition;
-
-                if (model.Size != null)
-                {
-                    product.Size = model.Size;
-                }
-                else
-                {
-                    product.JeansSize = model.JeansSize;
-                }
 
                 await _repository.SaveChangesAsync();
 
@@ -202,11 +184,11 @@ namespace WarehouseManagment.Services
             {
                 return false; // Price or quantity is not a valid number
             }
-
+            //TODO To add retail and wholesale price correctly
             product.SKU = exelSKU;
             product.Description = excelDescription;
-            product.Price = excelPrice;
-            product.Quantity = (int)Math.Round(excelQuantity);
+            product.RetailPrice = excelPrice;
+            //product.Quantity = (int)Math.Round(excelQuantity);
 
             if (Enum.TryParse(excelGenre, true, out Genre genre) &&
                 Enum.TryParse(excelFirstComposition, true, out Composition firstComposition) &&
@@ -228,7 +210,7 @@ namespace WarehouseManagment.Services
                 var stringSize = excelSizeValue.ToString();
                 if (Enum.TryParse(stringSize, true, out Data.Size size))
                 {
-                    product.Size = size;
+                    //product.Size = size;
                 }
                 else
                 {
@@ -238,14 +220,14 @@ namespace WarehouseManagment.Services
             else if (excelSizeValue is double)
             {
                 double numberSize = (double)excelSizeValue;
-                if (Enum.IsDefined(typeof(JeansSize), (int)numberSize))
-                {
-                    product.JeansSize = (JeansSize)Enum.ToObject(typeof(JeansSize), (int)numberSize);
-                }
-                else
-                {
-                    return false; // Invalid JeansSize value
-                }
+                //if (Enum.IsDefined(typeof(JeansSize), (int)numberSize))
+                //{
+                //    product.JeansSize = (JeansSize)Enum.ToObject(typeof(JeansSize), (int)numberSize);
+                //}
+                //else
+                //{
+                //    return false; // Invalid JeansSize value
+                //}
             }
             else
             {

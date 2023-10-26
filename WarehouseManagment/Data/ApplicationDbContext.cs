@@ -19,6 +19,7 @@ namespace WarehouseManagment.Data
         }
 
         public DbSet<Product> Products { get; set; }
+        public DbSet<ProductInventory> ProductInventories { get; set; }
 
     }
 }
