@@ -9,10 +9,14 @@ namespace WarehouseManagment.Controllers
     {
         private readonly IFactoryService _factoryService;
         private readonly IProductService _productService;
-        public ProductController(IFactoryService factoryService, IProductService productService)
+        private readonly IProductInventoryService _productInventoryService;
+        public ProductController(IFactoryService factoryService,
+            IProductService productService,
+            IProductInventoryService productInventoryService)
         {
             _factoryService = factoryService;
             _productService = productService;
+            _productInventoryService = productInventoryService;
         }
         public IActionResult Index()
         {
@@ -57,12 +61,14 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Edit(int id)
+        public async Task<IActionResult> Edit(int barcode)
         {
-            var product = await _productService.GetProductByIdAsync(id);
+            var product = await _productService.GetProductByIdAsync(barcode);
             var model = _factoryService.PrepareProductModel(product);
 
-            return View(model);
+            return Json(new { productData = model });
+
+            //return View(model);
         }
 
         [HttpPost]
@@ -113,6 +119,17 @@ namespace WarehouseManagment.Controllers
                 return Json(new { response = false, message = ex.Message });
             }
             
+        }
+
+        public async Task<IActionResult> Availability(int id)
+        {
+            var product = await _productService.GetProductByIdAsync(id);
+            var productModel = _factoryService.PrepareProductModel(product);
+            var productInventory = await _productInventoryService.GetProductInventoryByProductIdAsync(product.Id);
+            var productInventoryModel = _factoryService.PrepareProductInventoryListModel(productInventory);
+            productModel.ProductInventoriesModel = productInventoryModel;
+
+            return View(productModel);
         }
         public IActionResult CreateProductFromExcel()
         {

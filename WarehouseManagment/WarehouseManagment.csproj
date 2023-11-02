@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>aspnet-WarehouseManagment-21058ae4-9413-408f-95f1-ccb9837801e6</UserSecretsId>
@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <Folder Include="Repository\" />
+    <Folder Include="Views\Sale\" />
   </ItemGroup>
 
 </Project>

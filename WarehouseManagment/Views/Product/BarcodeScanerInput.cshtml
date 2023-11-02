@@ -1,5 +1,5 @@
-﻿<div class="col-4">
-    <form asp-controller="Product" asp-action="Edit" method="get">
+﻿<div class="col-4" >
+    <form method="get">
         <div class="input-group mb-3 mt-5">
             <input type="text" id="barcode" name="id" class="form-control" placeholder="Product ID" aria-label="product ID" aria-describedby="basic-addon2">
             <div class="input-group-append">
@@ -8,3 +8,143 @@
         </div>
     </form>
 </div>
+<div class="product-container" ></div>
+
+@section Scripts{
+    <script>
+        $(document).ready(function () {
+
+            $('#barcode').on('input', function () {
+                var scannedBarcode = $(this).val();
+
+                $.ajax({
+                    url: '/Sale/Index',
+                    type: 'GET',
+                    data: { barcode: scannedBarcode },
+                    success: function (productData) {
+                        console.log(productData);
+                        createProductRow(productData);
+                    }
+                });
+            })
+
+            function createProductRow(productData) {
+                var newRow = $('<div class="row product-row">');
+                newRow.append($('<div class="col ml-3 product-sku">').text("Продажба на артикул : " + productData.productData.productSKU + ' ( ' + productData.productData.description + ' )'));
+                var unitPriceInput = $('<input type="number" class="product-unit-price">').val(productData.productData.unitPrice);
+                newRow.append(unitPriceInput);
+                newRow.append(createDiscountDropdown(productData.discount));
+                newRow.append(createPaymentMethodDropdown(productData.paymentMethod));
+                var quantityInput = $('<input type="number" min="0" class="product-quantity">').val(1);
+                newRow.append(quantityInput);
+                newRow.append($('<span class="product-total-price">').text(productData.productData.unitPrice));
+                var saleButton = $('<button class="sale-button">Sale</button>');
+
+                saleButton.on('click', function () {
+                    var sku = productData.productData.productSKU;
+                    var unitPrice = parseFloat(unitPriceInput.val());
+                    var discount = parseInt($('.product-discount option:selected').val());
+                    var quantity = parseInt(quantityInput.val());
+                    var date = productData.productData.soldDate;
+                    var productId = productData.productData.productId;
+                    var productInventoryId = productData.productData.productInventoryId;
+                    var totalPrice;
+                    if (discount > 0) {
+                        totalPrice = (unitPrice - (unitPrice * discount / 100)) * quantity;
+                    } else {
+                        totalPrice = unitPrice * quantity;
+                    }
+
+                    var sale = {
+                        productSKU: sku,
+                        unitPrice: unitPrice,
+                        discount: discount,
+                        quantity: quantity,
+                        soldDate: date,
+                        productId: productId,
+                        totalPrice: totalPrice,
+                        productInventoryId: productInventoryId
+                    };
+
+                    $.ajax({
+                        url: '/Sale/Create',
+                        type: 'POST',
+                        data: sale,
+                        success: function (response) {
+                            if (response.success) {
+                                // Handle a successful sale (e.g., update UI)
+                                // Change the button text to "SOLD" and disable discount and quantity inputs
+                                $('.product-quantity').attr("disabled", true);
+                                $('.sale-button').text('SOLD');
+                                $('.sale-button').addClass('unsold-button').removeClass('sale-button');
+                                // Display the "UNSOLD IT" button (you can add the logic for this)
+                            } else {
+                                // Handle an unsuccessful sale (e.g., show an error message)
+                                alert('Sale failed: ' + response.message);
+                            }
+                        }
+                    });
+                });
+
+                newRow.append(saleButton);
+                $('.product-container').append(newRow);
+            }
+            //Create discount dropdown
+            function createDiscountDropdown(selectedDiscount) {
+                var dropdown = $('<select class="product-discount">');
+                var discountValues = [
+        @foreach (var value in Enum.GetValues(typeof(Discount)).Cast<Discount>())
+        {
+            <text>{ value: @((int)value) }, </text>
+        }
+                            ];
+
+                discountValues.forEach(function (option) {
+                    var optionElement = $('<option>').attr('value', option.value).text(option.value);
+                    if (option.value === selectedDiscount) {
+                        optionElement.attr('selected', 'selected');
+                    }
+                    dropdown.append(optionElement);
+                });
+
+                return dropdown;
+            }
+
+            //Create PaymentMethod dropdown
+            function createPaymentMethodDropdown(selectedPaymentMethod) {
+                var dropdown = $('<select class="product-paymentMethod">');
+                var paymentMethods = {
+        @foreach (var value in Enum.GetValues(typeof(PaymentMethod)).Cast<PaymentMethod>())
+        {
+            <text>@((int)value): '@value', </text>
+        }
+            };
+
+            for (var key in paymentMethods) {
+                var optionElement = $('<option>').attr('value', key).text(paymentMethods[key]);
+                if (key === selectedPaymentMethod) {
+                    optionElement.attr('selected', 'selected');
+                }
+                dropdown.append(optionElement);
+            }
+
+            return dropdown;
+        }
+
+
+            // Disable discount and quantity fields and change the button text to "SOLD"
+            function disableFields() {
+                $('.product-quantity').attr("disabled", true);
+                $('.sale-button').text('SOLD');
+                $('.sale-button').addClass('unsold-button').removeClass('sale-button');
+            }
+
+            // Handle "UNSOLD IT" button click event
+            $('.unsold-button').on('click', function () {
+                // Make an AJAX request to update the quantity in the database
+                // Remove the product row after a successful update
+                // You should add this functionality based on your backend API
+            });
+        })
+    </script>
+}

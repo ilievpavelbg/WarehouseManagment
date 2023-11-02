@@ -44,8 +44,6 @@ namespace WarehouseManagment.Services
                 await _repository.AddAsync(product);
                 await _repository.SaveChangesAsync();
 
-                //product.Barcode = BarcodeService.GenerateBarcodeImage(productId);
-
             }
             catch (Exception ex)
             {

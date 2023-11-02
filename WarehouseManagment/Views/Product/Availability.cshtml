@@ -1,0 +1,150 @@
+﻿@model ProductModel
+
+@{
+    ViewData["Title"] = $"Наличност на артикул #{Model.SKU}";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<div class="mb-5">
+    <a class="btn btn-danger" asp-action="Create" asp-controller="ProductInventory" asp-route-Id="@Model.Id">Добави размер</a>
+</div>
+
+<div class="row">
+    <div class="col-6">
+        <table class="table table-striped table-bordered">
+            <thead class="thead-dark">
+                <tr class="text-center">
+                    <th scope="col">Id</th>
+                    <th scope="col">Размер</th>
+                    <th scope="col">Количество</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var productInventory in Model.ProductInventoriesModel)
+                {
+                    <tr class="text-center">
+                        <td>@productInventory.Id</td>
+                        <td><span class="prodSize" data-size="@productInventory.Size">@productInventory.Size</span></td>
+                        <td>
+                            <span class="display-span">
+                                <span style="display:block" class="ProdInv">@productInventory.Quantity</span>
+                                <input style="display:none" type="number" min="0" value="@productInventory.Quantity">
+                            </span>
+                        </td>
+                        <td style="width:263px;" data-product-id="@productInventory.ProductId" data-product-sku="@productInventory.ProductSKU">
+                            <a class="btn btn-sm btn-primary ChangeQty" style="display: block">Промени количество</a>
+                            <a class="btn btn-sm btn-danger SaveQty" style="display: none" data-id="@productInventory.Id" data-confirm="Сигурни ли сте че искате да запазите това количество?">Запази промените</a>
+                            <a class="btn btn-sm btn-info mt-2 CancelChange" style="display: none">Отмени промените</a>
+                        </td>
+                    </tr>
+                }
+                <tr style="background-color:#C0C0C0">
+                    <td colspan="2" class="h4 text-center">
+                        Тотал :
+                    </td>
+                    <td class="h4 text-center">
+                        @Model.ProductInventoriesModel.Sum(x => x.Quantity) бр.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="col-3 mt-5">
+            <a class="btn btn-primary" href="/Product/All">Назад</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script>
+        $(document).ready(function () {
+
+            $('.ChangeQty').on('click', function (e) {
+                e.preventDefault();
+
+                var row = $(this).closest('tr');
+                var displaySpan = row.find('.display-span');
+                displaySpan.find('.ProdInv').css("display", "none");
+                displaySpan.find('input').css("display", "block");
+                row.find('.SaveQty').css("display", "block");
+                row.find('.CancelChange').css("display", "block");
+                row.find('.ChangeQty').css("display", "none");
+            })
+
+            $('.CancelChange').on('click', function (e) {
+                e.preventDefault();
+
+                var row = $(this).closest('tr');
+                var displaySpan = row.find('.display-span');
+                displaySpan.find('.ProdInv').css("display", "block");
+                displaySpan.find('input').css("display", "none");
+                row.find('.ChangeQty').css("display", "block");
+                row.find('.SaveQty').css("display", "none");
+                row.find('.CancelChange').css("display", "none");
+            })
+
+
+
+
+            $('.SaveQty').on('click', function (e) {
+                e.preventDefault();
+
+                var productId = $(this).closest('td').data('product-id');
+                var productSKU = $(this).closest('td').data('product-sku');
+
+                var id = $(this).data('id');
+                var row = $(this).closest('tr');
+                var displaySpan = row.find('.display-span');
+                var quantity = displaySpan.find('input').val();
+                var size = row.find('.prodSize').data('size');
+
+                console.log(size);
+
+                var model = {
+                    Id: id,
+                    Quantity: quantity,
+                    Size: size,
+                    ProductId: productId,
+                    ProductSKU: productSKU
+                }
+
+                var confirmMessage = $(this).data('confirm');
+
+                if (confirm(confirmMessage)) {
+                    $.ajax({
+                        type: "POST",
+                        url: "/ProductInventory/Edit",
+                        data: model,
+                        success: function (response) {
+                            if (response.response === true) {
+                                window.location.href = "/Product/All";
+
+                            } else {
+                                if (response.message) {
+                                    $('#errorMessage').text("An error occurred while deleting the product: " + response.message);
+                                }
+                                $('#errorMessage').show();
+                                setTimeout(function () {
+                                    $('#errorMessage').hide();
+                                }, 3000);
+                            }
+                        },
+                        error: function () {
+
+                        }
+                    });
+                }
+
+                var row = $(this).closest('tr');
+                var displaySpan = row.find('.display-span');
+                displaySpan.find('.ProdInv').css("display", "block");
+                displaySpan.find('input').css("display", "none");
+                row.find('.ChangeQty').css("display", "block");
+                row.find('.SaveQty').css("display", "none");
+                row.find('.CancelChange').css("display", "none");
+
+
+            })
+        })
+    </script>
+}

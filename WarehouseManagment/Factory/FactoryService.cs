@@ -8,15 +8,15 @@ namespace WarehouseManagment.Factory
     {
         public List<ProductInventoryModel> PrepareProductInventoryListModel(List<ProductInventory> productInventories)
         {
-            var productInventoryList = new List<ProductInventoryModel>();
+            var productInventoriesModel = new List<ProductInventoryModel>();
 
             foreach (var productInventory in productInventories)
             {
                 var productInventoryModel = PrepareProductInventoryModel(productInventory);
-                productInventoryList.Add(productInventoryModel);
+                productInventoriesModel.Add(productInventoryModel);
             }
 
-            return productInventoryList;
+            return productInventoriesModel;
         }
 
         public ProductInventoryModel PrepareProductInventoryModel(ProductInventory productInventory)

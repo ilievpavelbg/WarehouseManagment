@@ -30,3 +30,22 @@ body {
     color: #C23A00;
 }
 
+.product-row {
+    border: 2px;
+    border-style: solid;
+    border-color: green;
+    border-radius:25px;
+    height: 300px;
+}
+
+.product-sku {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.product-description {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+

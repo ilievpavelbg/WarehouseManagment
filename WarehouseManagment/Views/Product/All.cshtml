@@ -39,8 +39,8 @@ else
                         <td align="right">
                             <a class="btn btn-primary" asp-action="Details" asp-controller="Product" asp-route-Id="@item.Id">Детайли</a>
                             <a class="btn btn-secondary" asp-action="Edit" asp-controller="Product" asp-route-Id="@item.Id">Редактирай</a>
-                            <a class="btn btn-success" asp-action="" asp-controller="" asp-route-Id="@item.Id">Наличност</a>
-                            <a class="btn btn-danger delete-btn" data-Id="@item.Id" data-confirm="Сигурни ли сте че искате да изтриете този артикул?">Изтрии</a>
+                            <a class="btn btn-success" asp-action="Availability" asp-controller="Product" asp-route-Id="@item.Id">Наличност</a>
+                            <a class="btn btn-danger delete-btn" data-id="@item.Id" data-confirm="Сигурни ли сте че искате да изтриете този артикул?">Изтрии</a>
                         </td>
                     </tr>
                 }

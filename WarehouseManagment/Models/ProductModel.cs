@@ -16,6 +16,8 @@ namespace WarehouseManagment.Models
         public Composition? FirstComposition { get; set; }
         public Composition? SecondComposition { get; set; }
         public Category? Category { get; set; }
-       
+        public List<ProductInventoryModel> ProductInventoriesModel { get; set; } = new List<ProductInventoryModel>();
+        public Discount Discount { get; set; }
+
     }
 }
