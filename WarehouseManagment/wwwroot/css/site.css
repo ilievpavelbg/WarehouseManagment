@@ -35,7 +35,8 @@ body {
     border-style: solid;
     border-color: green;
     border-radius:25px;
-    height: 300px;
+    height: auto;
+    padding:10px;
 }
 
 .product-sku {
@@ -46,6 +47,14 @@ body {
 .product-description {
     font-size: 20px;
     font-weight: bold;
+}
+
+.product-unit-price{
+    font-size:large;
+}
+
+.input-group-text{
+    width:185px;
 }
 
 

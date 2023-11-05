@@ -8,7 +8,7 @@
         </div>
     </form>
 </div>
-<div class="product-container" ></div>
+<div class="product-container col-6" ></div>
 
 @section Scripts{
     <script>
@@ -31,14 +31,71 @@
             function createProductRow(productData) {
                 var newRow = $('<div class="row product-row">');
                 newRow.append($('<div class="col ml-3 product-sku">').text("Продажба на артикул : " + productData.productData.productSKU + ' ( ' + productData.productData.description + ' )'));
-                var unitPriceInput = $('<input type="number" class="product-unit-price">').val(productData.productData.unitPrice);
-                newRow.append(unitPriceInput);
-                newRow.append(createDiscountDropdown(productData.discount));
-                newRow.append(createPaymentMethodDropdown(productData.paymentMethod));
-                var quantityInput = $('<input type="number" min="0" class="product-quantity">').val(1);
-                newRow.append(quantityInput);
-                newRow.append($('<span class="product-total-price">').text(productData.productData.unitPrice));
-                var saleButton = $('<button class="sale-button">Sale</button>');
+                var unitPriceRow = $('<div class="input-group input-group-lg mb-2">');
+                var unitPriceColDescr = $('<span class="input-group-text" id="inputGroup-sizing-lg">Единична цена :</span>');
+                var unitPriceInput = $('<input type="number" class="product-unit-price form-control" aria-label="Disabled input example" disabled>').val(productData.productData.unitPrice);
+                unitPriceRow.append(unitPriceColDescr);
+                unitPriceRow.append(unitPriceInput);
+                newRow.append(unitPriceRow);
+                newRow.append(createPaymentMethodDropdown(productData.productData.paymentMethod));
+                var quantityRow = $('<div class="input-group input-group-lg mb-2">');
+                var quantityColDescr = $('<span class="input-group-text" id="inputGroup-sizing-lg">Количество :</span>');
+                var quantityInput = $('<input type="number" min="1" class="product-quantity form-control">').val(1);
+                quantityRow.append(quantityColDescr);
+                quantityRow.append(quantityInput);
+                newRow.append(quantityRow);
+                newRow.append(createDiscountDropdown(productData.productData.discount));
+                var totalPriceRow = $('<div class="input-group input-group-lg mb-2">');
+                var totalPriceColDescr = $('<span class="input-group-text" id="inputGroup-sizing-lg">Тотал цена :</span>');
+                var totalPriceInput = $('<input class="product-total-price form-control" id="TotalPrice" aria-label="Disabled input example" disabled>').val(productData.productData.unitPrice);
+                totalPriceRow.append(totalPriceColDescr);
+                totalPriceRow.append(totalPriceInput);
+                newRow.append(totalPriceRow);
+                var saleButton = $('<button class="p-2 mb-2 sale-button btn btn-primary">Продай</button>');
+
+
+                function UpdateTotalPriceByDiscount() {
+                    var unitPrice = parseFloat(unitPriceInput.val());
+                    var quantity = parseInt(quantityInput.val());
+                    var discount = parseFloat($('.product-discount option:selected').val());
+
+                    if (isNaN(discount)) {
+                        discount = 0;
+                    }
+
+                    var totalPrice = unitPrice * quantity;
+
+                    if (discount > 0) {
+                        totalPrice = (unitPrice - (unitPrice * discount / 100)) * quantity;
+                    } else {
+                        totalPrice = unitPrice * quantity;
+                    }
+
+                    $('#TotalPrice').val(totalPrice);
+                }
+                $('.product-container').append(newRow);
+                newRow.find('.product-discount').on('change', UpdateTotalPriceByDiscount);
+
+                function UpdateTotalPriceByQuantity() {
+                    var unitPrice = parseFloat(unitPriceInput.val());
+                    var quantity = parseInt(quantityInput.val());
+                    var discount = parseFloat($('.product-discount option:selected').val());
+
+                    if (isNaN(discount)) {
+                        discount = 0;
+                    }
+
+                    var totalPrice = unitPrice * quantity;
+
+                    if (discount > 0) {
+                        totalPrice = (unitPrice - (unitPrice * discount / 100)) * quantity;
+                    } else {
+                        totalPrice = unitPrice * quantity;
+                    }
+                    $('#TotalPrice').val(totalPrice);
+                }
+                quantityInput.on('input', UpdateTotalPriceByQuantity);
+                UpdateTotalPriceByQuantity();
 
                 saleButton.on('click', function () {
                     var sku = productData.productData.productSKU;
@@ -48,6 +105,7 @@
                     var date = productData.productData.soldDate;
                     var productId = productData.productData.productId;
                     var productInventoryId = productData.productData.productInventoryId;
+                    var paymentMethod = parseInt($('.product-paymentMethod option:selected').val());
                     var totalPrice;
                     if (discount > 0) {
                         totalPrice = (unitPrice - (unitPrice * discount / 100)) * quantity;
@@ -63,7 +121,8 @@
                         soldDate: date,
                         productId: productId,
                         totalPrice: totalPrice,
-                        productInventoryId: productInventoryId
+                        productInventoryId: productInventoryId,
+                        paymentMethod: paymentMethod
                     };
 
                     $.ajax({
@@ -91,46 +150,58 @@
             }
             //Create discount dropdown
             function createDiscountDropdown(selectedDiscount) {
-                var dropdown = $('<select class="product-discount">');
+                var container = $('<div class="input-group input-group-lg mb-2">');
+                var description = $('<label class="input-group-text" for="inputGroupSelect01">Отстъпка : </label>');
+                var dropdown = $('<select class="product-discount form-select" id="inputGroupSelect01">');
                 var discountValues = [
         @foreach (var value in Enum.GetValues(typeof(Discount)).Cast<Discount>())
         {
             <text>{ value: @((int)value) }, </text>
         }
-                            ];
+            ];
 
                 discountValues.forEach(function (option) {
-                    var optionElement = $('<option>').attr('value', option.value).text(option.value);
+                    var optionElement = $('<option>').attr('value', option.value).text(option.value + "%");
+                    
                     if (option.value === selectedDiscount) {
                         optionElement.attr('selected', 'selected');
                     }
                     dropdown.append(optionElement);
                 });
 
-                return dropdown;
+                container.append(description);
+                container.append(dropdown);
+
+                return container;
             }
 
             //Create PaymentMethod dropdown
             function createPaymentMethodDropdown(selectedPaymentMethod) {
-                var dropdown = $('<select class="product-paymentMethod">');
-                var paymentMethods = {
+                var container = $('<div class="input-group input-group-lg mb-2">');
+                var description = $('<label class="input-group-text" for="inputGroupSelect01">Плащане : </label>');
+                var dropdown = $('<select class="product-paymentMethod form-select">');
+                var paymentMethods = [
         @foreach (var value in Enum.GetValues(typeof(PaymentMethod)).Cast<PaymentMethod>())
         {
-            <text>@((int)value): '@value', </text>
+            <text>{ value: "@((int)value)", text: "@value" }, </text>
         }
-            };
+            ];
 
-            for (var key in paymentMethods) {
-                var optionElement = $('<option>').attr('value', key).text(paymentMethods[key]);
-                if (key === selectedPaymentMethod) {
-                    optionElement.attr('selected', 'selected');
+                for (var i = 0; i < paymentMethods.length; i++) {
+                    var optionElement = $('<option>').attr('value', paymentMethods[i].value).text(paymentMethods[i].text);
+                    if (paymentMethods[i].value === selectedPaymentMethod) {
+                        optionElement.attr('selected', 'selected');
+                    }
+                    dropdown.append(optionElement);
                 }
-                dropdown.append(optionElement);
+
+                container.append(description);
+                container.append(dropdown);
+
+                return container;
             }
 
-            return dropdown;
-        }
-
+            
 
             // Disable discount and quantity fields and change the button text to "SOLD"
             function disableFields() {
