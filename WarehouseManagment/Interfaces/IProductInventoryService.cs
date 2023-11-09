@@ -9,5 +9,7 @@ namespace WarehouseManagment.Interfaces
         Task<ProductInventory> GetProductInventoryByIdAsync(int id);
         Task EditProductInventoryAsync(ProductInventoryModel model);
         Task CreateProductInventoryAsync(ProductInventoryModel model);
+        Task UpdateInventoryOnSaleAsync(SaleModel model);
+        Task<string> GetSizeByInventoryId(int id);
     }
 }

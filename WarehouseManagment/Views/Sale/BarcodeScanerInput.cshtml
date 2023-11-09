@@ -1,14 +1,17 @@
-﻿<div class="col-4" >
-    <form method="get">
-        <div class="input-group mb-3 mt-5">
-            <input type="text" id="barcode" name="id" class="form-control" placeholder="Product ID" aria-label="product ID" aria-describedby="basic-addon2">
-            <div class="input-group-append">
-                <input type="submit" value="Submit" class="btn btn-outline-danger" />
-            </div>
-        </div>
+﻿@{
+    ViewData["Title"] = $"Продажба на артикул";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<div class="col-4 my-5">
+    <form class="d-flex" method="get">
+        <input type="text" id="barcode" name="id" class="form-control me-2" placeholder="Inventory Id" aria-label="Inventory Id" aria-describedby="basic-addon2">
+        <button type="submit" class="btn btn-outline-success">Търси</button>
     </form>
 </div>
-<div class="product-container col-6" ></div>
+
+<div class="product-container col-6"></div>
 
 @section Scripts{
     <script>
@@ -30,29 +33,29 @@
 
             function createProductRow(productData) {
                 var newRow = $('<div class="row product-row">');
-                newRow.append($('<div class="col ml-3 product-sku">').text("Продажба на артикул : " + productData.productData.productSKU + ' ( ' + productData.productData.description + ' )'));
+                newRow.append($('<div class="col py-2 product-sku text-center">').text(productData.productData.productSKU + ' / ' + productData.productData.description + ' / ' + productData.productData.size));
                 var unitPriceRow = $('<div class="input-group input-group-lg mb-2">');
-                var unitPriceColDescr = $('<span class="input-group-text" id="inputGroup-sizing-lg">Единична цена :</span>');
+                var unitPriceColDescr = $('<span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Единична цена :</span>');
                 var unitPriceInput = $('<input type="number" class="product-unit-price form-control" aria-label="Disabled input example" disabled>').val(productData.productData.unitPrice);
                 unitPriceRow.append(unitPriceColDescr);
                 unitPriceRow.append(unitPriceInput);
                 newRow.append(unitPriceRow);
                 newRow.append(createPaymentMethodDropdown(productData.productData.paymentMethod));
                 var quantityRow = $('<div class="input-group input-group-lg mb-2">');
-                var quantityColDescr = $('<span class="input-group-text" id="inputGroup-sizing-lg">Количество :</span>');
+                var quantityColDescr = $('<span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Количество :</span>');
                 var quantityInput = $('<input type="number" min="1" class="product-quantity form-control">').val(1);
                 quantityRow.append(quantityColDescr);
                 quantityRow.append(quantityInput);
                 newRow.append(quantityRow);
                 newRow.append(createDiscountDropdown(productData.productData.discount));
                 var totalPriceRow = $('<div class="input-group input-group-lg mb-2">');
-                var totalPriceColDescr = $('<span class="input-group-text" id="inputGroup-sizing-lg">Тотал цена :</span>');
+                var totalPriceColDescr = $('<span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Тотал цена :</span>');
                 var totalPriceInput = $('<input class="product-total-price form-control" id="TotalPrice" aria-label="Disabled input example" disabled>').val(productData.productData.unitPrice);
                 totalPriceRow.append(totalPriceColDescr);
                 totalPriceRow.append(totalPriceInput);
                 newRow.append(totalPriceRow);
-                var saleButton = $('<button class="p-2 mb-2 sale-button btn btn-primary">Продай</button>');
-
+                var saleButton = $('<button class="p-2 mb-2 sale-button btn btn-outline-success fs-4">ОТЧЕТИ ПРОДАЖБА</button>');
+                newRow.append(saleButton);
 
                 function UpdateTotalPriceByDiscount() {
                     var unitPrice = parseFloat(unitPriceInput.val());
@@ -66,9 +69,9 @@
                     var totalPrice = unitPrice * quantity;
 
                     if (discount > 0) {
-                        totalPrice = (unitPrice - (unitPrice * discount / 100)) * quantity;
+                        totalPrice = ((unitPrice - (unitPrice * discount / 100)) * quantity).toFixed(2);
                     } else {
-                        totalPrice = unitPrice * quantity;
+                        totalPrice = (unitPrice * quantity).toFixed(2);
                     }
 
                     $('#TotalPrice').val(totalPrice);
@@ -88,9 +91,9 @@
                     var totalPrice = unitPrice * quantity;
 
                     if (discount > 0) {
-                        totalPrice = (unitPrice - (unitPrice * discount / 100)) * quantity;
+                        totalPrice = ((unitPrice - (unitPrice * discount / 100)) * quantity).toFixed(2);
                     } else {
-                        totalPrice = unitPrice * quantity;
+                        totalPrice = (unitPrice * quantity).toFixed(2);
                     }
                     $('#TotalPrice').val(totalPrice);
                 }
@@ -133,10 +136,8 @@
                             if (response.success) {
                                 // Handle a successful sale (e.g., update UI)
                                 // Change the button text to "SOLD" and disable discount and quantity inputs
-                                $('.product-quantity').attr("disabled", true);
-                                $('.sale-button').text('SOLD');
-                                $('.sale-button').addClass('unsold-button').removeClass('sale-button');
-                                // Display the "UNSOLD IT" button (you can add the logic for this)
+                                alert("Успешно извършихте продажба!")
+                                window.location.reload();
                             } else {
                                 // Handle an unsuccessful sale (e.g., show an error message)
                                 alert('Sale failed: ' + response.message);
@@ -145,24 +146,22 @@
                     });
                 });
 
-                newRow.append(saleButton);
-                $('.product-container').append(newRow);
             }
             //Create discount dropdown
             function createDiscountDropdown(selectedDiscount) {
                 var container = $('<div class="input-group input-group-lg mb-2">');
-                var description = $('<label class="input-group-text" for="inputGroupSelect01">Отстъпка : </label>');
+                var description = $('<label class="input-group-text fw-bold" for="inputGroupSelect01">Отстъпка : </label>');
                 var dropdown = $('<select class="product-discount form-select" id="inputGroupSelect01">');
                 var discountValues = [
         @foreach (var value in Enum.GetValues(typeof(Discount)).Cast<Discount>())
         {
             <text>{ value: @((int)value) }, </text>
         }
-            ];
+                    ];
 
                 discountValues.forEach(function (option) {
                     var optionElement = $('<option>').attr('value', option.value).text(option.value + "%");
-                    
+
                     if (option.value === selectedDiscount) {
                         optionElement.attr('selected', 'selected');
                     }
@@ -178,14 +177,14 @@
             //Create PaymentMethod dropdown
             function createPaymentMethodDropdown(selectedPaymentMethod) {
                 var container = $('<div class="input-group input-group-lg mb-2">');
-                var description = $('<label class="input-group-text" for="inputGroupSelect01">Плащане : </label>');
+                var description = $('<label class="input-group-text fw-bold" for="inputGroupSelect01">Плащане : </label>');
                 var dropdown = $('<select class="product-paymentMethod form-select">');
                 var paymentMethods = [
         @foreach (var value in Enum.GetValues(typeof(PaymentMethod)).Cast<PaymentMethod>())
         {
             <text>{ value: "@((int)value)", text: "@value" }, </text>
         }
-            ];
+                    ];
 
                 for (var i = 0; i < paymentMethods.length; i++) {
                     var optionElement = $('<option>').attr('value', paymentMethods[i].value).text(paymentMethods[i].text);
@@ -201,14 +200,14 @@
                 return container;
             }
 
-            
+
 
             // Disable discount and quantity fields and change the button text to "SOLD"
-            function disableFields() {
-                $('.product-quantity').attr("disabled", true);
-                $('.sale-button').text('SOLD');
-                $('.sale-button').addClass('unsold-button').removeClass('sale-button');
-            }
+            // function disableFields() {
+            //     $('.product-quantity').attr("disabled", true);
+            //     $('.sale-button').text('SOLD');
+            //     $('.sale-button').addClass('unsold-button').removeClass('sale-button');
+            // }
 
             // Handle "UNSOLD IT" button click event
             $('.unsold-button').on('click', function () {

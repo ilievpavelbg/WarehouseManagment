@@ -20,7 +20,6 @@
 
   <ItemGroup>
     <Folder Include="Repository\" />
-    <Folder Include="Views\Sale\" />
   </ItemGroup>
 
 </Project>

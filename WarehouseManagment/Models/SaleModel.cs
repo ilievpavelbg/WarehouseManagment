@@ -4,6 +4,7 @@ namespace WarehouseManagment.Models
 {
     public class SaleModel
     {
+        public int Id { get; set; }
         public int ProductId { get; set; }
         public string ProductSKU { get; set; } = null!;
         public int ProductInventoryId { get; set; }
@@ -15,5 +16,6 @@ namespace WarehouseManagment.Models
         public PaymentMethod PaymentMethod { get; set; }
         public bool IsDeleted { get; set; }
         public string? Description { get; set; } = null!;
+        public string Size { get; set; } = null!;
     }
 }

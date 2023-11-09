@@ -1,4 +1,10 @@
-﻿@if (!ViewData.ModelState.IsValid)
+﻿@{
+    ViewData["Title"] = $"Създаване на артикули от EXCEL";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+@if (!ViewData.ModelState.IsValid)
 {
     <div class="alert alert-danger">
         @foreach (var modelState in ViewData.ModelState.Values)
@@ -11,10 +17,16 @@
     </div>
 }
 <form asp-action="CreateProductFromExcel" asp-controller="Product" method="post" enctype="multipart/form-data">
-    <div class="mb-5 mt-5">
-        <input type="file" name="ExcelFile">
+    <div class="col-6 mt-5">
+        <div class="input-group">
+            <input type="file" class="form-control" id="inputGroupFile04" aria-describedby="inputGroupFileAddon04" aria-label="Upload">
+            <button class="btn btn-outline-secondary" type="button" id="inputGroupFileAddon04">Button</button>
+        </div>
     </div>
-    <input class="btn btn-primary" type="submit" value="Upload Excel" />
+    @* <div class="mb-5 mt-5">
+    <input type="file" name="ExcelFile">
+    </div>
+    <input class="btn btn-primary" type="submit" value="Upload Excel" /> *@
 </form>
 
 

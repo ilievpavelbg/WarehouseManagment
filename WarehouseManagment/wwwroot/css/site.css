@@ -30,13 +30,18 @@ body {
     color: #C23A00;
 }
 
+.product-container{
+    
+}
+
 .product-row {
     border: 2px;
     border-style: solid;
-    border-color: green;
-    border-radius:25px;
+    border-color: #989898;
+    border-radius: 20px;
     height: auto;
-    padding:10px;
+    padding: 10px;
+    background-color: #D7D4D4
 }
 
 .product-sku {

@@ -1,7 +1,11 @@
-﻿namespace WarehouseManagment.Interfaces
+﻿using WarehouseManagment.Data;
+using WarehouseManagment.Models;
+
+namespace WarehouseManagment.Interfaces
 {
     public interface ISaleService
     {
-
+        Task CreateSaleAsync(SaleModel model);
+        Task<List<Sale>> GetAllSalesAsync(string? date, string? productSKU);
     }
 }

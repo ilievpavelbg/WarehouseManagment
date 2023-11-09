@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using WarehouseManagment.Data;
+using WarehouseManagment.Models;
 using WarehouseManagment.Models.User;
 
 namespace WarehouseManagment.Controllers
@@ -85,13 +87,22 @@ namespace WarehouseManagment.Controllers
 
         [HttpPost]
         [AllowAnonymous]
-        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl)
+        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl, [Bind(Prefix = "g-recaptcha-response")] string recaptchaResponse)
         {
+
+            model.Response = recaptchaResponse;
+
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
-            
+
+            if (!await VerifyRecaptcha(model.Response, model.Secret))
+            {
+                ModelState.AddModelError("", "Трябва да потвърдите, че не сте робот.");
+                return View(model);
+            }
+
             var user = await userManager.FindByNameAsync(model.UserName);
 
             var userRole = await userManager.GetRolesAsync(user);
@@ -99,7 +110,7 @@ namespace WarehouseManagment.Controllers
             if (user != null)
             {
                 var result = await signInManager.PasswordSignInAsync(user, model.Password, false, false);
-                
+
                 if (result.Succeeded)
                 {
 
@@ -123,5 +134,34 @@ namespace WarehouseManagment.Controllers
 
             return RedirectToAction("Index", "Home", new { area = "default" });
         }
+
+        private async Task<bool> VerifyRecaptcha(string recaptchaResponse, string secret)
+        {
+
+            using (var httpClient = new HttpClient())
+            {
+                var postData = new Dictionary<string, string>
+            {
+                { "secret", secret },
+                { "response", recaptchaResponse }
+            };
+
+                var content = new FormUrlEncodedContent(postData);
+
+                var response = await httpClient.PostAsync("https://www.google.com/recaptcha/api/siteverify", content);
+                response.EnsureSuccessStatusCode();
+
+                string responseString = await response.Content.ReadAsStringAsync();
+                var recaptchaResult = JsonConvert.DeserializeObject<LoginViewModel>(responseString);
+
+                if (recaptchaResult != null && recaptchaResult.Success)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
     }
 }

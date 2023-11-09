@@ -61,14 +61,12 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Edit(int barcode)
+        public async Task<IActionResult> Edit(int id)
         {
-            var product = await _productService.GetProductByIdAsync(barcode);
+            var product = await _productService.GetProductByIdAsync(id);
             var model = _factoryService.PrepareProductModel(product);
 
-            return Json(new { productData = model });
-
-            //return View(model);
+            return View(model);
         }
 
         [HttpPost]
@@ -177,10 +175,5 @@ namespace WarehouseManagment.Controllers
 
         }
 
-        [HttpGet]
-        public IActionResult BarcodeScanerInput()
-        {
-            return View();
-        }
     }
 }

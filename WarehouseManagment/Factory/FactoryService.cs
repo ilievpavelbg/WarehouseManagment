@@ -6,6 +6,12 @@ namespace WarehouseManagment.Factory
 {
     public class FactoryService : IFactoryService
     {
+        private readonly IProductInventoryService _productInventoryService;
+
+        public FactoryService(IProductInventoryService productInventoryService)
+        {
+                _productInventoryService = productInventoryService;
+        }
         public List<ProductInventoryModel> PrepareProductInventoryListModel(List<ProductInventory> productInventories)
         {
             var productInventoriesModel = new List<ProductInventoryModel>();
@@ -60,6 +66,54 @@ namespace WarehouseManagment.Factory
                 FirstComposition = product.FirstComposition,
                 SecondComposition = product.SecondComposition,
                 Category = product.Category,
+            };
+
+            return model;
+        }
+
+        public async Task<List<SaleModel>> PrepareSaleListModel(List<Sale> sales)
+        {
+            var salesModel = new List<SaleModel>();
+
+            foreach (var sale in sales)
+            {
+                var saleModel = new SaleModel()
+                {
+                    Id = sale.Id,
+                    ProductId = sale.ProductId,
+                    ProductInventoryId = sale.ProductInventoryId,
+                    ProductSKU = sale.ProductSKU,
+                    Quantity = sale.Quantity,
+                    UnitPrice = sale.UnitPrice,
+                    TotalPrice = sale.TotalPrice,
+                    Discount = sale.Discount,
+                    SoldDate = sale.SoldDate,
+                    PaymentMethod = sale.PaymentMethod
+                    
+                };
+
+                saleModel.Size = await _productInventoryService.GetSizeByInventoryId(sale.ProductInventoryId);
+
+                salesModel.Add(saleModel);
+
+            }
+
+            return salesModel;
+        }
+
+        public SaleModel PrepareSaleModel(ProductInventory productInventory, Product product)
+        {
+            var model = new SaleModel()
+            {
+                ProductId = product.Id,
+                ProductSKU = product.SKU,
+                ProductInventoryId = productInventory.Id,
+                Quantity = productInventory.Quantity,
+                SoldDate = DateTime.Now,
+                Description = product.Description,
+                UnitPrice = (decimal)product.RetailPrice,
+                Size = productInventory.Size.ToString()
+
             };
 
             return model;

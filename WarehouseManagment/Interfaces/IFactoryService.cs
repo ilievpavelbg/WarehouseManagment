@@ -9,5 +9,7 @@ namespace WarehouseManagment.Interfaces
         List<ProductModel> PrepareProductListModel(List<Product> products);
         ProductInventoryModel PrepareProductInventoryModel(ProductInventory productInventory);
         List<ProductInventoryModel> PrepareProductInventoryListModel(List<ProductInventory> productInventories);
+        SaleModel PrepareSaleModel(ProductInventory productInventory, Product product);
+        Task<List<SaleModel>> PrepareSaleListModel(List<Sale> sales);
     }
 }

@@ -79,5 +79,21 @@ namespace WarehouseManagment.Services
 
             return productInventory;
         }
+
+        public async Task<string> GetSizeByInventoryId(int id)
+        {
+            var inventory = await _repository.GetByIdAsync<ProductInventory>(id);
+
+            return inventory.Size.ToString();
+        }
+
+        public async Task UpdateInventoryOnSaleAsync(SaleModel model)
+        {
+            var inventory = await _repository.GetByIdAsync<ProductInventory>(model.ProductInventoryId);
+
+            inventory.Quantity -= model.Quantity;
+
+            await _repository.SaveChangesAsync();
+        }
     }
 }
