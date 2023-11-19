@@ -7,5 +7,6 @@ namespace WarehouseManagment.Interfaces
     {
         Task CreateSaleAsync(SaleModel model);
         Task<List<Sale>> GetAllSalesAsync(string? date, string? productSKU);
+        Task<int> CreditSaleAsync(int id);
     }
 }

@@ -29,6 +29,12 @@
                         <li class="nav-item">
                             <a class="nav-link" asp-area="" asp-controller="Sale" asp-action="AllSales">Отчет магазин</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-area="" asp-controller="Courier" asp-action="BarcodeScanerInput">Куриер</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-area="" asp-controller="Courier" asp-action="AllCouriers">Отчет куриери</a>
+                        </li>
                     </ul>
                     <partial name="_LoginPartial" />
                 </div>
@@ -51,6 +57,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

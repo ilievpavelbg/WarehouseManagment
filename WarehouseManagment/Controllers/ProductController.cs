@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using OfficeOpenXml;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
@@ -79,7 +80,7 @@ namespace WarehouseManagment.Controllers
                     .Select(e => e.ErrorMessage)
                     .ToList();
 
-                return Json(new { success = false, message = "Validation failed", errors = errors });
+                return Json(new { success = false, message = $"Validation failed {errors}"});
             }
 
             try
@@ -174,6 +175,7 @@ namespace WarehouseManagment.Controllers
             return RedirectToAction("All");
 
         }
+
 
     }
 }

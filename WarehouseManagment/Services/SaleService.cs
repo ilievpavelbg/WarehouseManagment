@@ -10,10 +10,12 @@ namespace WarehouseManagment.Services
     public class SaleService : ISaleService
     {
         private readonly IRepository _repository;
+        private readonly IProductInventoryService _productInventoryService;
 
-        public SaleService(IRepository repository)
+        public SaleService(IRepository repository, IProductInventoryService productInventoryService)
         {
             _repository = repository;
+            _productInventoryService = productInventoryService;
         }
         public async Task CreateSaleAsync(SaleModel model)
         {
@@ -42,9 +44,41 @@ namespace WarehouseManagment.Services
             }
         }
 
+        public async Task<int> CreditSaleAsync(int id)
+        {
+            var sale = await _repository.GetByIdAsync<Sale>(id);
+
+            if (sale == null)
+            {
+                throw new Exception();
+            }
+
+            sale.IsDeleted = true;
+
+            var creditSale = new Sale()
+            {
+                ProductId = sale.ProductId,
+                ProductSKU = sale.ProductSKU,
+                ProductInventoryId = sale.ProductInventoryId,
+                Quantity = -sale.Quantity,
+                UnitPrice = sale.UnitPrice,
+                TotalPrice = -sale.TotalPrice,
+                Discount = sale.Discount,
+                SoldDate = sale.SoldDate,
+                PaymentMethod = sale.PaymentMethod,
+                IsDeleted = sale.IsDeleted
+            };
+
+            await _repository.AddAsync(creditSale);
+            await _repository.SaveChangesAsync();
+
+            return sale.ProductInventoryId;
+
+        }
+
         public async Task<List<Sale>> GetAllSalesAsync(string? date, string? productSKU)
         {
-            var sales = await _repository.All<Sale>().ToListAsync();
+            var sales = await _repository.All<Sale>().OrderByDescending(x => x.SoldDate).ToListAsync();
 
             if (date != null && productSKU == null)
             {

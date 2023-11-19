@@ -87,11 +87,21 @@ namespace WarehouseManagment.Services
             return inventory.Size.ToString();
         }
 
-        public async Task UpdateInventoryOnSaleAsync(SaleModel model)
+        public async Task UpdateInventoryAsync(int id, int quantity)
         {
-            var inventory = await _repository.GetByIdAsync<ProductInventory>(model.ProductInventoryId);
+            var inventory = await _repository.GetByIdAsync<ProductInventory>(id);
 
-            inventory.Quantity -= model.Quantity;
+            if (quantity > 0)
+            {
+                inventory.Quantity -= quantity;
+
+            }
+            else
+            {
+                var positiveQty = Math.Abs(quantity);
+                inventory.Quantity += positiveQty;
+
+            }
 
             await _repository.SaveChangesAsync();
         }

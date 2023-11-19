@@ -1,5 +1,6 @@
-﻿@{
-    ViewData["Title"] = $"Продажба на артикул";
+﻿@using System.ComponentModel;
+@{
+    ViewData["Title"] = $"Изпращане по куриер";
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
@@ -21,7 +22,7 @@
                 var scannedBarcode = $(this).val();
 
                 $.ajax({
-                    url: '/Sale/Index',
+                    url: '/Courier/Index',
                     type: 'GET',
                     data: { barcode: scannedBarcode },
                     success: function (productData) {
@@ -36,6 +37,13 @@
                 var newRow = $('<div class="row product-row">');
                 newRow.append($('<div class="col py-2 product-sku text-center">').text(productData.productData.productSKU + ' / ' + productData.productData.description + ' / ' + productData.productData.size));
                 newRow.append($('<p class="col py-2 product-sku text-center">').text(productData.productData.availability + ' бр. '));
+                var shippingBillRow = $('<div class="input-group input-group-lg mb-2">');
+                var shippingBillDescr = $('<span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Товарителница :</span>');
+                var shippingBillInput = $('<input type="text" class="shipping-bill form-control" aria-label="Disabled input example" >').val(productData.productData.shippmentBill);
+                shippingBillRow.append(shippingBillDescr);
+                shippingBillRow.append(shippingBillInput);
+                newRow.append(shippingBillRow);
+                newRow.append(createCourierNameDropdown(productData.productData.courierName));
                 var unitPriceRow = $('<div class="input-group input-group-lg mb-2">');
                 var unitPriceColDescr = $('<span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Единична цена :</span>');
                 var unitPriceInput = $('<input type="number" class="product-unit-price form-control" aria-label="Disabled input example" disabled>').val(productData.productData.unitPrice);
@@ -56,7 +64,7 @@
                 totalPriceRow.append(totalPriceColDescr);
                 totalPriceRow.append(totalPriceInput);
                 newRow.append(totalPriceRow);
-                var saleButton = $('<button class="p-2 mb-2 sale-button btn btn-outline-success fs-4">ОТЧЕТИ ПРОДАЖБА</button>');
+                var saleButton = $('<button class="p-2 mb-2 sale-button btn btn-outline-success fs-4">ОТЧЕТИ КУРИЕР</button>');
                 newRow.append(saleButton);
 
                 function UpdateTotalPriceByDiscount() {
@@ -103,7 +111,9 @@
                 UpdateTotalPriceByQuantity();
 
                 saleButton.on('click', function () {
-                    var sku = productData.productData.productSKU;
+                    var courierName = parseInt($('.courier-list option:selected').val());
+                    var shippmentBill = $('.shipping-bill').val()
+                            var sku = productData.productData.productSKU;
                     var unitPrice = parseFloat(unitPriceInput.val());
                     var discount = parseInt($('.product-discount option:selected').val());
                     var availability = productData.productData.availability;
@@ -112,7 +122,7 @@
                         alert("Количеството което сте избрали е по-голямо от наличностите.");
                         return false;
                     }
-                    var date = productData.productData.soldDate;
+                    var date = productData.productData.sendDate;
                     var productId = productData.productData.productId;
                     var productInventoryId = productData.productData.productInventoryId;
                     var paymentMethod = parseInt($('.product-paymentMethod option:selected').val());
@@ -123,37 +133,65 @@
                         totalPrice = unitPrice * quantity;
                     }
 
-                    var sale = {
+                    var courier = {
                         productSKU: sku,
                         unitPrice: unitPrice,
                         discount: discount,
                         quantity: quantity,
-                        soldDate: date,
+                        sendDate: date,
                         productId: productId,
                         totalPrice: totalPrice,
                         productInventoryId: productInventoryId,
-                        paymentMethod: paymentMethod
+                        courierPaymentMethod: paymentMethod,
+                        shippmentBill: shippmentBill,
+                        courierName: courierName
                     };
 
                     $.ajax({
-                        url: '/Sale/Create',
+                        url: '/Courier/Create',
                         type: 'POST',
-                        data: sale,
+                        data: courier,
                         success: function (response) {
                             if (response.success) {
                                 // Handle a successful sale (e.g., update UI)
                                 // Change the button text to "SOLD" and disable discount and quantity inputs
-                                alert("Успешно извършихте продажба!")
+                                alert("Успешно изпратено по куриер!")
                                 window.location.reload();
                             } else {
                                 // Handle an unsuccessful sale (e.g., show an error message)
-                                alert('Sale failed: ' + response.message);
+                                alert(response.message);
                             }
                         }
                     });
                 });
 
             }
+            //Create courierName dropdown
+            function createCourierNameDropdown(selectedCourier) {
+                var container = $('<div class="input-group input-group-lg mb-2">');
+                var description = $('<label class="input-group-text fw-bold" for="inputGroupSelect01">Куриер : </label>');
+                var dropdown = $('<select class="courier-list form-select" id="inputGroupSelect01">');
+                var courierNames = [
+        @foreach (var value in Enum.GetValues(typeof(CourierName)).Cast<CourierName>())
+        {
+            <text>{ value: "@((int)value)", text: "@value" }, </text>
+        }
+                                            ];
+
+                for (var i = 0; i < courierNames.length; i++) {
+                    var optionElement = $('<option>').attr('value', courierNames[i].value).text(courierNames[i].text);
+                    if (courierNames[i].value === selectedCourier) {
+                        optionElement.attr('selected', 'selected');
+                    }
+                    dropdown.append(optionElement);
+                }
+
+                container.append(description);
+                container.append(dropdown);
+
+                return container;
+            }
+
             //Create discount dropdown
             function createDiscountDropdown(selectedDiscount) {
                 var container = $('<div class="input-group input-group-lg mb-2">');
@@ -164,7 +202,7 @@
         {
             <text>{ value: @((int)value) }, </text>
         }
-                            ];
+                                    ];
 
                 discountValues.forEach(function (option) {
                     var optionElement = $('<option>').attr('value', option.value).text(option.value + "%");
@@ -187,11 +225,17 @@
                 var description = $('<label class="input-group-text fw-bold" for="inputGroupSelect01">Плащане : </label>');
                 var dropdown = $('<select class="product-paymentMethod form-select">');
                 var paymentMethods = [
-        @foreach (var value in Enum.GetValues(typeof(PaymentMethod)).Cast<PaymentMethod>())
+        @foreach (var value in Enum.GetValues(typeof(CourierPaymentMethod)).Cast<CourierPaymentMethod>())
         {
-            <text>{ value: "@((int)value)", text: "@value" }, </text>
+            var enumType = typeof(CourierPaymentMethod);
+            var enumMember = enumType.GetMember(value.ToString())[0];
+            var descriptionAttribute = enumMember.GetCustomAttributes(typeof(DescriptionAttribute), false).FirstOrDefault() as DescriptionAttribute;
+            var paymentDescription = descriptionAttribute != null ? descriptionAttribute.Description : value.ToString();
+
+            var encodedDescription = Html.Raw(paymentDescription.Replace("\"", "&quot;"));
+            <text>{ value: "@((int)value)", text: "@encodedDescription" }, </text>
         }
-                            ];
+                                    ];
 
                 for (var i = 0; i < paymentMethods.length; i++) {
                     var optionElement = $('<option>').attr('value', paymentMethods[i].value).text(paymentMethods[i].text);
@@ -207,21 +251,6 @@
                 return container;
             }
 
-
-
-            // Disable discount and quantity fields and change the button text to "SOLD"
-            // function disableFields() {
-            //     $('.product-quantity').attr("disabled", true);
-            //     $('.sale-button').text('SOLD');
-            //     $('.sale-button').addClass('unsold-button').removeClass('sale-button');
-            // }
-
-            // Handle "UNSOLD IT" button click event
-            $('.unsold-button').on('click', function () {
-                // Make an AJAX request to update the quantity in the database
-                // Remove the product row after a successful update
-                // You should add this functionality based on your backend API
-            });
         })
     </script>
 }

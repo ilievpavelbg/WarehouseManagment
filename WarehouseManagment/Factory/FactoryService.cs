@@ -12,6 +12,60 @@ namespace WarehouseManagment.Factory
         {
                 _productInventoryService = productInventoryService;
         }
+
+        public async Task<List<CourierModel>> PrepareCourierListModel(List<Courier> couriers)
+        {
+            var couriersModel = new List<CourierModel>();
+
+            foreach (var courier in couriers)
+            {
+                var courierModel = new CourierModel()
+                {
+                    Id = courier.Id,
+                    ProductId = courier.ProductId,
+                    ProductInventoryId = courier.ProductInventoryId,
+                    ProductSKU = courier.ProductSKU,
+                    Quantity = courier.Quantity,
+                    UnitPrice = courier.UnitPrice,
+                    TotalPrice = courier.TotalPrice,
+                    Discount = courier.Discount,
+                    SendDate = courier.SendDate,
+                    CourierPaymentMethod = courier.CourierPaymentMethod,
+                    IsDeleted = courier.IsDeleted,
+                    IsPayed = courier.IsPayed,
+                    CourierName = courier.CourierName,
+                    ReturnDate = courier.ReturnDate,
+                    ShippmentBill = courier.ShippmentBill
+
+                };
+
+                courierModel.Size = await _productInventoryService.GetSizeByInventoryId(courier.ProductInventoryId);
+
+                couriersModel.Add(courierModel);
+
+            }
+
+            return couriersModel;
+        }
+
+        public CourierModel PrepareCourierModel(ProductInventory productInventory, Product product)
+        {
+            var model = new CourierModel()
+            {
+                ProductId = product.Id,
+                ProductSKU = product.SKU,
+                ProductInventoryId = productInventory.Id,
+                Quantity = productInventory.Quantity,
+                SendDate = DateTime.Now,
+                Description = product.Description,
+                UnitPrice = (decimal)product.RetailPrice,
+                Size = productInventory.Size.ToString(),
+                Availability = productInventory.Quantity
+            };
+
+            return model;
+        }
+
         public List<ProductInventoryModel> PrepareProductInventoryListModel(List<ProductInventory> productInventories)
         {
             var productInventoriesModel = new List<ProductInventoryModel>();
@@ -88,7 +142,8 @@ namespace WarehouseManagment.Factory
                     TotalPrice = sale.TotalPrice,
                     Discount = sale.Discount,
                     SoldDate = sale.SoldDate,
-                    PaymentMethod = sale.PaymentMethod
+                    PaymentMethod = sale.PaymentMethod,
+                    IsDeleted = sale.IsDeleted
                     
                 };
 
@@ -112,7 +167,8 @@ namespace WarehouseManagment.Factory
                 SoldDate = DateTime.Now,
                 Description = product.Description,
                 UnitPrice = (decimal)product.RetailPrice,
-                Size = productInventory.Size.ToString()
+                Size = productInventory.Size.ToString(),
+                Availability = productInventory.Quantity
 
             };
 

@@ -1,12 +1,14 @@
-﻿@model List<SaleModel>
+﻿@model List<CourierModel>
 
 @{
-    ViewData["Title"] = "Всички продажби на магазина";
+    ViewData["Title"] = "Всички куриерски пратки";
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
+
+<a class="btn btn-danger" asp-action="ExportToExcel" asp-controller="Courier">Експорт в Excel</a>
 <div class="col-4 my-5">
-    <form class="d-flex" asp-controller="Sale" asp-action="Search" method="get">
+    <form class="d-flex" asp-controller="Courier" asp-action="Search" method="get">
         <input name="productSKU" class="form-control me-2" placeholder="Въведи SKU номер..." />
         <input name="date" type="date" class="form-control me-2" />
         <button type="submit" class="btn btn-outline-success">Търси</button>
@@ -14,11 +16,11 @@
 </div>
 
 <div class="col-4 mb-3">
-    <select id="saleStatus" class="form-select" aria-label="Default select example">
-        <option selected>Филтрирай по статус на продажба...</option>
-        <option value="2">Активни</option>
+    <select id="courierStatus" class="form-select" aria-label="Default select example">
+        <option selected>Филтрирай по статус на пратката...</option>
+        <option value="2" >Активни</option>
         <option value="1">Всички</option>
-        <option value="3">Кредитирани</option>
+        <option value="3">Върнати</option>
     </select>
 </div>
 
@@ -44,25 +46,27 @@ else
                     <th scope="col">Количество</th>
                     <th scope="col">Отстъпка</th>
                     <th scope="col">Плащане</th>
+                    <th scope="col">Куриер</th>
                 </tr>
             </thead>
-            <tbody id="salesTable">
+            <tbody id="couriersTable">
                 @foreach (var item in Model)
                 {
                     <tr>
                         <td>@item.Id</td>
                         <td>@item.ProductSKU</td>
                         <td>@item.Size</td>
-                        <td>@item.SoldDate</td>
+                        <td>@item.SendDate</td>
                         <td>@item.UnitPrice</td>
                         <td>@item.TotalPrice</td>
                         <td>@item.Quantity</td>
                         <td>@((int)item.Discount)%</td>
-                        <td>@item.PaymentMethod</td>
+                        <td>@item.CourierPaymentMethod</td>
+                        <td>@item.CourierName</td>
                         @if (item.IsDeleted == false)
                         {
                             <td align="right">
-                                <a class="btn btn-danger delete-btn" data-id="@item.Id" data-quantity="@item.Quantity" data-confirm="Сигурни ли сте че искате да отмените продажбата?">Отмени продажба</a>
+                                <a class="btn btn-danger delete-btn" data-id="@item.Id" data-quantity="@item.Quantity" data-confirm="Сигурни ли сте че искате да отмените куриера?">Отмени куриер</a>
                             </td>
                         }
                     </tr>
@@ -74,20 +78,18 @@ else
 
 @section Scripts{
     <script>
-        $('#saleStatus').on('change', function () {
+        $('#courierStatus').on('change', function () {
             var selectedValue = $(this).val();
 
             $.ajax({
                 type: "GET",
-                url: "/Sale/AllSales",
+                url: "/Courier/AllCouriers",
                 data: { status: selectedValue },
                 success: function (data) {
-                    $('#salesTable').empty();
+                    $('#couriersTable').empty();
 
-                    console.log(data);
-                    // Update the displayed list with the fetched data
                     $.each(data, function (index, item) {
-                        var formattedDate = moment(item.soldDate).format('DD.MM.YYYY [г.] HH:mm:ss');
+                        var formattedDate = moment(item.sendDate).format('DD.MM.YYYY [г.] HH:mm:ss');
                         var row = '<tr>' +
                             '<td>' + item.id + '</td>' +
                             '<td>' + item.productSKU + '</td>' +
@@ -98,15 +100,16 @@ else
                             '<td>' + item.quantity + '</td>' +
                             '<td>' + item.discount + '</td>';
 
-                        row += '<td>' + (item.paymentMethod === 0 ? "Cash" : "Card") + '</td>';
+                        row += '<td>' + (item.courierPaymentMethod === 0 ? "Наложен платеж" : "Банков превод") + '</td>';
+                        row += '<td>' + (item.courierName === 0 ? "Speedy" : "EKOHT") + '</td>';
 
                         if (item.isDeleted == false) {
                             row += '<td align="right">' +
-                                '<a class="btn btn-danger delete-btn" data-id="' + item.Id + '" data-quantity="' + item.Quantity + '" data-confirm="Сигурни ли сте че искате да отмените продажбата?">Отмени продажба</a>' +
+                                '<a class="btn btn-danger delete-btn" data-id="' + item.Id + '" data-quantity="' + item.Quantity + '" data-confirm="Сигурни ли сте че искате да отмените куриера?">Отмени куриер</a>' +
                                 '</td>';
                         }
                         row += '</tr>';
-                        $('#salesTable').append(row);
+                        $('#couriersTable').append(row);
                     });
                 },
                 error: function () {
@@ -125,14 +128,14 @@ else
                 var negativeQty = -quantity;
                 $.ajax({
                     type: "POST",
-                    url: "/Sale/CreditSale",
+                    url: "/Courier/CreditCourier",
                     data: { id: id, quantity: negativeQty },
                     success: function (response) {
                         if (response.response === true) {
                             setTimeout(function () {
                                 window.location.reload();
                             }, 3000);
-                            $('#successMessage').text("Продажбата е успешно отменена.");
+                            $('#successMessage').text("Куриера е успешно отменен.");
                             $('#successMessage').show();
 
                         } else {

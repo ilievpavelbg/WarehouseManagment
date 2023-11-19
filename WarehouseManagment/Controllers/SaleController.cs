@@ -35,7 +35,7 @@ namespace WarehouseManagment.Controllers
             try
             {
                 await _saleService.CreateSaleAsync(model);
-                await _productInventoryService.UpdateInventoryOnSaleAsync(model);
+                await _productInventoryService.UpdateInventoryAsync(model.ProductInventoryId, model.Quantity);
                 return Json(new { success = true });
             }
             catch (Exception)
@@ -47,12 +47,36 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> AllSales(string? date, string? productSKU)
+        public async Task<IActionResult> AllSales(string? date, string? productSKU, string? status)
         {
             var sales = await _saleService.GetAllSalesAsync(date, productSKU);
             var model = await _factoryService.PrepareSaleListModel(sales);
 
-            return View(model);
+            if (String.IsNullOrEmpty(status))
+            {
+                return View(model);
+            }
+            else
+            {
+                List<SaleModel> selectedList;
+
+                if (status == "1")
+                {
+                    selectedList = model;
+                }
+                else if (status == "2")
+                {
+                    selectedList = model.Where(x => x.IsDeleted == false).ToList();
+                }
+                else
+                {
+                    selectedList = model.Where(x => x.IsDeleted == true).ToList();
+                }
+
+                return Json(selectedList);
+            }
+
+            
         }
 
         [HttpGet]
@@ -68,5 +92,20 @@ namespace WarehouseManagment.Controllers
             return View();
         }
 
+        public async Task<IActionResult> CreditSale(int id, int quantity)
+        {
+            try
+            {
+                var inventoryId = await _saleService.CreditSaleAsync(id);
+                await _productInventoryService.UpdateInventoryAsync(inventoryId, quantity);
+
+                return Json(new { response = true });
+            }
+            catch (Exception)
+            {
+
+                return Json(new { response = false });
+            }
+        }
     }
 }
