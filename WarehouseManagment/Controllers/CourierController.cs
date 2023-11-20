@@ -2,8 +2,6 @@
 using OfficeOpenXml;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
-using WarehouseManagment.Services;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace WarehouseManagment.Controllers
 {
