@@ -5,11 +5,22 @@ namespace WarehouseManagment.Data
     public enum Size
     {
         XS,
+        [Description("XS/S")]
+        XSS,
         S,
+        [Description("S/M")]
+        SM,
         M,
+        [Description("M/L")]
+        ML,
         L,
         XL,
+        [Description("XL/XXL")]
+        XLXXL,
         XXL,
+        [Description("XXXL/4XL")]
+        XXXL4XL,
+        UNI,
         [Description("24")]
         a = 24,
         [Description("25")]

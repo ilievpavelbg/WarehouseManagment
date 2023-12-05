@@ -12,6 +12,7 @@
         public Discount Discount { get; set; }
         public DateTime SoldDate { get; set; }
         public PaymentMethod PaymentMethod { get; set; }
+        public string? Notes { get; set; } = null!;
         public bool IsDeleted { get; set; }
     }
 }

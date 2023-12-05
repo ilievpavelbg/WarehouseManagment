@@ -18,5 +18,7 @@ namespace WarehouseManagment.Models
         public string? Description { get; set; } = null!;
         public string Size { get; set; } = null!;
         public int Availability { get; set; }
+        public string? Notes { get; set; } = null!;
+        public int QuantityDifference { get; set; }
     }
 }

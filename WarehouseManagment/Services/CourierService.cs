@@ -109,5 +109,17 @@ namespace WarehouseManagment.Services
 
             return couriers;
         }
+
+        public async Task<Courier> GetCourierByIdAsync(int id)
+        {
+            var courier = await _repository.GetByIdAsync<Courier>(id);
+
+            if (courier == null)
+            {
+                throw new ArgumentNullException();
+            }
+
+            return courier;
+        }
     }
 }

@@ -35,7 +35,7 @@
             function createProductRow(productData) {
                 var newRow = $('<div class="row product-row">');
                 newRow.append($('<div class="col py-2 product-sku text-center">').text(productData.productData.productSKU + ' / ' + productData.productData.description + ' / ' + productData.productData.size));
-                newRow.append($('<p class="col py-2 product-sku text-center">').text(productData.productData.availability + ' бр. '));
+                newRow.append($('<p class="col py-2 text-center">').text(productData.productData.availability + ' бр. '));
                 var unitPriceRow = $('<div class="input-group input-group-lg mb-2">');
                 var unitPriceColDescr = $('<span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Единична цена :</span>');
                 var unitPriceInput = $('<input type="number" class="product-unit-price form-control" aria-label="Disabled input example" disabled>').val(productData.productData.unitPrice);
@@ -45,7 +45,7 @@
                 newRow.append(createPaymentMethodDropdown(productData.productData.paymentMethod));
                 var quantityRow = $('<div class="input-group input-group-lg mb-2">');
                 var quantityColDescr = $('<span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Количество :</span>');
-                var quantityInput = $('<input type="number" min="1" max="" class="product-quantity form-control">').val(1).attr('max', productData.productData.availability);;
+                var quantityInput = $('<input type="number" min="1" max="" class="product-quantity form-control">').val(1).attr('max', productData.productData.availability);
                 quantityRow.append(quantityColDescr);
                 quantityRow.append(quantityInput);
                 newRow.append(quantityRow);
@@ -56,6 +56,12 @@
                 totalPriceRow.append(totalPriceColDescr);
                 totalPriceRow.append(totalPriceInput);
                 newRow.append(totalPriceRow);
+                var notesRow = $('<div class="input-group input-group-lg mb-2">');
+                var notesColDescr = $('<span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Коментар :</span>');
+                var notesInput = $('<input type="text" class="notes-input form-control">').val("");
+                notesRow.append(notesColDescr);
+                notesRow.append(notesInput);
+                newRow.append(notesRow);
                 var saleButton = $('<button class="p-2 mb-2 sale-button btn btn-outline-success fs-4">ОТЧЕТИ ПРОДАЖБА</button>');
                 newRow.append(saleButton);
 
@@ -123,6 +129,8 @@
                         totalPrice = unitPrice * quantity;
                     }
 
+                    var notes = $('.notes-input').val();
+
                     var sale = {
                         productSKU: sku,
                         unitPrice: unitPrice,
@@ -132,7 +140,8 @@
                         productId: productId,
                         totalPrice: totalPrice,
                         productInventoryId: productInventoryId,
-                        paymentMethod: paymentMethod
+                        paymentMethod: paymentMethod,
+                        notes: notes
                     };
 
                     $.ajax({

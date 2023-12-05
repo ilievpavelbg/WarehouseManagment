@@ -5,6 +5,8 @@
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
+
+<a class="btn btn-danger" asp-action="ExportToExcel" asp-controller="Sale">Експорт в Excel</a>
 <div class="col-4 my-5">
     <form class="d-flex" asp-controller="Sale" asp-action="Search" method="get">
         <input name="productSKU" class="form-control me-2" placeholder="Въведи SKU номер..." />
@@ -44,6 +46,7 @@ else
                     <th scope="col">Количество</th>
                     <th scope="col">Отстъпка</th>
                     <th scope="col">Плащане</th>
+                    <th scope="col">Коментар</th>
                 </tr>
             </thead>
             <tbody id="salesTable">
@@ -59,9 +62,11 @@ else
                         <td>@item.Quantity</td>
                         <td>@((int)item.Discount)%</td>
                         <td>@item.PaymentMethod</td>
+                        <td width="120">@item.Notes</td>
                         @if (item.IsDeleted == false)
                         {
-                            <td align="right">
+                            <td align="center">
+                                <a class="btn btn-success edit-btn" data-id="@item.Id">Редактирай</a>
                                 <a class="btn btn-danger delete-btn" data-id="@item.Id" data-quantity="@item.Quantity" data-confirm="Сигурни ли сте че искате да отмените продажбата?">Отмени продажба</a>
                             </td>
                         }
@@ -100,8 +105,13 @@ else
 
                         row += '<td>' + (item.paymentMethod === 0 ? "Cash" : "Card") + '</td>';
 
+                        var notesValue = item.notes || '';
+                        row += '<td width="120px">' + notesValue + '</td>';
+
                         if (item.isDeleted == false) {
-                            row += '<td align="right">' +
+                            row += '<td align="center">' +
+                                '<a class="btn btn-success edit-btn" data-id="' + item.Id + '">Редактирай</a>' +
+                                '&nbsp;' +
                                 '<a class="btn btn-danger delete-btn" data-id="' + item.Id + '" data-quantity="' + item.Quantity + '" data-confirm="Сигурни ли сте че искате да отмените продажбата?">Отмени продажба</a>' +
                                 '</td>';
                         }
@@ -115,7 +125,7 @@ else
             })
         })
 
-
+        // Delete button
         $(document).on('click', '.delete-btn', function () {
             var id = $(this).data('id');
             var quantity = $(this).data('quantity');
@@ -125,7 +135,7 @@ else
                 var negativeQty = -quantity;
                 $.ajax({
                     type: "POST",
-                    url: "/Sale/CreditSale",
+                    url: "/Sale/Credit",
                     data: { id: id, quantity: negativeQty },
                     success: function (response) {
                         if (response.response === true) {
@@ -151,5 +161,12 @@ else
                 });
             }
         });
+
+        // Edit button
+        $(document).on('click', '.edit-btn', function () {
+            var id = $(this).data('id');
+            window.location.href = '/Sale/Edit/' + id;
+        });
+
     </script>
 }

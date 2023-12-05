@@ -32,6 +32,7 @@ namespace WarehouseManagment.Services
                     Discount = model.Discount,
                     SoldDate = model.SoldDate,
                     PaymentMethod = model.PaymentMethod,
+                    Notes = model.Notes
                 };
 
                 await _repository.AddAsync(sale);
@@ -76,6 +77,28 @@ namespace WarehouseManagment.Services
 
         }
 
+        public async Task EditSaleAsync(SaleModel model)
+        {
+            try
+            {
+                var sale = await _repository.GetByIdAsync<Sale>(model.Id) ?? throw new ArgumentNullException();
+
+                sale.Quantity = model.Quantity;
+                sale.TotalPrice = model.TotalPrice;
+                sale.Discount = model.Discount;
+                sale.PaymentMethod = model.PaymentMethod;
+                sale.Notes = model.Notes;
+                
+                await _repository.SaveChangesAsync();
+
+            }
+            catch (Exception)
+            {
+
+                throw new Exception();
+            }
+        }
+
         public async Task<List<Sale>> GetAllSalesAsync(string? date, string? productSKU)
         {
             var sales = await _repository.All<Sale>().OrderByDescending(x => x.SoldDate).ToListAsync();
@@ -101,6 +124,18 @@ namespace WarehouseManagment.Services
             }
 
             return sales;
+        }
+
+        public async Task<Sale> GetSaleByIdAsync(int id)
+        {
+            var sale = await _repository.GetByIdAsync<Sale>(id);
+
+            if (sale == null)
+            {
+                throw new ArgumentNullException();
+            }
+
+            return sale;
         }
     }
 }

@@ -11,6 +11,8 @@ namespace WarehouseManagment.Interfaces
         List<ProductInventoryModel> PrepareProductInventoryListModel(List<ProductInventory> productInventories);
         SaleModel PrepareSaleModel(ProductInventory productInventory, Product product);
         Task<List<SaleModel>> PrepareSaleListModel(List<Sale> sales);
+        SaleModel PrepareSaleEditModel(Sale sale);
+        CourierModel PrepareCourierEditModel(Courier courier);
         CourierModel PrepareCourierModel(ProductInventory productInventory, Product product);
         Task<List<CourierModel>> PrepareCourierListModel(List<Courier> couriers);
     }

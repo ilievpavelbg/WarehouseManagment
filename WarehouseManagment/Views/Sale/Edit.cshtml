@@ -1,0 +1,161 @@
+﻿@model SaleModel
+
+@{
+    ViewData["Title"] = $"Редактиране на продажба";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<div class="col-6 mt-5">
+    <input class="product-quantity-old form-control" type="hidden" asp-for="Quantity">
+    <input class="product-saleId" type="hidden" asp-for="Id">
+    <input class="product-productInventoryId" type="hidden" asp-for="ProductInventoryId">
+    <div class="row product-row">
+        <div class="col py-2 text-center">
+            <p class="product-sku text-center">@Model.ProductSKU</p>
+            <p class="product-description text-center">@Model.Description</p>
+            <p class="product-availability text-center">@Model.Availability</p>
+        </div>
+        <div class="input-group input-group-lg mb-2">
+            <span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Единична цена :</span>
+            <input class="product-unit-price form-control" aria-label="Disabled input example" asp-for="UnitPrice" disabled>
+        </div>
+        <div class="input-group input-group-lg mb-2">
+            <label class="input-group-text fw-bold" for="inputGroupSelect01">Плащане : </label>
+            <select asp-for="PaymentMethod" class="product-paymentMethod form-select">
+                @foreach (var paymentMethodValue in Enum.GetValues(typeof(WarehouseManagment.Data.PaymentMethod)))
+                {
+                    <option value="@paymentMethodValue">@paymentMethodValue</option>
+                }
+            </select>
+        </div>
+        <div class="input-group input-group-lg mb-2">
+            <span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Количество :</span>
+            <input class="product-quantity-new form-control" type="number" min="1" aria-label="Disabled input example" asp-for="Quantity">
+        </div>
+        <div class="input-group input-group-lg mb-2">
+            <label class="input-group-text fw-bold" for="inputGroupSelect01">Отстъпка : </label>
+            <select class="product-discount form-select" asp-for="Discount" id="inputGroupSelect01">
+                @foreach (var discountValue in Enum.GetValues(typeof(WarehouseManagment.Data.Discount)))
+                {
+                    <option value="@((int)discountValue)">@((int)discountValue)%</option>
+                }
+            </select>
+        </div>
+        <div class="input-group input-group-lg mb-2">
+            <span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Тотал цена :</span>
+            <input class="product-total-price form-control" asp-for="TotalPrice" id="TotalPrice" aria-label="Disabled input example" disabled>
+        </div>
+        <div class="input-group input-group-lg mb-2">
+            <span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Коментар :</span>
+            <input type="text" class="notes-input form-control" asp-for="Notes">
+        </div>
+        <button class="p-2 mb-2 edit-button btn btn-outline-success fs-4">РЕДАКТИРАЙ ПРОДАЖБА</button>
+    </div>
+</div>
+
+@section Scripts{
+    <script>
+        $(document).ready(function () {
+
+            function UpdateTotalPriceByDiscount() {
+                var unitPrice = parseFloat($('.product-unit-price').val());
+                var quantity = parseInt($('.product-quantity-new').val());
+                var discount = parseFloat($('.product-discount option:selected').val());
+
+                if (isNaN(discount)) {
+                    discount = 0;
+                }
+
+                var totalPrice = unitPrice * quantity;
+
+                if (discount > 0) {
+                    totalPrice = ((unitPrice - (unitPrice * discount / 100)) * quantity).toFixed(2);
+                } else {
+                    totalPrice = (unitPrice * quantity).toFixed(2);
+                }
+
+                $('#TotalPrice').val(totalPrice);
+            }
+
+            $('.product-discount').on('change', UpdateTotalPriceByDiscount);
+
+            function UpdateTotalPriceByQuantity() {
+                var unitPrice = parseFloat($('.product-unit-price').val());
+                var quantity = parseInt($('.product-quantity-new').val());
+                var discount = parseFloat($('.product-discount option:selected').val());
+                if (isNaN(discount)) {
+                    discount = 0;
+                }
+
+                var totalPrice = unitPrice * quantity;
+
+                if (discount > 0) {
+                    totalPrice = ((unitPrice - (unitPrice * discount / 100)) * quantity).toFixed(2);
+                } else {
+                    totalPrice = (unitPrice * quantity).toFixed(2);
+                }
+                $('#TotalPrice').val(totalPrice);
+            }
+            $('.product-quantity-new').on('input', UpdateTotalPriceByQuantity);
+            UpdateTotalPriceByQuantity();
+
+            $('.edit-button').on('click', function () {
+                var id = $('.product-saleId').val();
+                var unitPrice = parseFloat($('.product-unit-price').val());
+                var discount = parseInt($('.product-discount option:selected').val());
+                var availability = parseInt($('.product-availability').text());
+                var quantityOld = parseInt($('.product-quantity-old').val());
+                var quantityNew = parseInt($('.product-quantity-new').val());
+                if (quantityNew <= 0) {
+                    alert("Количеството не може да е по-малко от 1");
+                    return false;
+                }
+                var quantityDifference = quantityNew - quantityOld;
+                var availabilityNew = quantityOld + availability;
+                if (quantityNew > availabilityNew) {
+                    alert("Количеството което сте избрали е по-голямо от наличностите.");
+                    return false;
+                }
+                var productInventoryId = $('.product-productInventoryId').val();
+                var paymentMethod = parseInt($('.product-paymentMethod option:selected').val());
+                var totalPrice;
+                if (discount > 0) {
+                    totalPrice = (unitPrice - (unitPrice * discount / 100)) * quantityNew;
+                } else {
+                    totalPrice = unitPrice * quantityNew;
+                }
+
+                var notes = $('.notes-input').val();
+
+                var sale = {
+                    id: id,
+                    unitPrice: unitPrice,
+                    discount: discount,
+                    quantity: quantityNew,
+                    totalPrice: totalPrice,
+                    productInventoryId: productInventoryId,
+                    paymentMethod: paymentMethod,
+                    notes: notes,
+                    quantityDifference: quantityDifference
+                };
+
+                $.ajax({
+                    url: '/Sale/Edit',
+                    type: 'POST',
+                    data: sale,
+                    success: function (response) {
+                        if (response.success) {
+                            alert("Успешно редактирахте продажбата!")
+                            window.location.href = '/Sale/AllSales/';
+                        } else {
+                            // Handle an unsuccessful sale (e.g., show an error message)
+                            alert('Неуспешно редактиране: ' + response.message);
+                        }
+                    }
+                });
+            });
+
+        })
+    </script>
+}

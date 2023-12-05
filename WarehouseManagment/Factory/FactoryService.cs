@@ -143,8 +143,8 @@ namespace WarehouseManagment.Factory
                     Discount = sale.Discount,
                     SoldDate = sale.SoldDate,
                     PaymentMethod = sale.PaymentMethod,
-                    IsDeleted = sale.IsDeleted
-                    
+                    IsDeleted = sale.IsDeleted,
+                    Notes = sale.Notes                   
                 };
 
                 saleModel.Size = await _productInventoryService.GetSizeByInventoryId(sale.ProductInventoryId);
@@ -170,6 +170,45 @@ namespace WarehouseManagment.Factory
                 Size = productInventory.Size.ToString(),
                 Availability = productInventory.Quantity
 
+            };
+
+            return model;
+        }
+
+        public SaleModel PrepareSaleEditModel(Sale sale)
+        {
+            var model = new SaleModel()
+            {
+                ProductId = sale.ProductId,
+                ProductSKU = sale.ProductSKU,
+                ProductInventoryId = sale.ProductInventoryId,
+                Quantity = sale.Quantity,
+                SoldDate = sale.SoldDate,
+                UnitPrice = sale.UnitPrice,
+                Availability = sale.Quantity,
+                Notes = sale.Notes,
+                PaymentMethod = sale.PaymentMethod,
+                Discount = sale.Discount,
+                TotalPrice = sale.TotalPrice
+                
+            };
+
+            return model;
+        }
+
+        public CourierModel PrepareCourierEditModel(Courier courier)
+        {
+            var model = new CourierModel()
+            {
+                CourierName = courier.CourierName,
+                CourierPaymentMethod = courier.CourierPaymentMethod,
+                Quantity = courier.Quantity,
+                Discount = courier.Discount,
+                Notes = courier.Notes,
+                ShippmentBill = courier.ShippmentBill,
+                UnitPrice = courier.UnitPrice,
+                TotalPrice = courier.UnitPrice,
+                ProductSKU = courier.ProductSKU
             };
 
             return model;

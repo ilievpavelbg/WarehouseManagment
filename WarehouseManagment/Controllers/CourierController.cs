@@ -2,6 +2,7 @@
 using OfficeOpenXml;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
+using WarehouseManagment.Services;
 
 namespace WarehouseManagment.Controllers
 {
@@ -46,6 +47,36 @@ namespace WarehouseManagment.Controllers
             {
                 await _courierService.CreateCourierAsync(model);
                 await _productInventoryService.UpdateInventoryAsync(model.ProductInventoryId, model.Quantity);
+                return Json(new { success = true });
+            }
+            catch (Exception)
+            {
+
+                return Json(new { success = false });
+            }
+
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var courier = await _courierService.GetCourierByIdAsync(id);
+            var model = _factoryService.PrepareCourierEditModel(courier);
+            var product = await _productService.GetProductByIdAsync(courier.ProductId);
+            var inventory = await _productInventoryService.GetProductInventoryByIdAsync(courier.ProductInventoryId);
+            model.Description = product.Description;
+            model.Availability = inventory.Quantity;
+
+            return View(model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Edit(CourierModel model)
+        {
+            try
+            {
+                await _courierService.EditSaleAsync(model);
+                await _productInventoryService.UpdateInventoryAsync(model.ProductInventoryId, model.QuantityDifference);
                 return Json(new { success = true });
             }
             catch (Exception)

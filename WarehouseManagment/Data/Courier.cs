@@ -15,6 +15,7 @@
         public string ShippmentBill { get; set; } = null!;
         public CourierName CourierName { get; set; }
         public CourierPaymentMethod CourierPaymentMethod { get; set; }
+        public string? Notes { get; set; } = null!;
         public bool IsPayed { get; set; }
         public bool IsDeleted { get; set; }
     }
