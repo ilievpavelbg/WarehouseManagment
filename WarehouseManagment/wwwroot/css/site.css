@@ -62,4 +62,10 @@ body {
     width:185px;
 }
 
+.card-description {
+    font-size: 22px;
+    font-weight: bold;
+    color:forestgreen;
+}
+
 

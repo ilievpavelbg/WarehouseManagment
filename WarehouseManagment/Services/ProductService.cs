@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
+using System.Runtime.InteropServices;
 using WarehouseManagment.Barcode;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
@@ -12,10 +13,12 @@ namespace WarehouseManagment.Services
     public class ProductService : IProductService
     {
         private readonly IRepository _repository;
+        private readonly IProductInventoryService _productInventoryService;
 
-        public ProductService(IRepository repository)
+        public ProductService(IRepository repository, IProductInventoryService productInventoryService)
         {
             _repository = repository;
+            _productInventoryService = productInventoryService;
         }
         public async Task CreateProductAsync(ProductModel model)
         {
@@ -63,14 +66,53 @@ namespace WarehouseManagment.Services
                 {
                     for (int row = 2; row <= worksheet.Dimension.End.Row; row++)
                     {
-                        if (TryValidateRow(worksheet, row, out var product))
+                        if (TryValidateRow(worksheet, row, out var product, out var productInventory))
                         {
-                            await _repository.AddAsync(product);
-                            await _repository.SaveChangesAsync();
+                            var findProduct = await GetProductBySKUAsync(product.SKU.ToUpper());
 
-                            var productId = product.Id.ToString();
-                            //product.Barcode = BarcodeService.GenerateBarcodeImage(productId);
-                            await _repository.SaveChangesAsync();
+                            if (findProduct == null)
+                            {
+                                product.SKU = product.SKU.ToUpper();
+                                await _repository.AddAsync(product);
+                                await _repository.SaveChangesAsync();
+
+                                productInventory.ProductId = product.Id;
+                                productInventory.ProductSKU = product.SKU.ToUpper();
+                                await _repository.AddAsync(productInventory);
+                                await _repository.SaveChangesAsync();
+
+                                var productInventoryId = productInventory.Id.ToString();
+                                productInventory.Barcode = BarcodeService.GenerateBarcodeImage(productInventoryId);
+                                await _repository.SaveChangesAsync();
+                            }
+                            else
+                            {
+                                var inventory = await _productInventoryService.GetProductInventoryByProductIdAsync(findProduct.Id);
+
+                                var inventorySizeExist = inventory.FirstOrDefault(x => x.Size.Equals(productInventory.Size));
+
+                                if (inventorySizeExist != null)
+                                {
+                                    inventorySizeExist.Quantity = productInventory.Quantity;
+                                    await _repository.SaveChangesAsync();
+                                }
+                                else
+                                {
+                                    productInventory.ProductSKU = findProduct.SKU;
+                                    productInventory.ProductId = findProduct.Id;
+                                    productInventory.Size = productInventory.Size;
+                                    productInventory.Quantity = productInventory.Quantity;
+
+                                    await _repository.AddAsync(productInventory);
+                                    await _repository.SaveChangesAsync();
+
+                                    var productInventoryId = productInventory.Id.ToString();
+                                    productInventory.Barcode = BarcodeService.GenerateBarcodeImage(productInventoryId);
+                                    await _repository.SaveChangesAsync();
+
+                                }
+                            }
+
                         }
                         else
                         {
@@ -157,79 +199,63 @@ namespace WarehouseManagment.Services
             return product;
         }
 
-        static bool TryValidateRow(ExcelWorksheet worksheet, int row, out Product product)
+        static bool TryValidateRow(ExcelWorksheet worksheet, int row, out Product product, out ProductInventory productInventory)
         {
             product = new Product();
+            productInventory = new ProductInventory();
 
             string? exelSKU = worksheet.Cells[row, 1].Value?.ToString();
             string? excelDescription = worksheet.Cells[row, 2].Value?.ToString()??null;
-            string excelGenre = worksheet.Cells[row, 5].Value.ToString();
-            string excelFirstComposition = worksheet.Cells[row, 6].Value.ToString();
-            string excelSecondComposition = worksheet.Cells[row, 7].Value.ToString();
-            string excelCategory = worksheet.Cells[row, 8].Value.ToString();
-            var excelSizeValue = worksheet.Cells[row, 9].Value;
+            string? exelRetailPrice = worksheet.Cells[row, 3].Value?.ToString()??null;
+            string? exelWholesalePrice = worksheet.Cells[row, 4].Value?.ToString()??null;
+            string? excelGenre = worksheet.Cells[row, 5].Value?.ToString() ?? null;
+            string? excelFirstComposition = worksheet.Cells[row, 6].Value?.ToString() ?? null;
+            string? excelSecondComposition = worksheet.Cells[row, 7].Value?.ToString() ?? null;
+            string? excelCategory = worksheet.Cells[row, 8].Value?.ToString() ?? null;
+            string? excelColor = worksheet.Cells[row, 9].Value?.ToString() ?? null;
+            string? excelSize = worksheet.Cells[row, 10].Value?.ToString() ?? null;
+            string? excelQuantity = worksheet.Cells[row, 11].Value?.ToString() ?? null;
+
+
 
             if (string.IsNullOrEmpty(exelSKU) || string.IsNullOrEmpty(excelDescription) ||
+                string.IsNullOrEmpty(exelRetailPrice) || string.IsNullOrEmpty(exelWholesalePrice) ||
                 string.IsNullOrEmpty(excelGenre) || string.IsNullOrEmpty(excelFirstComposition) ||
-                string.IsNullOrEmpty(excelSecondComposition) || string.IsNullOrEmpty(excelCategory) ||
-                excelSizeValue == null)
+                string.IsNullOrEmpty(excelCategory) || string.IsNullOrEmpty(excelColor) || string.IsNullOrEmpty(excelSize) || string.IsNullOrEmpty(excelQuantity))
             {
                 return false; // Data is missing or invalid
             }
 
-            if (!double.TryParse(worksheet.Cells[row, 3].Value?.ToString(), out double excelPrice) ||
-                !double.TryParse(worksheet.Cells[row, 4].Value?.ToString(), out double excelQuantity))
+            if (!double.TryParse(exelRetailPrice, out double retailPrice) ||
+                !double.TryParse(exelWholesalePrice, out double wholesalePrice) ||
+                !int.TryParse(excelQuantity, out int quantity))
             {
                 return false; // Price or quantity is not a valid number
             }
             //TODO To add retail and wholesale price correctly
             product.SKU = exelSKU;
             product.Description = excelDescription;
-            product.RetailPrice = excelPrice;
-            //product.Quantity = (int)Math.Round(excelQuantity);
+            product.RetailPrice = retailPrice;
+            product.WholesalePrice = wholesalePrice;
+            productInventory.Quantity = quantity;
 
             if (Enum.TryParse(excelGenre, true, out Genre genre) &&
                 Enum.TryParse(excelFirstComposition, true, out Composition firstComposition) &&
                 Enum.TryParse(excelSecondComposition, true, out Composition secondComposition) &&
-                Enum.TryParse(excelCategory, true, out Category category))
+                Enum.TryParse(excelCategory, true, out Category category) &&
+                Enum.TryParse(excelSize, true, out Data.Size size) &&
+                Enum.TryParse(excelColor, true, out Data.Color color))
             {
                 product.Genre = genre;
                 product.FirstComposition = firstComposition;
                 product.SecondComposition = secondComposition;
                 product.Category = category;
+                product.Color = color;
+                productInventory.Size = size;
             }
             else
             {
                 return false; // Invalid enum values
-            }
-
-            if (excelSizeValue is string)
-            {
-                var stringSize = excelSizeValue.ToString();
-                if (Enum.TryParse(stringSize, true, out Data.Size size))
-                {
-                    //product.Size = size;
-                }
-                else
-                {
-                    return false; // Invalid size value
-                }
-            }
-            else if (excelSizeValue is double)
-            {
-                double numberSize = (double)excelSizeValue;
-                //if (Enum.IsDefined(typeof(JeansSize), (int)numberSize))
-                //{
-                //    product.JeansSize = (JeansSize)Enum.ToObject(typeof(JeansSize), (int)numberSize);
-                //}
-                //else
-                //{
-                //    return false; // Invalid JeansSize value
-                //}
-            }
-            else
-            {
-                return false; // Size value is not valid
             }
 
             return true;

@@ -8,8 +8,8 @@
 
 <div class="col-6 mt-5">
     <input class="product-quantity-old form-control" type="hidden" asp-for="Quantity">
-    <input class="product-saleId" type="hidden" asp-for="Id">
-    <input class="product-productInventoryId" type="hidden" asp-for="ProductInventoryId">
+    <input class="product-productInventoryId form-control" type="hidden" asp-for="ProductInventoryId">
+    <input class="product-courierId" type="hidden" asp-for="Id">
     <div class="row product-row">
         <div class="col py-2 text-center">
             <p class="product-sku text-center">@Model.ProductSKU</p>
@@ -114,7 +114,7 @@
             UpdateTotalPriceByQuantity();
 
             $('.edit-button').on('click', function () {
-                var id = $('.product-saleId').val();
+                var id = $('.product-courierId').val();
                 var unitPrice = parseFloat($('.product-unit-price').val());
                 var discount = parseInt($('.product-discount option:selected').val());
                 var availability = parseInt($('.product-availability').text());
@@ -130,8 +130,7 @@
                     alert("Количеството което сте избрали е по-голямо от наличностите.");
                     return false;
                 }
-                var productInventoryId = $('.product-productInventoryId').val();
-                var paymentMethod = parseInt($('.product-paymentMethod option:selected').val());
+                var paymentMethod = parseInt($('.product-courierPaymentMethod').val());
                 var totalPrice;
                 if (discount > 0) {
                     totalPrice = (unitPrice - (unitPrice * discount / 100)) * quantityNew;
@@ -140,27 +139,30 @@
                 }
 
                 var notes = $('.notes-input').val();
+                var courierName = $('.product-courierName').val();
+                var productInventoryId = $('.product-productInventoryId').val();
 
-                var sale = {
+
+                var courier = {
                     id: id,
-                    unitPrice: unitPrice,
                     discount: discount,
                     quantity: quantityNew,
                     totalPrice: totalPrice,
-                    productInventoryId: productInventoryId,
-                    paymentMethod: paymentMethod,
+                    courierPaymentMethod: paymentMethod,
                     notes: notes,
-                    quantityDifference: quantityDifference
+                    quantityDifference: quantityDifference,
+                    courierName: courierName,
+                    productInventoryId: productInventoryId
                 };
 
                 $.ajax({
-                    url: '/Sale/Edit',
+                    url: '/Courier/Edit',
                     type: 'POST',
-                    data: sale,
+                    data: courier,
                     success: function (response) {
                         if (response.success) {
-                            alert("Успешно редактирахте продажбата!")
-                            window.location.href = '/Sale/AllSales/';
+                            alert("Успешно редактирахте пратката!")
+                            window.location.href = '/Courier/AllCouriers/';
                         } else {
                             // Handle an unsuccessful sale (e.g., show an error message)
                             alert('Неуспешно редактиране: ' + response.message);

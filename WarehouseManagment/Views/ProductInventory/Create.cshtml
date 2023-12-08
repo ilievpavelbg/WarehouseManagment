@@ -68,11 +68,11 @@
                     dataType: "json",
                     success: function (response) {
                         if (response.result === true) {
-                            $('#successMessageCreate').text("Размерар количеството и баркода са успешно създадени.");
-                            $('#successMessageCreate').show();
                             setTimeout(function () {
-                                window.location.href = "/ProductInventory/Availability/" + @Model.ProductId;
+                                $('#successMessageCreate').text("Размерар количеството и баркода са успешно създадени.");
+                                $('#successMessageCreate').show();
                             }, 3000);
+                            window.location.href = "/Product/Availability/" + @Model.ProductId;
                         } else {
                             $('#errorMessageCreate').text("An error occurred while creating the product: " + response.message);
                             $('#errorMessageCreate').show();

@@ -5,14 +5,17 @@
 
 <h1 class="text-center">@ViewData["Title"]</h1>
 
-<div class="col-4 my-5">
-    <form class="d-flex" method="get">
-        <input type="text" id="barcode" name="id" class="form-control me-2" placeholder="Inventory Id" aria-label="Inventory Id" aria-describedby="basic-addon2">
-        <button type="submit" class="btn btn-outline-success">Търси</button>
-    </form>
+<div class="row justify-content-between mt-5">
+    <div class="col-4">
+        <form class="d-flex" method="get">
+            <input type="text" id="barcode" name="id" class="form-control me-2" placeholder="Inventory Id" aria-label="Inventory Id" aria-describedby="basic-addon2">
+            <button type="submit" class="btn btn-outline-success">Търси</button>
+        </form>
+    </div>
+    <div class="product-container col-6"></div>
 </div>
 
-<div class="product-container col-6"></div>
+
 
 @section Scripts{
     <script>
@@ -35,8 +38,8 @@
 
             function createProductRow(productData) {
                 var newRow = $('<div class="row product-row">');
-                newRow.append($('<div class="col py-2 product-sku text-center">').text(productData.productData.productSKU + ' / ' + productData.productData.description + ' / ' + productData.productData.size));
-                newRow.append($('<p class="col py-2 product-sku text-center">').text(productData.productData.availability + ' бр. '));
+                newRow.append($('<div class="card-description text-center">').text("Артикул - " + productData.productData.productSKU + ' / ' + productData.productData.description + ' / ' + productData.productData.size));
+                newRow.append($('<div class="py-1 card-description text-center">').text("Наличност - " + productData.productData.availability + "бр."));
                 var shippingBillRow = $('<div class="input-group input-group-lg mb-2">');
                 var shippingBillDescr = $('<span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Товарителница :</span>');
                 var shippingBillInput = $('<input type="text" class="shipping-bill form-control" aria-label="Disabled input example" >').val(productData.productData.shippmentBill);
@@ -64,7 +67,7 @@
                 totalPriceRow.append(totalPriceColDescr);
                 totalPriceRow.append(totalPriceInput);
                 newRow.append(totalPriceRow);
-                var saleButton = $('<button class="p-2 mb-2 sale-button btn btn-outline-success fs-4">ОТЧЕТИ КУРИЕР</button>');
+                var saleButton = $('<div class="text-center"><button class="p-2 sale-button btn btn-outline-success">ОТЧЕТИ КУРИЕР</button></div>');
                 newRow.append(saleButton);
 
                 function UpdateTotalPriceByDiscount() {

@@ -1,17 +1,22 @@
-﻿@{
+﻿@using System.ComponentModel;
+@{
     ViewData["Title"] = $"Продажба на артикул";
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
 
-<div class="col-4 my-5">
-    <form class="d-flex" method="get">
-        <input type="text" id="barcode" name="id" class="form-control me-2" placeholder="Inventory Id" aria-label="Inventory Id" aria-describedby="basic-addon2">
-        <button type="submit" class="btn btn-outline-success">Търси</button>
-    </form>
+<div class="row justify-content-between mt-5">
+    <div class="col-4">
+        <form class="d-flex" method="get">
+            <input type="text" id="barcode" name="id" class="form-control me-2" placeholder="Inventory Id" aria-label="Inventory Id" aria-describedby="basic-addon2">
+            <button type="submit" class="btn btn-outline-success">Търси</button>
+        </form>
+    </div>
+    <div class="col-6 product-container"></div>
 </div>
 
-<div class="product-container col-6"></div>
+
+
 
 @section Scripts{
     <script>
@@ -33,9 +38,9 @@
             })
 
             function createProductRow(productData) {
-                var newRow = $('<div class="row product-row">');
-                newRow.append($('<div class="col py-2 product-sku text-center">').text(productData.productData.productSKU + ' / ' + productData.productData.description + ' / ' + productData.productData.size));
-                newRow.append($('<p class="col py-2 text-center">').text(productData.productData.availability + ' бр. '));
+                var newRow = $('<div class="product-row">');
+                newRow.append($('<div class="card-description text-center">').text("Артикул - " + productData.productData.productSKU + ' / ' + productData.productData.description + ' / ' + productData.productData.size));
+                newRow.append($('<div class="py-1 card-description text-center">').text("Наличност - " + productData.productData.availability + "бр."));
                 var unitPriceRow = $('<div class="input-group input-group-lg mb-2">');
                 var unitPriceColDescr = $('<span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Единична цена :</span>');
                 var unitPriceInput = $('<input type="number" class="product-unit-price form-control" aria-label="Disabled input example" disabled>').val(productData.productData.unitPrice);
@@ -62,7 +67,7 @@
                 notesRow.append(notesColDescr);
                 notesRow.append(notesInput);
                 newRow.append(notesRow);
-                var saleButton = $('<button class="p-2 mb-2 sale-button btn btn-outline-success fs-4">ОТЧЕТИ ПРОДАЖБА</button>');
+                var saleButton = $('<div class="text-center"><button class="p-2 sale-button btn btn-outline-success">ОТЧЕТИ ПРОДАЖБА</button></div>');
                 newRow.append(saleButton);
 
                 function UpdateTotalPriceByDiscount() {
@@ -198,7 +203,13 @@
                 var paymentMethods = [
         @foreach (var value in Enum.GetValues(typeof(PaymentMethod)).Cast<PaymentMethod>())
         {
-            <text>{ value: "@((int)value)", text: "@value" }, </text>
+            var enumType = typeof(PaymentMethod);
+            var enumMember = enumType.GetMember(value.ToString())[0];
+            var descriptionAttribute = enumMember.GetCustomAttributes(typeof(DescriptionAttribute), false).FirstOrDefault() as DescriptionAttribute;
+            var paymentDescription = descriptionAttribute != null ? descriptionAttribute.Description : value.ToString();
+
+            var encodedDescription = Html.Raw(paymentDescription.Replace("\"", "&quot;"));
+            <text>{ value: "@((int)value)", text: "@encodedDescription" }, </text>
         }
                             ];
 

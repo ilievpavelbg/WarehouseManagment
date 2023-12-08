@@ -2,7 +2,6 @@
 using OfficeOpenXml;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
-using WarehouseManagment.Services;
 
 namespace WarehouseManagment.Controllers
 {
@@ -66,6 +65,7 @@ namespace WarehouseManagment.Controllers
             var inventory = await _productInventoryService.GetProductInventoryByIdAsync(courier.ProductInventoryId);
             model.Description = product.Description;
             model.Availability = inventory.Quantity;
+            model.ProductInventoryId = inventory.Id;
 
             return View(model);
         }
@@ -75,7 +75,7 @@ namespace WarehouseManagment.Controllers
         {
             try
             {
-                await _courierService.EditSaleAsync(model);
+                await _courierService.EditCourierAsync(model);
                 await _productInventoryService.UpdateInventoryAsync(model.ProductInventoryId, model.QuantityDifference);
                 return Json(new { success = true });
             }

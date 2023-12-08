@@ -1,5 +1,5 @@
 ﻿@{
-    ViewData["Title"] = $"Създаване на артикули от EXCEL";
+    ViewData["Title"] = "Създаване на артикули от EXCEL";
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
@@ -19,14 +19,10 @@
 <form asp-action="CreateProductFromExcel" asp-controller="Product" method="post" enctype="multipart/form-data">
     <div class="col-6 mt-5">
         <div class="input-group">
-            <input type="file" class="form-control" id="inputGroupFile04" aria-describedby="inputGroupFileAddon04" aria-label="Upload">
-            <button class="btn btn-outline-secondary" type="button" id="inputGroupFileAddon04">Button</button>
+            <input type="file" class="form-control" name="excelFile" id="inputGroupFile04" aria-describedby="inputGroupFileAddon04" aria-label="Upload">
+            <button class="btn btn-outline-secondary" type="submit" id="inputGroupFileAddon04">Напред =></button>
         </div>
     </div>
-    @* <div class="mb-5 mt-5">
-    <input type="file" name="ExcelFile">
-    </div>
-    <input class="btn btn-primary" type="submit" value="Upload Excel" /> *@
 </form>
 
 

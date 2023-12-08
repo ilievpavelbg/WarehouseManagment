@@ -83,6 +83,34 @@ namespace WarehouseManagment.Services
             return courier.ProductInventoryId;
         }
 
+        public async Task EditCourierAsync(CourierModel model)
+        {
+            try
+            {
+                var courier = await _repository.GetByIdAsync<Courier>(model.Id);
+
+                if (courier == null)
+                {
+                    throw new ArgumentNullException();
+                }
+
+                courier.Discount = model.Discount;
+                courier.Quantity = model.Quantity;
+                courier.TotalPrice = model.TotalPrice;
+                courier.CourierPaymentMethod = model.CourierPaymentMethod;
+                courier.Notes = model.Notes;
+                courier.CourierName = model.CourierName;
+
+                await _repository.SaveChangesAsync();
+
+            }
+            catch (Exception)
+            {
+
+                throw new ArgumentNullException(); ;
+            }
+        }
+
         public async Task<List<Courier>> GetAllCouriersAsync(string? date, string? productSKU)
         {
             var couriers = await _repository.All<Courier>().OrderByDescending(x => x.SendDate).ToListAsync();

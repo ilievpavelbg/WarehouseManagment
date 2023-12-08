@@ -2,10 +2,10 @@
 {
     public enum Color
     {
-        Black,
-        White,
-        Green,
-        Red,
-        Blue
+        Черен,
+        Бял,
+        Зелен,
+        Червен,
+        Син
     }
 }

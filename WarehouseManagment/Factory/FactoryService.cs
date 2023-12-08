@@ -35,7 +35,8 @@ namespace WarehouseManagment.Factory
                     IsPayed = courier.IsPayed,
                     CourierName = courier.CourierName,
                     ReturnDate = courier.ReturnDate,
-                    ShippmentBill = courier.ShippmentBill
+                    ShippmentBill = courier.ShippmentBill,
+                    Notes = courier.Notes
 
                 };
 
