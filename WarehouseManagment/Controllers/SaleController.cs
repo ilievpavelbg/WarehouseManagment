@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using OfficeOpenXml;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
@@ -6,6 +7,7 @@ using WarehouseManagment.Services;
 
 namespace WarehouseManagment.Controllers
 {
+    [Authorize]
     public class SaleController : Controller
     {
         private readonly IProductInventoryService _productInventoryService;

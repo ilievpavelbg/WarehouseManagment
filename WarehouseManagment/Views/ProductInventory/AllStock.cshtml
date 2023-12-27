@@ -1,0 +1,48 @@
+﻿@model List<ProductInventoryModel>
+
+@{
+    ViewData["Title"] = "Склад, наличности и баркод";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+@* <a class="btn btn-danger" asp-action="ExportToExcel" asp-controller="Sale">Експорт в Excel</a> *@
+
+@if (!Model.Any())
+{
+    <p>Няма намерени резултати !</p>
+}
+else
+{
+    <div class="col-12">
+        <table class="table table-striped table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th scope="col">Id</th>
+                    <th scope="col">SKU</th>
+                    <th scope="col">Размер</th>
+                    <th scope="col">Количество</th>
+                    <th scope="col">Баркод</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.OrderBy(x => x.ProductSKU))
+                {
+                    <tr>
+                        <td>@item.Id</td>
+                        <td>@item.ProductSKU</td>
+                        <td>@item.Size</td>
+                        <td>@item.Quantity</td>
+                        <td>
+                            @{
+                                string base64Barcode = Convert.ToBase64String(@item.Barcode);
+                            }
+                            <img src="data:image/png;base64, @base64Barcode" alt="Barcode Image">
+                        </td>
+
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

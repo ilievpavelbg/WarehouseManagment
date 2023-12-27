@@ -54,7 +54,7 @@ namespace WarehouseManagment.Services
 
             if (courier == null)
             {
-                throw new Exception();
+                throw new ArgumentNullException();
             }
 
             courier.IsDeleted = true;

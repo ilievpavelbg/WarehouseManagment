@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
 
 namespace WarehouseManagment.Controllers
 {
+    [Authorize]
     public class ProductInventoryController : Controller
     {
         private readonly IProductInventoryService _productInventoryService;
@@ -80,6 +82,15 @@ namespace WarehouseManagment.Controllers
                 return Json(new { response = false });
             }
 
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> AllStock()
+        {
+            var stock = await _productInventoryService.GetAllStock();
+            var stockModel = _factoryService.PrepareProductInventoryListModel(stock);
+
+            return View(stockModel);
         }
     }
 }

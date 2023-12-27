@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
 
 namespace WarehouseManagment.Controllers
 {
+    [Authorize]
     public class ProductController : Controller
     {
         private readonly IFactoryService _factoryService;
@@ -30,7 +32,7 @@ namespace WarehouseManagment.Controllers
 
             return View(productsModel);
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public IActionResult Create()
         {

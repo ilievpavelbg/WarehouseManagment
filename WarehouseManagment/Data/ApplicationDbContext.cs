@@ -22,6 +22,7 @@ namespace WarehouseManagment.Data
         public DbSet<ProductInventory> ProductInventory { get; set; }
         public DbSet<Sale> Sales { get; set; }
         public DbSet<Courier> Couriers { get; set; }
+        public DbSet<LoginHistory> LoginHistories { get; set; }
 
     }
 }

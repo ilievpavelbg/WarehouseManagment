@@ -2,23 +2,31 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using System.Security.Claims;
 using WarehouseManagment.Data;
-using WarehouseManagment.Models;
+using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models.User;
 
 namespace WarehouseManagment.Controllers
 {
+
     public class UserController : Controller
     {
-        private readonly UserManager<ApplicationUser> userManager;
-        private readonly SignInManager<ApplicationUser> signInManager;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly ILoginHistoryService _loginHistoryService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public UserController(
-            UserManager<ApplicationUser> _userManager,
-            SignInManager<ApplicationUser> _signInManager)
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            ILoginHistoryService loginHistoryService,
+            IHttpContextAccessor httpContextAccessor)
         {
-            userManager = _userManager;
-            signInManager = _signInManager;
+            _userManager = userManager;
+            _signInManager = signInManager;
+            _loginHistoryService = loginHistoryService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         [HttpGet]
@@ -30,7 +38,7 @@ namespace WarehouseManagment.Controllers
 
             return View(model);
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [AllowAnonymous]
         public async Task<IActionResult> Register(RegisterViewModel model)
@@ -40,7 +48,7 @@ namespace WarehouseManagment.Controllers
                 return View(model);
             }
 
-            var existUser = await userManager.FindByEmailAsync(model.Email);
+            var existUser = await _userManager.FindByEmailAsync(model.Email);
 
             if (existUser != null)
             {
@@ -61,7 +69,7 @@ namespace WarehouseManagment.Controllers
                 UserName = model.UserName
             };
 
-            var result = await userManager.CreateAsync(user, model.Password);
+            var result = await _userManager.CreateAsync(user, model.Password);
 
             if (result.Succeeded)
             {
@@ -103,13 +111,14 @@ namespace WarehouseManagment.Controllers
                 return View(model);
             }
 
-            var user = await userManager.FindByNameAsync(model.UserName);
+            var user = await _userManager.FindByNameAsync(model.UserName);
 
-            var userRole = await userManager.GetRolesAsync(user);
+            //var userRole = await _userManager.GetRolesAsync(user);
+            await _loginHistoryService.UserLoginTime(user.Id);
 
             if (user != null)
             {
-                var result = await signInManager.PasswordSignInAsync(user, model.Password, false, false);
+                var result = await _signInManager.PasswordSignInAsync(user, model.Password, false, false);
 
                 if (result.Succeeded)
                 {
@@ -130,7 +139,11 @@ namespace WarehouseManagment.Controllers
 
         public async Task<IActionResult> Logout()
         {
-            await signInManager.SignOutAsync();
+            var userId = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
+
+            await _loginHistoryService.UserLogoutTime(userId);
+
+            await _signInManager.SignOutAsync();
 
             return RedirectToAction("Index", "Home", new { area = "default" });
         }
@@ -163,5 +176,7 @@ namespace WarehouseManagment.Controllers
             }
         }
 
+
     }
-}
+} 
+

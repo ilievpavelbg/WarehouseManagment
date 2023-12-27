@@ -61,6 +61,11 @@ namespace WarehouseManagment.Services
 
         }
 
+        public async Task<List<ProductInventory>> GetAllStock()
+        {
+            return await _repository.All<ProductInventory>().ToListAsync();
+        }
+
         public async Task<ProductInventory> GetProductInventoryByIdAsync(int id)
         {
             var productInventory = await _repository.GetByIdAsync<ProductInventory>(id);

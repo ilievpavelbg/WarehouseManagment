@@ -84,55 +84,19 @@
                 </select>
                 <span asp-validation-for="Category" class="text-danger"></span>
             </div>
-@*             <div class="form-group text-center mb-3" id="size">
-                <label asp-for="Size" class="control-label">Размер</label>
-                <select asp-for="Size" class="form-control">
-                    <option value="@Model.Size" selected></option>
-                    @foreach (var sizeValue in Enum.GetValues(typeof(WarehouseManagment.Data.Size)))
-                    {
-                        <option value="@sizeValue">@sizeValue</option>
-                    }
-                </select>
-                <span asp-validation-for="Size" class="text-danger"></span>
-            </div> *@
-            @* <div class="form-group text-center mb-3" id="jeansSize">
-                <label asp-for="JeansSize" class="control-label">Размер</label>
-                <select asp-for="JeansSize" class="form-control">
-                    <option value="@Model.JeansSize" selected></option>
-                    @foreach (var jeansSizeValue in Enum.GetValues(typeof(WarehouseManagment.Data.JeansSize)))
-                    {
-                        int enumValue = (int)jeansSizeValue;
-                        <option value="@enumValue">@enumValue</option>
-                    }
-                </select>
-                <span asp-validation-for="JeansSize" class="text-danger"></span>
-            </div> *@
             <div class="text-center">
                 <button id="submitBtn" class="btn btn-primary">Редактирай</button>
             </div>
         </form>
+        <div class="col-3 mt-5">
+            <a class="btn btn-primary" href="/Product/All">Назад</a>
+        </div>
     </div>
 </div>
 
 @section Scripts{
     <script>
         $(document).ready(function () {
-            // $('#size').show();
-            // $('#jeansSize').hide();
-
-            // $('#categoryDropdown').change(function () {
-
-            //     var selectedCategory = $(this).val();
-
-            //     if (selectedCategory === "Дънки") {
-            //         $('#size').hide();
-            //         $('#jeansSize').show();
-            //     } else {
-            //         $('#size').show();
-            //         $('#jeansSize').hide();
-            //     }
-            // })
-
             $('#submitBtn').click(function (e) {
                 e.preventDefault();
 

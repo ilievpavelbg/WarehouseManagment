@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using OfficeOpenXml;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
 
 namespace WarehouseManagment.Controllers
 {
+    [Authorize]
     public class CourierController : Controller
     {
         private readonly IProductInventoryService _productInventoryService;
@@ -70,6 +72,7 @@ namespace WarehouseManagment.Controllers
             return View(model);
         }
 
+        [ValidateAntiForgeryToken]
         [HttpPost]
         public async Task<IActionResult> Edit(CourierModel model)
         {
@@ -149,7 +152,7 @@ namespace WarehouseManagment.Controllers
             return View();
         }
 
-        public async Task<IActionResult> ExportToExcel(string? date, string? productSKU)
+         public async Task<IActionResult> ExportToExcel(string? date, string? productSKU)
         {
             var data = await _courierService.GetAllCouriersAsync(date, productSKU);
 

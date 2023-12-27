@@ -4,6 +4,8 @@
     ViewData["Title"] = $"Редактиране на пратка";
 }
 
+@Html.AntiForgeryToken();
+
 <h1 class="text-center">@ViewData["Title"]</h1>
 
 <div class="col-6 mt-5">
@@ -66,7 +68,9 @@
         <button class="p-2 mb-2 edit-button btn btn-outline-success fs-4">РЕДАКТИРАЙ КУРИЕР</button>
     </div>
 </div>
-
+<div class="col-3 mt-5">
+    <a class="btn btn-primary" href="/Courier/AllCouriers">Назад</a>
+</div>
 @section Scripts{
     <script>
         $(document).ready(function () {
@@ -130,7 +134,7 @@
                     alert("Количеството което сте избрали е по-голямо от наличностите.");
                     return false;
                 }
-                var paymentMethod = parseInt($('.product-courierPaymentMethod').val());
+                var paymentMethod = $('.product-courierPaymentMethod').val();
                 var totalPrice;
                 if (discount > 0) {
                     totalPrice = (unitPrice - (unitPrice * discount / 100)) * quantityNew;
@@ -159,7 +163,10 @@
                     url: '/Courier/Edit',
                     type: 'POST',
                     data: courier,
-                    success: function (response) {
+                    headers: {
+                        RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                    },
+                   success: function (response) {
                         if (response.success) {
                             alert("Успешно редактирахте пратката!")
                             window.location.href = '/Courier/AllCouriers/';
