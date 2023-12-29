@@ -1,12 +1,18 @@
 # WarehouseManagment
 This is a Warehouse Management System for managing product information, including barcode generation, CRUD operations, and Excel data imports. It provides an easy way to keep track of products in your warehouse.
 
-## My Web App
-Visit [Your Web App](http://your-web-app-url.com) to access the application.
+## Accessing the Web App
 
-Credentials:
-- Username: [your_username]
-- Password: [your_password]
+To access the application, visit [http://testwarehouse-env.eba-nuph7hyx.eu-central-1.elasticbeanstalk.com/].
+
+## Credentials
+
+To obtain the necessary credentials for accessing the application:
+
+- **Username:** [your_username]
+- **Password:** [your_password]
+
+Please [contact me via email](mailto:pvl_iliev@abv.bg) to request the credentials. I'll ensure you receive the necessary access promptly.
 
 ## Table of Contents
 - [Features](#features)
