@@ -1,6 +1,13 @@
 # WarehouseManagment
 This is a Warehouse Management System for managing product information, including barcode generation, CRUD operations, and Excel data imports. It provides an easy way to keep track of products in your warehouse.
 
+## My Web App
+Visit [Your Web App](http://your-web-app-url.com) to access the application.
+
+Credentials:
+- Username: [your_username]
+- Password: [your_password]
+
 ## Table of Contents
 - [Features](#features)
 - [Usage](#usage)
