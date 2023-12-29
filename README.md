@@ -3,7 +3,7 @@ This is a Warehouse Management System for managing product information, includin
 
 ## Accessing the Web App
 
-To access the application, visit http://testwarehouse-env.eba-nuph7hyx.eu-central-1.elasticbeanstalk.com .
+To access the application, visit http://testwarehouse-env.eba-nuph7hyx.eu-central-1.elasticbeanstalk.com 
 
 ## Credentials
 
@@ -12,7 +12,7 @@ To obtain the necessary credentials for accessing the application:
 - **Username:** [*******]
 - **Password:** [*******]
 
-Please [contact me via email] pvl_iliev@abv.bg  to request the credentials. I'll ensure you receive the necessary access promptly.
+Please contact me via email pvl_iliev@abv.bg  to request the credentials. I'll ensure you receive the necessary access promptly.
 
 ## Table of Contents
 - [Features](#features)
