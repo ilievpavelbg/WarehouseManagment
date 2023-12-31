@@ -64,5 +64,5 @@ node_modules/
 
 # dotenv environment variables file
 .env
-
-appsettings.json
+# User-specific files
+**/appsettings.json
