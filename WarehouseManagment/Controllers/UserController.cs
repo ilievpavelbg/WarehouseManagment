@@ -1,10 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using System.Reflection.Metadata;
 using System.Security.Claims;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
+using WarehouseManagment.Models;
 using WarehouseManagment.Models.User;
 
 namespace WarehouseManagment.Controllers
@@ -16,17 +19,20 @@ namespace WarehouseManagment.Controllers
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ILoginHistoryService _loginHistoryService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ReCaptchaSettings _reCaptchaSettings;
 
         public UserController(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             ILoginHistoryService loginHistoryService,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            ReCaptchaSettings reCaptchaSettings)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _loginHistoryService = loginHistoryService;
             _httpContextAccessor = httpContextAccessor;
+            _reCaptchaSettings = reCaptchaSettings;
         }
 
         [HttpGet]
@@ -88,24 +94,28 @@ namespace WarehouseManagment.Controllers
         [AllowAnonymous]
         public IActionResult Login()
         {
-            var model = new LoginViewModel();
+            var model = new LoginViewModel
+            {
+                captchaSettings = _reCaptchaSettings
+            };
 
             return View(model);
         }
 
         [HttpPost]
         [AllowAnonymous]
-        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl, [Bind(Prefix = "g-recaptcha-response")] string recaptchaResponse)
+        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl, [Bind(Prefix = "g-recaptcha-response")] string? recaptchaResponse)
         {
 
             model.Response = recaptchaResponse;
+            model.captchaSettings = _reCaptchaSettings;
 
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
 
-            if (!await VerifyRecaptcha(model.Response, model.Secret))
+            if (!await VerifyRecaptcha(model.Response, model.captchaSettings.Secret))
             {
                 ModelState.AddModelError("", "Трябва да потвърдите, че не сте робот.");
                 return View(model);
