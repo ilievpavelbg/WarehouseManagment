@@ -5,7 +5,7 @@ namespace WarehouseManagment.Interfaces
 {
     public interface IProductService
     {
-        Task CreateProductAsync(ProductModel model);
+        Task<Product> CreateProductAsync(ProductModel model, bool returnProduct);
         Task CreateProductFromExcelAsync(IFormFile excelFile);
         Task EditProductAsync(ProductModel model);
         Task<Product?> GetProductBySKUAsync(string SKU);

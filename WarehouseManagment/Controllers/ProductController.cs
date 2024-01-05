@@ -51,7 +51,7 @@ namespace WarehouseManagment.Controllers
 
             try
             {
-                await _productService.CreateProductAsync(model);
+                await _productService.CreateProductAsync(model, false);
 
                 return Json(new { result = true});
             }

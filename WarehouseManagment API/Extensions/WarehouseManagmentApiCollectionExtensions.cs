@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Repository;

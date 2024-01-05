@@ -19,7 +19,7 @@ namespace WarehouseManagment.Services
             _repository = repository;
             _productInventoryService = productInventoryService;
         }
-        public async Task CreateProductAsync(ProductModel model)
+        public async Task<Product> CreateProductAsync(ProductModel model, bool returnProduct)
         {
             try
             {
@@ -45,6 +45,8 @@ namespace WarehouseManagment.Services
 
                 await _repository.AddAsync(product);
                 await _repository.SaveChangesAsync();
+
+                return returnProduct ? product : null;
 
             }
             catch (Exception ex)
