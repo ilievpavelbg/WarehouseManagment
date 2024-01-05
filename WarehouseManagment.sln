@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.7.34031.279
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarehouseManagment", "WarehouseManagment\WarehouseManagment.csproj", "{62FDD11F-83EA-4312-AFC5-DF8ABF848CED}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WarehouseManagment", "WarehouseManagment\WarehouseManagment.csproj", "{62FDD11F-83EA-4312-AFC5-DF8ABF848CED}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarehouseManagment API", "WarehouseManagment API\WarehouseManagment API.csproj", "{07A67996-4A47-475B-875B-54900D3EA5D4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{62FDD11F-83EA-4312-AFC5-DF8ABF848CED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{62FDD11F-83EA-4312-AFC5-DF8ABF848CED}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{62FDD11F-83EA-4312-AFC5-DF8ABF848CED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{07A67996-4A47-475B-875B-54900D3EA5D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07A67996-4A47-475B-875B-54900D3EA5D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07A67996-4A47-475B-875B-54900D3EA5D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07A67996-4A47-475B-875B-54900D3EA5D4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

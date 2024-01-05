@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using System.Reflection.Metadata;
 using System.Security.Claims;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;

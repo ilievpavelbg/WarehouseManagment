@@ -19,7 +19,7 @@
                     <input asp-for="@Model.Password" type="password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="Парола" />
                     <span asp-validation-for="@Model.Password" class="text-danger"></span>
                 </div>
-                <div class="g-recaptcha" data-sitekey="@Model.captchaSettings.Key"></div>
+                <div class="g-recaptcha" data-sitekey="@Model.captchaSettings?.Key"></div>
                 
                 <div class="text-center mt-5">
                     <button type="submit" class="btn btn-primary">ВХОД</button>
