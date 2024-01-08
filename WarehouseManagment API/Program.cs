@@ -17,6 +17,18 @@ namespace WarehouseManagment_API
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            //  CORS , Allow my React app to get data from API
+            builder.Services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(
+                    builder =>
+                    {
+                        builder.WithOrigins("http://localhost:3000")
+                                            .AllowAnyHeader()
+                                            .AllowAnyMethod();
+                    });
+            });
+
             builder.Services.AddApplicationServices();
             builder.Services.AddWarehouseManagmentDbContext(builder.Configuration);
 
@@ -30,6 +42,8 @@ namespace WarehouseManagment_API
             }
 
             app.UseHttpsRedirection();
+
+            app.UseCors();
 
             app.UseAuthorization();
 

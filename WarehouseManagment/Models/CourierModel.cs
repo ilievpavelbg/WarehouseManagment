@@ -17,8 +17,8 @@ namespace WarehouseManagment.Models
         public DateTime? ReturnDate { get; set; }
         [Required]
         public string ShippmentBill { get; set; } = null!;
-        public CourierName CourierName { get; set; }
-        public CourierPaymentMethod CourierPaymentMethod { get; set; }
+        public string CourierName { get; set; } = null!;
+        public string CourierPaymentMethod { get; set; } = null!;
         public bool IsPayed { get; set; }
         public bool IsDeleted { get; set; }
         public string? Description { get; set; } = null!;

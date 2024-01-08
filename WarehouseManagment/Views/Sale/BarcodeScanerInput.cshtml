@@ -155,12 +155,9 @@
                         data: sale,
                         success: function (response) {
                             if (response.success) {
-                                // Handle a successful sale (e.g., update UI)
-                                // Change the button text to "SOLD" and disable discount and quantity inputs
                                 alert("Успешно извършихте продажба!")
                                 window.location.reload();
                             } else {
-                                // Handle an unsuccessful sale (e.g., show an error message)
                                 alert('Sale failed: ' + response.message);
                             }
                         }
@@ -227,21 +224,6 @@
                 return container;
             }
 
-
-
-            // Disable discount and quantity fields and change the button text to "SOLD"
-            // function disableFields() {
-            //     $('.product-quantity').attr("disabled", true);
-            //     $('.sale-button').text('SOLD');
-            //     $('.sale-button').addClass('unsold-button').removeClass('sale-button');
-            // }
-
-            // Handle "UNSOLD IT" button click event
-            $('.unsold-button').on('click', function () {
-                // Make an AJAX request to update the quantity in the database
-                // Remove the product row after a successful update
-                // You should add this functionality based on your backend API
-            });
         })
     </script>
 }

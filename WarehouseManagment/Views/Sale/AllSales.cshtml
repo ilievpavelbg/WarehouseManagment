@@ -89,7 +89,6 @@ else
                 success: function (data) {
                     $('#salesTable').empty();
 
-                    console.log(data);
                     // Update the displayed list with the fetched data
                     $.each(data, function (index, item) {
                         var formattedDate = moment(item.soldDate).format('DD.MM.YYYY [г.] HH:mm:ss');
@@ -102,8 +101,9 @@ else
                             '<td>' + item.totalPrice + '</td>' +
                             '<td>' + item.quantity + '</td>' +
                             '<td>' + item.discount + '</td>';
+ 
 
-                        row += '<td>' + (item.paymentMethod === 0 ? "Cash" : "Card") + '</td>';
+                        row += '<td>' + (item.paymentMethod === 0 ? "Брой" : "Карта") + '</td>';
 
                         var notesValue = item.notes || '';
                         row += '<td width="120px">' + notesValue + '</td>';
@@ -120,7 +120,6 @@ else
                     });
                 },
                 error: function () {
-                    // Handle the error
                 }
             })
         })

@@ -1,4 +1,5 @@
 ﻿using WarehouseManagment.Data;
+using WarehouseManagment.Extensions;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
 
@@ -30,17 +31,20 @@ namespace WarehouseManagment.Factory
                     TotalPrice = courier.TotalPrice,
                     Discount = courier.Discount,
                     SendDate = courier.SendDate,
-                    CourierPaymentMethod = courier.CourierPaymentMethod,
                     IsDeleted = courier.IsDeleted,
                     IsPayed = courier.IsPayed,
-                    CourierName = courier.CourierName,
                     ReturnDate = courier.ReturnDate,
                     ShippmentBill = courier.ShippmentBill,
-                    Notes = courier.Notes
+                    Notes = courier.Notes,
+                    
 
                 };
 
                 courierModel.Size = await _productInventoryService.GetSizeByInventoryId(courier.ProductInventoryId);
+                courierModel.Size = EnumHelper.GetEnumDescription<Data.Size>(courierModel.Size);
+
+                courierModel.CourierPaymentMethod = EnumExtensions.GetDescription(courier.CourierPaymentMethod);
+                courierModel.CourierName = EnumExtensions.GetDescription(courier.CourierName);
 
                 couriersModel.Add(courierModel);
 
@@ -85,7 +89,7 @@ namespace WarehouseManagment.Factory
             var model = new ProductInventoryModel()
             {
               Id = productInventory.Id,
-              Size = productInventory.Size,
+              Size = EnumExtensions.GetDescription(productInventory.Size),
               Quantity = productInventory.Quantity,
               ProductSKU = productInventory.ProductSKU,
               ProductId = productInventory.ProductId,
@@ -149,6 +153,7 @@ namespace WarehouseManagment.Factory
                 };
 
                 saleModel.Size = await _productInventoryService.GetSizeByInventoryId(sale.ProductInventoryId);
+                saleModel.Size = EnumHelper.GetEnumDescription<Data.Size>(saleModel.Size);
 
                 salesModel.Add(saleModel);
 
@@ -201,8 +206,8 @@ namespace WarehouseManagment.Factory
         {
             var model = new CourierModel()
             {
-                CourierName = courier.CourierName,
-                CourierPaymentMethod = courier.CourierPaymentMethod,
+                CourierName = nameof(courier.CourierName),
+                CourierPaymentMethod = nameof(courier.CourierPaymentMethod),
                 Quantity = courier.Quantity,
                 Discount = courier.Discount,
                 Notes = courier.Notes,

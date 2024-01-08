@@ -5,7 +5,7 @@
         private int quantity;
 
         public int Id { get; set; }
-        public Data.Size Size { get; set; }
+        public string Size { get; set; } = null!;
         public int Quantity { get => quantity; set => quantity = value; }
         public string ProductSKU { get; set; } = null!;
         public int ProductId { get; set; }

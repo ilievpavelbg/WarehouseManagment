@@ -22,11 +22,19 @@ namespace WarehouseManagment.Services
             {
                 var productInventory = new ProductInventory()
                 {
-                    Size = model.Size,
                     Quantity = model.Quantity,
                     ProductId = model.ProductId,
                     ProductSKU = model.ProductSKU
                 };
+
+                if (Enum.TryParse(model.Size, out Data.Size size))
+                {
+                    productInventory.Size = size;
+                }
+                else
+                {
+                    throw new ArgumentException();
+                }
 
                 await _repository.AddAsync(productInventory);
                 await _repository.SaveChangesAsync();

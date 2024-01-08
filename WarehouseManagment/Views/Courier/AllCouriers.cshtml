@@ -104,10 +104,10 @@ else
                             '<td>' + item.unitPrice + '</td>' +
                             '<td>' + item.totalPrice + '</td>' +
                             '<td>' + item.quantity + '</td>' +
-                            '<td>' + item.discount + '</td>';
+                            '<td>' + item.discount + '</td>' +
+                            '<td>' + item.courierPaymentMethod + '</td>' +
+                            '<td>' + item.courierName + '</td>';
 
-                        row += '<td>' + (item.courierPaymentMethod === 0 ? "Наложен платеж" : "Банков превод") + '</td>';
-                        row += '<td>' + (item.courierName === 0 ? "Speedy" : "EKOHT") + '</td>';
                         var notesValue = item.notes || '';
                         row += '<td width="120px">' + notesValue + '</td>';
 

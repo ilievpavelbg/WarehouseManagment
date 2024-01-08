@@ -29,11 +29,28 @@ namespace WarehouseManagment.Services
                     Discount = model.Discount,
                     SendDate = model.SendDate,
                     ShippmentBill = model.ShippmentBill,
-                    CourierName  = model.CourierName,
-                    CourierPaymentMethod = model.CourierPaymentMethod
                 };
 
-                if (model.CourierPaymentMethod == CourierPaymentMethod.BankTransfer)
+                if (Enum.TryParse(model.CourierPaymentMethod, out CourierPaymentMethod method))
+                {
+                    courier.CourierPaymentMethod = method;
+                }
+                else
+                {
+                    throw new ArgumentException();
+                }
+
+                if (Enum.TryParse(model.CourierName, out CourierName name))
+                {
+                    courier.CourierName = name;
+                }
+                else
+                {
+                    throw new ArgumentException();
+                }
+
+
+                if (model.CourierPaymentMethod == nameof(CourierPaymentMethod.BankTransfer))
                 {
                     courier.IsPayed = true;
                 }
@@ -97,9 +114,25 @@ namespace WarehouseManagment.Services
                 courier.Discount = model.Discount;
                 courier.Quantity = model.Quantity;
                 courier.TotalPrice = model.TotalPrice;
-                courier.CourierPaymentMethod = model.CourierPaymentMethod;
                 courier.Notes = model.Notes;
-                courier.CourierName = model.CourierName;
+
+                if (Enum.TryParse(model.CourierPaymentMethod, out CourierPaymentMethod method))
+                {
+                    courier.CourierPaymentMethod = method;
+                }
+                else
+                {
+                    throw new ArgumentException();
+                }
+
+                if (Enum.TryParse(model.CourierName, out CourierName name))
+                {
+                    courier.CourierName = name;
+                }
+                else
+                {
+                    throw new ArgumentException();
+                }
 
                 await _repository.SaveChangesAsync();
 

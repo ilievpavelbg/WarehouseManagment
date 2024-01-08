@@ -96,7 +96,7 @@ namespace WarehouseManagment.Controllers
             var couriers = await _courierService.GetAllCouriersAsync(date, productSKU);
             var model = await _factoryService.PrepareCourierListModel(couriers);
 
-            if (System.String.IsNullOrEmpty(status))
+            if (string.IsNullOrEmpty(status))
             {
                 return View(model);
             }
