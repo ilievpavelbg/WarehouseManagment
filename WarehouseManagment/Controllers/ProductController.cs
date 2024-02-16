@@ -28,7 +28,7 @@ namespace WarehouseManagment.Controllers
         public async Task<IActionResult> All()
         {
             var products = await _productService.GetAllProductsAsync();
-            var productsModel = _factoryService.PrepareProductListModel(products);
+            var productsModel = await _factoryService.PrepareProductListModel(products);
 
             return View(productsModel);
         }
@@ -66,7 +66,7 @@ namespace WarehouseManagment.Controllers
         public async Task<IActionResult> Edit(int id)
         {
             var product = await _productService.GetProductByIdAsync(id);
-            var model = _factoryService.PrepareProductModel(product);
+            var model = await _factoryService.PrepareProductModel(product);
 
             return View(model);
         }
@@ -101,7 +101,7 @@ namespace WarehouseManagment.Controllers
         public async Task<IActionResult> Details(int id)
         {
             var product = await _productService.GetProductByIdAsync(id);
-            var model = _factoryService.PrepareProductModel(product);
+            var model = await _factoryService.PrepareProductModel(product);
 
             return View(model);
         }
@@ -124,7 +124,7 @@ namespace WarehouseManagment.Controllers
         public async Task<IActionResult> Availability(int id)
         {
             var product = await _productService.GetProductByIdAsync(id);
-            var productModel = _factoryService.PrepareProductModel(product);
+            var productModel = await _factoryService.PrepareProductModel(product);
             var productInventory = await _productInventoryService.GetProductInventoryByProductIdAsync(product.Id);
             var productInventoryModel = _factoryService.PrepareProductInventoryListModel(productInventory);
             productModel.ProductInventoriesModel = productInventoryModel;

@@ -19,6 +19,7 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddWarehouseManagmentDbContext(this IServiceCollection services, IConfiguration config)
         {
             var connectionString = config.GetConnectionString("DefaultConnection_localhost");
+            //var connectionString = config.GetConnectionString("DefaultConnection_AWS");
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(connectionString));
             services.AddScoped<IRepository, Repository>();

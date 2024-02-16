@@ -20,7 +20,12 @@ namespace WarehouseManagment.Data
         XXL,
         [Description("XXXL/4XL")]
         XXXL4XL,
+        [Description("XS/S/M")]
+        XSSM,
+        [Description("L/XL/XXL")]
+        LXLXXL,
         UNI,
+        Oversize,
         [Description("24")]
         a = 24,
         [Description("25")]

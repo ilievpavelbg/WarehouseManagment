@@ -99,19 +99,19 @@ namespace WarehouseManagment.Factory
             return model;
         }
 
-        public List<ProductModel> PrepareProductListModel(List<Product> products)
+        public async Task<List<ProductModel>> PrepareProductListModel(List<Product> products)
         {
             var productsModel = new List<ProductModel>();
 
             foreach (var product in products)
             {
-                var productModel = PrepareProductModel(product);
+                var productModel = await PrepareProductModel(product);
                 productsModel.Add(productModel);
             }
 
             return productsModel;
         }
-        public ProductModel PrepareProductModel(Product product)
+        public async Task<ProductModel> PrepareProductModel(Product product)
         {
             var model = new ProductModel()
             {
@@ -126,6 +126,9 @@ namespace WarehouseManagment.Factory
                 SecondComposition = product.SecondComposition,
                 Category = product.Category,
             };
+
+            var productTotalQuantity = await _productInventoryService.GetProductInventoryByProductIdAsync(product.Id);
+            model.TotalQuantity = productTotalQuantity.Sum(x => x.Quantity);
 
             return model;
         }

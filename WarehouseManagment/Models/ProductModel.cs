@@ -18,6 +18,7 @@ namespace WarehouseManagment.Models
         public Category? Category { get; set; }
         public List<ProductInventoryModel> ProductInventoriesModel { get; set; } = new List<ProductInventoryModel>();
         public Discount Discount { get; set; }
+        public int TotalQuantity { get; set; }
 
     }
 }

@@ -10,15 +10,15 @@ using WarehouseManagment.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection_localhost");
-//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection_AWS");
+//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection_localhost");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection_AWS");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 var recaptchaSettings = new ReCaptchaSettings();
-//builder.Configuration.GetSection("ReCaptchaSettings_AWS").Bind(recaptchaSettings);
-builder.Configuration.GetSection("ReCaptchaSettings_localhost").Bind(recaptchaSettings);
+//builder.Configuration.GetSection("ReCaptchaSettings_localhost").Bind(recaptchaSettings);
+builder.Configuration.GetSection("ReCaptchaSettings_AWS").Bind(recaptchaSettings);
 builder.Services.AddSingleton(recaptchaSettings);
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options =>

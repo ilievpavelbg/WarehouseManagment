@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using WarehouseManagment.Barcode;
+using WarehouseManagment.BarcodGenerator;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;

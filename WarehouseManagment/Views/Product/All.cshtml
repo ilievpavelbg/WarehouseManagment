@@ -23,7 +23,7 @@ else
                     <th scope="col">Описание</th>
                     <th scope="col">Цена на дребно</th>
                     <th scope="col">Цена на едро</th>
-                    <th scope="col">Размер и количество</th>
+                    <th scope="col">Количество</th>
                 </tr>
             </thead>
             <tbody>
@@ -33,9 +33,9 @@ else
                         <td>@item.Id</td>
                         <td>@item.SKU</td>
                         <td>@item.Description</td>
-                        <td>@item.RetailPrice</td>
-                        <td>@item.WholesalePrice</td>
-                        <td>@item.WholesalePrice</td>
+                        <td class="text-center">@item.RetailPrice</td>
+                        <td class="text-center">@item.WholesalePrice</td>
+                        <td class="text-center">@item.TotalQuantity</td>
                         <td align="right">
                             <a class="btn btn-primary" asp-action="Details" asp-controller="Product" asp-route-Id="@item.Id">Детайли</a>
                             <a class="btn btn-secondary" asp-action="Edit" asp-controller="Product" asp-route-Id="@item.Id">Редактирай</a>

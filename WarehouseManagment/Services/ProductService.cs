@@ -1,7 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
-using WarehouseManagment.Barcode;
+using WarehouseManagment.BarcodGenerator;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
@@ -67,6 +67,7 @@ namespace WarehouseManagment.Services
                 {
                     for (int row = 2; row <= worksheet.Dimension.End.Row; row++)
                     {
+                        
                         if (TryValidateRow(worksheet, row, out var product, out var productInventory))
                         {
                             var findProduct = await GetProductBySKUAsync(product.SKU.ToUpper());
@@ -219,44 +220,112 @@ namespace WarehouseManagment.Services
 
 
 
-            if (string.IsNullOrEmpty(exelSKU) || string.IsNullOrEmpty(excelDescription) ||
-                string.IsNullOrEmpty(exelRetailPrice) || string.IsNullOrEmpty(exelWholesalePrice) ||
-                string.IsNullOrEmpty(excelGenre) || string.IsNullOrEmpty(excelFirstComposition) ||
-                string.IsNullOrEmpty(excelCategory) || string.IsNullOrEmpty(excelColor) || string.IsNullOrEmpty(excelSize) || string.IsNullOrEmpty(excelQuantity))
+            //if (string.IsNullOrEmpty(exelSKU) || string.IsNullOrEmpty(excelDescription) ||
+            //    string.IsNullOrEmpty(exelRetailPrice) || string.IsNullOrEmpty(exelWholesalePrice) ||
+            //    string.IsNullOrEmpty(excelGenre) || string.IsNullOrEmpty(excelFirstComposition) ||
+            //    string.IsNullOrEmpty(excelCategory) || string.IsNullOrEmpty(excelColor) || string.IsNullOrEmpty(excelSize) || string.IsNullOrEmpty(excelQuantity))
+            //{
+            //    return false; // Data is missing or invalid
+            //}
+
+            if (double.TryParse(exelRetailPrice, out double retailPrice)){
+                product.RetailPrice = retailPrice;
+            }
+            else
             {
-                return false; // Data is missing or invalid
+                return false;
             }
 
-            if (!double.TryParse(exelRetailPrice, out double retailPrice) ||
-                !double.TryParse(exelWholesalePrice, out double wholesalePrice) ||
-                !int.TryParse(excelQuantity, out int quantity))
+            if (double.TryParse(exelRetailPrice, out double wholesalePrice)){
+                product.WholesalePrice = wholesalePrice;
+            }
+            else
             {
-                return false; // Price or quantity is not a valid number
+                return false;
+            }
+
+            if (int.TryParse(excelQuantity, out int quantity))
+            {
+                productInventory.Quantity = quantity;
+            }
+            else
+            {
+                return false;
             }
             //TODO To add retail and wholesale price correctly
             product.SKU = exelSKU;
             product.Description = excelDescription;
-            product.RetailPrice = retailPrice;
-            product.WholesalePrice = wholesalePrice;
-            productInventory.Quantity = quantity;
 
-            if (Enum.TryParse(excelGenre, true, out Genre genre) &&
-                Enum.TryParse(excelFirstComposition, true, out Composition firstComposition) &&
-                Enum.TryParse(excelSecondComposition, true, out Composition secondComposition) &&
-                Enum.TryParse(excelCategory, true, out Category category) &&
-                Enum.TryParse(excelSize, true, out Data.Size size) &&
-                Enum.TryParse(excelColor, true, out Data.Color color))
+            if (excelGenre != null)
             {
-                product.Genre = genre;
-                product.FirstComposition = firstComposition;
-                product.SecondComposition = secondComposition;
-                product.Category = category;
-                product.Color = color;
-                productInventory.Size = size;
+                if (Enum.TryParse(excelGenre, true, out Genre genre))
+                {
+                    product.Genre = genre;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
+
+            if (excelFirstComposition != null)
             {
-                return false; // Invalid enum values
+                if (Enum.TryParse(excelFirstComposition, true, out Composition firstComposition))
+                {
+                    product.FirstComposition = firstComposition;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            if (excelSecondComposition != null)
+            {
+                if (Enum.TryParse(excelSecondComposition, true, out Composition secondComposition))
+                {
+                    product.SecondComposition = secondComposition;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            if (excelCategory != null)
+            {
+                if (Enum.TryParse(excelCategory, true, out Category category))
+                {
+                    product.Category = category;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            if (excelSize != null)
+            {
+                if (Enum.TryParse(excelSize, true, out Data.Size size))
+                {
+                    productInventory.Size = size;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            if (excelColor != null)
+            {
+                if (Enum.TryParse(excelColor, true, out Data.Color color))
+                {
+                    product.Color = color;
+                }
+                else
+                {
+                    return false;
+                }
             }
 
             return true;
