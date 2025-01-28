@@ -7,6 +7,8 @@ namespace WarehouseManagment.Data
         XS,
         [Description("XS/S")]
         XSS,
+        [Description("XS/S/M")]
+        XSSM,
         S,
         [Description("S/M")]
         SM,
@@ -14,15 +16,24 @@ namespace WarehouseManagment.Data
         [Description("M/L")]
         ML,
         L,
+        [Description("L/XL")]
+        LXL,
         XL,
-        [Description("XL/XXL")]
+        [Description("XL/2XL")]
         XLXXL,
+        [Description("2XL")]
         XXL,
-        [Description("XXXL/4XL")]
+        [Description("3XL")]
+        XXXL,
+        [Description("4XL")]
+        XXXXL,
+        [Description("5XL")]
+        XXXXXL,
+        [Description("2XL/3XL")]
+        XXLXXXL,
+        [Description("3XL/4XL")]
         XXXL4XL,
-        [Description("XS/S/M")]
-        XSSM,
-        [Description("L/XL/XXL")]
+        [Description("L/XL/2XL")]
         LXLXXL,
         UNI,
         Oversize,

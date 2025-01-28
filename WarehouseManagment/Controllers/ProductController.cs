@@ -32,12 +32,13 @@ namespace WarehouseManagment.Controllers
 
             return View(productsModel);
         }
+
         [Authorize(Roles = "Admin")]
         [HttpGet]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
             var product = new Product();
-            var model = _factoryService.PrepareProductModel(product);
+            var model = await _factoryService.PrepareProductModel(product);
             return View(model);
         }
 

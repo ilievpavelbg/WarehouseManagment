@@ -8,14 +8,14 @@ namespace WarehouseManagment.Data
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
-            if (this.Database.IsRelational())
-            {
-                this.Database.Migrate();
-            }
-            else
-            {
-                this.Database.EnsureCreated();
-            }
+            //if (this.Database.IsRelational())
+            //{
+            //    this.Database.Migrate();
+            //}
+            //else
+            //{
+            //    this.Database.EnsureCreated();
+            //}
         }
 
         public DbSet<Product> Products { get; set; }

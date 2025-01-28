@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
 using WarehouseManagment.BarcodGenerator;
@@ -67,7 +68,13 @@ namespace WarehouseManagment.Services
                 {
                     for (int row = 2; row <= worksheet.Dimension.End.Row; row++)
                     {
-                        
+
+                        // Stop processing if the row is empty or contains no relevant data
+                        if (RowHasNoData(worksheet, row))
+                        {
+                            return;
+                        }
+
                         if (TryValidateRow(worksheet, row, out var product, out var productInventory))
                         {
                             var findProduct = await GetProductBySKUAsync(product.SKU.ToUpper());
@@ -95,7 +102,7 @@ namespace WarehouseManagment.Services
 
                                 if (inventorySizeExist != null)
                                 {
-                                    inventorySizeExist.Quantity = productInventory.Quantity;
+                                    inventorySizeExist.Quantity += productInventory.Quantity;
                                     await _repository.SaveChangesAsync();
                                 }
                                 else
@@ -128,6 +135,17 @@ namespace WarehouseManagment.Services
                     throw new Exception(ex.Message);
                 }
             }
+        }
+
+        private bool RowHasNoData(ExcelWorksheet worksheet, int row)
+        {
+            // Check if the essential fields (SKU, description, price) are null or empty in the row
+            var exelSKU = worksheet.Cells[row, 1].Value?.ToString();
+            var excelDescription = worksheet.Cells[row, 2].Value?.ToString();
+            var exelRetailPrice = worksheet.Cells[row, 3].Value?.ToString();
+
+            // If SKU, description, and retail price are all empty or null, the row has no data
+            return string.IsNullOrWhiteSpace(exelSKU) && string.IsNullOrWhiteSpace(excelDescription) && string.IsNullOrWhiteSpace(exelRetailPrice);
         }
 
         public async Task DeleteProduct(int id)
@@ -218,7 +236,10 @@ namespace WarehouseManagment.Services
             string? excelSize = worksheet.Cells[row, 10].Value?.ToString() ?? null;
             string? excelQuantity = worksheet.Cells[row, 11].Value?.ToString() ?? null;
 
-
+            if (string.IsNullOrWhiteSpace(exelSKU) && string.IsNullOrWhiteSpace(excelDescription) && string.IsNullOrWhiteSpace(exelRetailPrice))
+            {
+                return true;
+            }
 
             //if (string.IsNullOrEmpty(exelSKU) || string.IsNullOrEmpty(excelDescription) ||
             //    string.IsNullOrEmpty(exelRetailPrice) || string.IsNullOrEmpty(exelWholesalePrice) ||
