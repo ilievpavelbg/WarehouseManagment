@@ -41,6 +41,8 @@ builder.Services.AddScoped<IFactoryService, FactoryService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<ICourierService, CourierService>();
 builder.Services.AddScoped<ILoginHistoryService, LoginHistoryService>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IDocumentPostingService, DocumentPostingService>();
 builder.Services.AddSingleton<IHttpContextAccessor,  HttpContextAccessor>();
 
 var app = builder.Build();
