@@ -70,4 +70,23 @@ body {
     color:forestgreen;
 }
 
+.navbar-nav .nav-link:hover {
+    color: #F1F1F1 !important;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #C23A00 !important;
+    background-color: #f5e6df;
+    border-radius: 5px;
+}
+
+.dropdown-item:hover {
+    color: #C23A00;
+    background-color: #f5e6df;
+}
+
+.nav-item.dropdown:hover > .nav-link {
+    color: #C23A00 !important;
+}
+
 

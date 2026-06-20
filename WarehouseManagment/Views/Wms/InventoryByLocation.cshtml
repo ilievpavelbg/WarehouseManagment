@@ -1,14 +1,14 @@
-@model WarehouseManagment.Models.Wms.InventoryByLocationViewModel
+﻿@model WarehouseManagment.Models.Wms.InventoryByLocationViewModel
 
 @{
     ViewData["Title"] = "Inventory by Location";
 }
 
-<h2 class="mb-3">Inventory by Location</h2>
+<h2 class="mb-3">Наличност по зони</h2>
 
 @if (!Model.Rows.Any())
 {
-    <div class="alert alert-info">No inventory balances available.</div>
+    <div class="alert alert-info">Няма наличност в момента.</div>
 }
 else
 {

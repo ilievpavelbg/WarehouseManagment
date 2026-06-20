@@ -70,6 +70,56 @@ namespace WarehouseManagment.Data
                 new Location { Id = 4, ZoneId = 2, Code = "STO-B1", Name = "Storage B1" },
                 new Location { Id = 5, ZoneId = 3, Code = "SHP-01", Name = "Shipping Dock 1" }
             );
+
+            modelBuilder.Entity<PurchaseReceiptLine>()
+        .HasOne(x => x.PurchaseReceipt)
+        .WithMany(x => x.Lines)
+        .HasForeignKey(x => x.PurchaseReceiptId)
+        .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<PurchaseReceiptLine>()
+                .HasOne(x => x.Item)
+                .WithMany()
+                .HasForeignKey(x => x.ItemId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<PurchaseReceiptLine>()
+                .HasOne(x => x.Location)
+                .WithMany()
+                .HasForeignKey(x => x.LocationId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<ShipmentLine>()
+                .HasOne(x => x.Shipment)
+                .WithMany(x => x.Lines)
+                .HasForeignKey(x => x.ShipmentId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<ShipmentLine>()
+                .HasOne(x => x.Item)
+                .WithMany()
+                .HasForeignKey(x => x.ItemId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<ShipmentLine>()
+                .HasOne(x => x.Location)
+                .WithMany()
+                .HasForeignKey(x => x.LocationId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<PurchaseReceipt>()
+                .HasOne(x => x.Warehouse)
+                .WithMany()
+                .HasForeignKey(x => x.WarehouseId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Shipment>()
+                .HasOne(x => x.Warehouse)
+                .WithMany()
+                .HasForeignKey(x => x.WarehouseId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+
         }
     }
 }
