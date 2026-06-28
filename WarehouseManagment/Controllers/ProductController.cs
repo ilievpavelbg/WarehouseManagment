@@ -41,12 +41,14 @@ namespace WarehouseManagment.Controllers
             return View(model);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ProductModel model)
         {
             if (!ModelState.IsValid)
             {
-                return View();
+                return Json(new { result = false, message = "Invalid product data." });
             }
 
             try
@@ -72,6 +74,7 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(ProductModel model)
         {
             if (!ModelState.IsValid)
@@ -137,6 +140,7 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateProductFromExcel(IFormFile excelFile)
         {
             if (!ModelState.IsValid)
