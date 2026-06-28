@@ -23,7 +23,8 @@ namespace WarehouseManagment.Services
         {
             try
             {
-                var getProductBySKU = await GetProductBySKUAsync(model.SKU);
+                var normalizedSku = model.SKU.ToUpper();
+                var getProductBySKU = await GetProductBySKUAsync(normalizedSku);
 
                 if (getProductBySKU != null)
                 {
@@ -32,7 +33,7 @@ namespace WarehouseManagment.Services
 
                 var product = new Product()
                 {
-                    SKU = model.SKU,
+                    SKU = normalizedSku,
                     Description = model.Description,
                     RetailPrice = model.RetailPrice,
                     WholesalePrice = model.WholesalePrice,
@@ -218,15 +219,10 @@ namespace WarehouseManagment.Services
             string? excelSize = worksheet.Cells[row, 10].Value?.ToString() ?? null;
             string? excelQuantity = worksheet.Cells[row, 11].Value?.ToString() ?? null;
 
-
-
-            //if (string.IsNullOrEmpty(exelSKU) || string.IsNullOrEmpty(excelDescription) ||
-            //    string.IsNullOrEmpty(exelRetailPrice) || string.IsNullOrEmpty(exelWholesalePrice) ||
-            //    string.IsNullOrEmpty(excelGenre) || string.IsNullOrEmpty(excelFirstComposition) ||
-            //    string.IsNullOrEmpty(excelCategory) || string.IsNullOrEmpty(excelColor) || string.IsNullOrEmpty(excelSize) || string.IsNullOrEmpty(excelQuantity))
-            //{
-            //    return false; // Data is missing or invalid
-            //}
+            if (string.IsNullOrWhiteSpace(exelSKU))
+            {
+                return false;
+            }
 
             if (double.TryParse(exelRetailPrice, out double retailPrice)){
                 product.RetailPrice = retailPrice;
@@ -236,7 +232,7 @@ namespace WarehouseManagment.Services
                 return false;
             }
 
-            if (double.TryParse(exelRetailPrice, out double wholesalePrice)){
+            if (double.TryParse(exelWholesalePrice, out double wholesalePrice)){
                 product.WholesalePrice = wholesalePrice;
             }
             else
@@ -244,7 +240,7 @@ namespace WarehouseManagment.Services
                 return false;
             }
 
-            if (int.TryParse(excelQuantity, out int quantity))
+            if (int.TryParse(excelQuantity, out int quantity) && quantity >= 0)
             {
                 productInventory.Quantity = quantity;
             }
@@ -252,7 +248,7 @@ namespace WarehouseManagment.Services
             {
                 return false;
             }
-            //TODO To add retail and wholesale price correctly
+
             product.SKU = exelSKU;
             product.Description = excelDescription;
 
