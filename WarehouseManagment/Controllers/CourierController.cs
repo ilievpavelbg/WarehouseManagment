@@ -78,11 +78,6 @@ namespace WarehouseManagment.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(CourierModel model)
         {
-            if (!ModelState.IsValid)
-            {
-                return Json(new { success = false, message = "Invalid courier data." });
-            }
-
             try
             {
                 await _courierService.EditCourierAsync(model);
