@@ -59,6 +59,10 @@ namespace WarehouseManagment.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<InventoryMovement>()
+                .Property(m => m.Quantity)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<InventoryMovement>()
                 .HasIndex(m => m.MovementDate);
 
             builder.Entity<InventoryMovement>()
