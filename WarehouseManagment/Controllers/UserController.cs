@@ -44,7 +44,7 @@ namespace WarehouseManagment.Controllers
         }
         [Authorize(Roles = "Admin")]
         [HttpPost]
-        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
             if (!ModelState.IsValid)
@@ -102,6 +102,7 @@ namespace WarehouseManagment.Controllers
 
         [HttpPost]
         [AllowAnonymous]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl, [Bind(Prefix = "g-recaptcha-response")] string? recaptchaResponse)
         {
 
@@ -121,15 +122,13 @@ namespace WarehouseManagment.Controllers
 
             var user = await _userManager.FindByNameAsync(model.UserName);
 
-            //var userRole = await _userManager.GetRolesAsync(user);
-            await _loginHistoryService.UserLoginTime(user.Id);
-
             if (user != null)
             {
                 var result = await _signInManager.PasswordSignInAsync(user, model.Password, false, false);
 
                 if (result.Succeeded)
                 {
+                    await _loginHistoryService.UserLoginTime(user.Id);
 
                     if (!string.IsNullOrEmpty(returnUrl))
                     {

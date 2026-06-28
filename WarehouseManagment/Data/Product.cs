@@ -6,7 +6,11 @@ namespace WarehouseManagment.Data
     {
         [Key]
         public int Id { get; set; }
+
+        [Required]
+        [StringLength(128)]
         public string SKU { get; set; } = null!;
+
         public string? Description { get; set; } = null!;
         public double? RetailPrice { get; set; }
         public double? WholesalePrice { get; set; }

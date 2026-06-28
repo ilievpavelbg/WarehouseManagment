@@ -8,14 +8,6 @@ namespace WarehouseManagment.Data
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
-            //if (this.Database.IsRelational())
-            //{
-            //    this.Database.Migrate();
-            //}
-            //else
-            //{
-            //    this.Database.EnsureCreated();
-            //}
         }
 
         public DbSet<Product> Products { get; set; }
@@ -24,5 +16,13 @@ namespace WarehouseManagment.Data
         public DbSet<Courier> Couriers { get; set; }
         public DbSet<LoginHistory> LoginHistories { get; set; }
 
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
+
+            builder.Entity<Product>()
+                .HasIndex(p => p.SKU)
+                .IsUnique();
+        }
     }
 }

@@ -10,6 +10,7 @@
 <div class="row mt-5">
     <div class="col-md-4 offset-md-4">
         <form id="registerForm" method="post">
+            @Html.AntiForgeryToken()
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="text-center mb-3">
                 <input class="form-control " autocomplete="on" aria-required="true" asp-for="@Model.FirstNane" placeholder="Име"/>

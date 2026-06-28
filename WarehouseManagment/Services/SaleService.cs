@@ -1,5 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
@@ -10,92 +9,146 @@ namespace WarehouseManagment.Services
     public class SaleService : ISaleService
     {
         private readonly IRepository _repository;
-        private readonly IProductInventoryService _productInventoryService;
+        private readonly ApplicationDbContext _dbContext;
 
-        public SaleService(IRepository repository, IProductInventoryService productInventoryService)
+        public SaleService(IRepository repository, ApplicationDbContext dbContext)
         {
             _repository = repository;
-            _productInventoryService = productInventoryService;
+            _dbContext = dbContext;
         }
+
         public async Task CreateSaleAsync(SaleModel model)
         {
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
             try
             {
+                var inventory = await GetInventoryWithProductAsync(model.ProductInventoryId);
+                ValidateQuantity(model.Quantity, inventory.Quantity);
+
+                var unitPrice = GetRetailPrice(inventory.Product);
+                var totalPrice = CalculateTotalPrice(unitPrice, model.Quantity, model.Discount);
+
                 var sale = new Sale()
                 {
-                    ProductId = model.ProductId,
-                    ProductSKU = model.ProductSKU,
-                    ProductInventoryId = model.ProductInventoryId,
+                    ProductId = inventory.ProductId,
+                    ProductSKU = inventory.ProductSKU,
+                    ProductInventoryId = inventory.Id,
                     Quantity = model.Quantity,
-                    UnitPrice = model.UnitPrice,
-                    TotalPrice = model.TotalPrice,
+                    UnitPrice = unitPrice,
+                    TotalPrice = totalPrice,
                     Discount = model.Discount,
-                    SoldDate = model.SoldDate,
+                    SoldDate = DateTime.Now,
                     PaymentMethod = model.PaymentMethod,
                     Notes = model.Notes
                 };
 
+                inventory.Quantity -= model.Quantity;
+
                 await _repository.AddAsync(sale);
                 await _repository.SaveChangesAsync();
-
+                await transaction.CommitAsync();
             }
-            catch (Exception )
+            catch (Exception)
             {
+                await transaction.RollbackAsync();
                 throw;
             }
         }
 
         public async Task<int> CreditSaleAsync(int id)
         {
-            var sale = await _repository.GetByIdAsync<Sale>(id);
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-            if (sale == null)
+            try
             {
-                throw new Exception();
+                var sale = await _repository.GetByIdAsync<Sale>(id);
+
+                if (sale == null)
+                {
+                    throw new ArgumentNullException(nameof(sale));
+                }
+
+                if (sale.IsDeleted)
+                {
+                    throw new InvalidOperationException("Sale is already credited.");
+                }
+
+                var inventory = await _repository.GetByIdAsync<ProductInventory>(sale.ProductInventoryId);
+
+                if (inventory == null)
+                {
+                    throw new ArgumentNullException(nameof(inventory));
+                }
+
+                sale.IsDeleted = true;
+
+                var creditSale = new Sale()
+                {
+                    ProductId = sale.ProductId,
+                    ProductSKU = sale.ProductSKU,
+                    ProductInventoryId = sale.ProductInventoryId,
+                    Quantity = -sale.Quantity,
+                    UnitPrice = sale.UnitPrice,
+                    TotalPrice = -sale.TotalPrice,
+                    Discount = sale.Discount,
+                    SoldDate = DateTime.Now,
+                    PaymentMethod = sale.PaymentMethod,
+                    Notes = sale.Notes,
+                    IsDeleted = true
+                };
+
+                inventory.Quantity += sale.Quantity;
+
+                await _repository.AddAsync(creditSale);
+                await _repository.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return sale.ProductInventoryId;
             }
-
-            sale.IsDeleted = true;
-
-            var creditSale = new Sale()
+            catch (Exception)
             {
-                ProductId = sale.ProductId,
-                ProductSKU = sale.ProductSKU,
-                ProductInventoryId = sale.ProductInventoryId,
-                Quantity = -sale.Quantity,
-                UnitPrice = sale.UnitPrice,
-                TotalPrice = -sale.TotalPrice,
-                Discount = sale.Discount,
-                SoldDate = sale.SoldDate,
-                PaymentMethod = sale.PaymentMethod,
-                IsDeleted = sale.IsDeleted
-            };
-
-            await _repository.AddAsync(creditSale);
-            await _repository.SaveChangesAsync();
-
-            return sale.ProductInventoryId;
-
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task EditSaleAsync(SaleModel model)
         {
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
             try
             {
-                var sale = await _repository.GetByIdAsync<Sale>(model.Id) ?? throw new ArgumentNullException();
+                var sale = await _repository.GetByIdAsync<Sale>(model.Id) ?? throw new ArgumentNullException(nameof(Sale));
+
+                if (sale.IsDeleted)
+                {
+                    throw new InvalidOperationException("Credited sales cannot be edited.");
+                }
+
+                var inventory = await GetInventoryWithProductAsync(sale.ProductInventoryId);
+                var availableForEdit = inventory.Quantity + sale.Quantity;
+                ValidateQuantity(model.Quantity, availableForEdit);
+
+                var unitPrice = GetRetailPrice(inventory.Product);
+                var totalPrice = CalculateTotalPrice(unitPrice, model.Quantity, model.Discount);
+
+                inventory.Quantity = availableForEdit - model.Quantity;
 
                 sale.Quantity = model.Quantity;
-                sale.TotalPrice = model.TotalPrice;
+                sale.UnitPrice = unitPrice;
+                sale.TotalPrice = totalPrice;
                 sale.Discount = model.Discount;
                 sale.PaymentMethod = model.PaymentMethod;
                 sale.Notes = model.Notes;
                 
                 await _repository.SaveChangesAsync();
-
+                await transaction.CommitAsync();
             }
             catch (Exception)
             {
-
-                throw new Exception();
+                await transaction.RollbackAsync();
+                throw;
             }
         }
 
@@ -136,6 +189,49 @@ namespace WarehouseManagment.Services
             }
 
             return sale;
+        }
+
+        private async Task<ProductInventory> GetInventoryWithProductAsync(int inventoryId)
+        {
+            var inventory = await _repository.All<ProductInventory>()
+                .Include(x => x.Product)
+                .FirstOrDefaultAsync(x => x.Id == inventoryId);
+
+            if (inventory == null)
+            {
+                throw new ArgumentNullException(nameof(inventory));
+            }
+
+            return inventory;
+        }
+
+        private static void ValidateQuantity(int requestedQuantity, int availableQuantity)
+        {
+            if (requestedQuantity <= 0)
+            {
+                throw new InvalidOperationException("Quantity must be greater than zero.");
+            }
+
+            if (requestedQuantity > availableQuantity)
+            {
+                throw new InvalidOperationException("Insufficient stock quantity.");
+            }
+        }
+
+        private static decimal GetRetailPrice(Product product)
+        {
+            if (!product.RetailPrice.HasValue)
+            {
+                throw new InvalidOperationException("Product retail price is missing.");
+            }
+
+            return (decimal)product.RetailPrice.Value;
+        }
+
+        private static decimal CalculateTotalPrice(decimal unitPrice, int quantity, Discount discount)
+        {
+            var discountPercent = (decimal)discount / 100;
+            return Math.Round(unitPrice * quantity * (1 - discountPercent), 2);
         }
     }
 }
