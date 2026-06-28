@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace WarehouseManagment.Data.Migrations
 {
-    [Migration("20260628130000_AddWmsFoundation")]
     public partial class AddWmsFoundation : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
