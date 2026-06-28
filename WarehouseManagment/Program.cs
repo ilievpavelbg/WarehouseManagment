@@ -43,6 +43,7 @@ builder.Services.AddScoped<IFactoryService, FactoryService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<ICourierService, CourierService>();
 builder.Services.AddScoped<ILoginHistoryService, LoginHistoryService>();
+builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 builder.Services.AddSingleton<IHttpContextAccessor,  HttpContextAccessor>();
 
 var app = builder.Build();
