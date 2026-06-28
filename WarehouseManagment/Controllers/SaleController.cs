@@ -75,11 +75,6 @@ namespace WarehouseManagment.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(SaleModel model)
         {
-            if (!ModelState.IsValid)
-            {
-                return Json(new { success = false, message = "Invalid sale data." });
-            }
-
             try
             {
                 await _saleService.EditSaleAsync(model);
