@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using OfficeOpenXml;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
-using WarehouseManagment.Services;
 
 namespace WarehouseManagment.Controllers
 {
@@ -34,18 +33,24 @@ namespace WarehouseManagment.Controllers
             return Json(new { productData = saleModel });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(SaleModel model)
         {
+            if (!ModelState.IsValid)
+            {
+                return Json(new { success = false, message = "Invalid sale data." });
+            }
+
             try
             {
                 await _saleService.CreateSaleAsync(model);
-                await _productInventoryService.UpdateInventoryAsync(model.ProductInventoryId, model.Quantity);
                 return Json(new { success = true });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
 
-                return Json(new { success = false });
+                return Json(new { success = false, message = ex.Message });
             }
 
         }
@@ -57,26 +62,33 @@ namespace WarehouseManagment.Controllers
             var model = _factoryService.PrepareSaleEditModel(sale);
             var product = await _productService.GetProductByIdAsync(sale.ProductId);
             var inventory = await _productInventoryService.GetProductInventoryByIdAsync(sale.ProductInventoryId);
+            model.Id = sale.Id;
             model.Description = product.Description;
             model.Availability = inventory.Quantity;
+            model.ProductInventoryId = inventory.Id;
             
 
             return View(model);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(SaleModel model)
         {
+            if (!ModelState.IsValid)
+            {
+                return Json(new { success = false, message = "Invalid sale data." });
+            }
+
             try
             {
                 await _saleService.EditSaleAsync(model);
-                await _productInventoryService.UpdateInventoryAsync(model.ProductInventoryId, model.QuantityDifference);
                 return Json(new { success = true });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
 
-                return Json(new { success = false });
+                return Json(new { success = false, message = ex.Message });
             }
 
         }
@@ -131,15 +143,14 @@ namespace WarehouseManagment.Controllers
         {
             try
             {
-                var inventoryId = await _saleService.CreditSaleAsync(id);
-                await _productInventoryService.UpdateInventoryAsync(inventoryId, quantity);
+                await _saleService.CreditSaleAsync(id);
 
                 return Json(new { response = true });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
 
-                return Json(new { response = false });
+                return Json(new { response = false, message = ex.Message });
             }
         }
 
