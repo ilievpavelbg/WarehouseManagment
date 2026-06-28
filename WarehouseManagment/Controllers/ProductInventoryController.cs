@@ -43,11 +43,12 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ProductInventoryModel model)
         {
             if (!ModelState.IsValid)
             {
-                return View();
+                return Json(new { result = false, message = "Invalid inventory data." });
             }
 
             try
@@ -56,18 +57,21 @@ namespace WarehouseManagment.Controllers
 
                 return Json(new { result = true});
             }
-            catch (Exception)
+            catch (Exception ex)
             {
 
-                return Json(new { result = false });
+                return Json(new { result = false, message = ex.Message });
             }
 
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(ProductInventoryModel model)
         {
             if (!ModelState.IsValid)
             {
-                return View();
+                return Json(new { response = false, message = "Invalid inventory data." });
             }
 
             try
@@ -76,10 +80,10 @@ namespace WarehouseManagment.Controllers
 
                 return Json(new { response = true });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
 
-                return Json(new { response = false });
+                return Json(new { response = false, message = ex.Message });
             }
 
         }
