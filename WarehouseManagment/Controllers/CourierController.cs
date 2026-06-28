@@ -33,6 +33,8 @@ namespace WarehouseManagment.Controllers
             return Json(new { productData = courierModel });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CourierModel model)
         {
             if (!ModelState.IsValid)
@@ -47,13 +49,12 @@ namespace WarehouseManagment.Controllers
             try
             {
                 await _courierService.CreateCourierAsync(model);
-                await _productInventoryService.UpdateInventoryAsync(model.ProductInventoryId, model.Quantity);
                 return Json(new { success = true });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
 
-                return Json(new { success = false });
+                return Json(new { success = false, message = ex.Message });
             }
 
         }
@@ -65,6 +66,7 @@ namespace WarehouseManagment.Controllers
             var model = _factoryService.PrepareCourierEditModel(courier);
             var product = await _productService.GetProductByIdAsync(courier.ProductId);
             var inventory = await _productInventoryService.GetProductInventoryByIdAsync(courier.ProductInventoryId);
+            model.Id = courier.Id;
             model.Description = product.Description;
             model.Availability = inventory.Quantity;
             model.ProductInventoryId = inventory.Id;
@@ -76,16 +78,20 @@ namespace WarehouseManagment.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(CourierModel model)
         {
+            if (!ModelState.IsValid)
+            {
+                return Json(new { success = false, message = "Invalid courier data." });
+            }
+
             try
             {
                 await _courierService.EditCourierAsync(model);
-                await _productInventoryService.UpdateInventoryAsync(model.ProductInventoryId, model.QuantityDifference);
                 return Json(new { success = true });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
 
-                return Json(new { success = false });
+                return Json(new { success = false, message = ex.Message });
             }
 
         }
@@ -127,15 +133,14 @@ namespace WarehouseManagment.Controllers
         {
             try
             {
-                var inventoryId = await _courierService.CreditCourierAsync(id);
-                await _productInventoryService.UpdateInventoryAsync(inventoryId, quantity);
+                await _courierService.CreditCourierAsync(id);
 
                 return Json(new { response = true });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
 
-                return Json(new { response = false });
+                return Json(new { response = false, message = ex.Message });
             }
         }
 
