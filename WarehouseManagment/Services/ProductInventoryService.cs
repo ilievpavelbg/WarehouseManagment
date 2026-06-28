@@ -20,6 +20,11 @@ namespace WarehouseManagment.Services
         {
             try
             {
+                if (model.Quantity < 0)
+                {
+                    throw new ArgumentException("Quantity cannot be negative.");
+                }
+
                 var productInventory = new ProductInventory()
                 {
                     Quantity = model.Quantity,
@@ -54,6 +59,11 @@ namespace WarehouseManagment.Services
         {
             try
             {
+                if (model.Quantity < 0)
+                {
+                    throw new ArgumentException("Quantity cannot be negative.");
+                }
+
                 var productInventory = await GetProductInventoryByIdAsync(model.Id);
 
                 productInventory.Quantity = model.Quantity;
@@ -104,17 +114,19 @@ namespace WarehouseManagment.Services
         {
             var inventory = await _repository.GetByIdAsync<ProductInventory>(id);
 
-            if (quantity > 0)
+            if (inventory == null)
             {
-                inventory.Quantity -= quantity;
-
+                throw new ArgumentNullException(nameof(inventory));
             }
-            else
+
+            var updatedQuantity = inventory.Quantity - quantity;
+
+            if (updatedQuantity < 0)
             {
-                var positiveQty = Math.Abs(quantity);
-                inventory.Quantity += positiveQty;
-
+                throw new InvalidOperationException("Insufficient stock quantity.");
             }
+
+            inventory.Quantity = updatedQuantity;
 
             await _repository.SaveChangesAsync();
         }
