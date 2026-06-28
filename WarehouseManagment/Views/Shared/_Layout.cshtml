@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="~/WarehouseManagment.styles.css" asp-append-version="true" />
 </head>
 <body>
+    @Html.AntiForgeryToken()
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
             <div class="container-fluid">
@@ -61,6 +62,18 @@
             async defer>
     </script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script>
+        $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                var token = $('input[name="__RequestVerificationToken"]').first().val();
+                var method = settings.type || settings.method || 'GET';
+
+                if (token && !/^(GET|HEAD|OPTIONS|TRACE)$/i.test(method)) {
+                    xhr.setRequestHeader('RequestVerificationToken', token);
+                }
+            }
+        });
+    </script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
