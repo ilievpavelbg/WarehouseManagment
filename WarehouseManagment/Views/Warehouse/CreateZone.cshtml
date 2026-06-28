@@ -1,0 +1,47 @@
+﻿@model WarehouseZoneModel
+
+@{
+    ViewData["Title"] = "Нова зона";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <form asp-action="CreateZone" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="WarehouseId" class="control-label">Склад</label>
+                <select asp-for="WarehouseId" class="form-control" asp-items="ViewBag.Warehouses"></select>
+                <span asp-validation-for="WarehouseId" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="Code" class="control-label">Код</label>
+                <input asp-for="Code" class="form-control" autocomplete="off" />
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="Name" class="control-label">Име</label>
+                <input asp-for="Name" class="form-control" autocomplete="off" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="Description" class="control-label">Описание</label>
+                <textarea asp-for="Description" class="form-control"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+            <div class="form-check mb-3">
+                <input asp-for="IsActive" class="form-check-input" />
+                <label asp-for="IsActive" class="form-check-label">Активна</label>
+            </div>
+            <div class="text-center">
+                <button type="submit" class="btn btn-primary">Запази</button>
+                <a class="btn btn-secondary" asp-controller="Warehouse" asp-action="Index">Назад</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
