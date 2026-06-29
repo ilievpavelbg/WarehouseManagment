@@ -1,0 +1,48 @@
+﻿@model List<Supplier>
+
+@{
+    ViewData["Title"] = "Доставчици";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<div class="mb-3">
+    <a class="btn btn-primary" asp-controller="Supplier" asp-action="Create">Нов доставчик</a>
+</div>
+
+@if (!Model.Any())
+{
+    <p>Няма създадени доставчици.</p>
+}
+else
+{
+    <table class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>Код</th>
+                <th>Име</th>
+                <th>Булстат/ДДС</th>
+                <th>Телефон</th>
+                <th>Email</th>
+                <th>Активен</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var supplier in Model)
+            {
+                <tr>
+                    <td>@supplier.Code</td>
+                    <td>@supplier.Name</td>
+                    <td>@supplier.TaxNumber</td>
+                    <td>@supplier.Phone</td>
+                    <td>@supplier.Email</td>
+                    <td>@(supplier.IsActive ? "Да" : "Не")</td>
+                    <td>
+                        <a class="btn btn-sm btn-outline-primary" asp-controller="Supplier" asp-action="Edit" asp-route-id="@supplier.Id">Редакция</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
