@@ -10,11 +10,15 @@ namespace WarehouseManagment.Services
     {
         private readonly IRepository _repository;
         private readonly ApplicationDbContext _dbContext;
+        private readonly IInventoryMovementService _inventoryMovementService;
 
-        public CourierService(IRepository repository, ApplicationDbContext dbContext)
+        public CourierService(IRepository repository,
+            ApplicationDbContext dbContext,
+            IInventoryMovementService inventoryMovementService)
         {
             _repository = repository;
             _dbContext = dbContext;
+            _inventoryMovementService = inventoryMovementService;
         }
 
         public async Task CreateCourierAsync(CourierModel model)
@@ -51,6 +55,18 @@ namespace WarehouseManagment.Services
                 inventory.Quantity -= model.Quantity;
 
                 await _repository.AddAsync(courier);
+                await _repository.SaveChangesAsync();
+
+                await _inventoryMovementService.CreateMovementAsync(new InventoryMovementModel
+                {
+                    ProductInventoryId = inventory.Id,
+                    MovementType = MovementType.CourierShipment,
+                    Quantity = -model.Quantity,
+                    ReferenceType = nameof(Courier),
+                    ReferenceId = courier.Id,
+                    Notes = model.Notes
+                });
+
                 await _repository.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
@@ -111,6 +127,18 @@ namespace WarehouseManagment.Services
 
                 await _repository.AddAsync(creditCourier);
                 await _repository.SaveChangesAsync();
+
+                await _inventoryMovementService.CreateMovementAsync(new InventoryMovementModel
+                {
+                    ProductInventoryId = inventory.Id,
+                    MovementType = MovementType.CourierReversal,
+                    Quantity = courier.Quantity,
+                    ReferenceType = nameof(Courier),
+                    ReferenceId = creditCourier.Id,
+                    Notes = $"Reversal for courier shipment #{courier.Id}"
+                });
+
+                await _repository.SaveChangesAsync();
                 await transaction.CommitAsync();
 
                 return courier.ProductInventoryId;
@@ -146,6 +174,8 @@ namespace WarehouseManagment.Services
 
                 var method = ParseCourierPaymentMethod(model.CourierPaymentMethod);
                 var name = ParseCourierName(model.CourierName);
+                var oldQuantity = courier.Quantity;
+                var stockMovementQuantity = oldQuantity - model.Quantity;
                 var unitPrice = GetRetailPrice(inventory.Product);
                 var totalPrice = CalculateTotalPrice(unitPrice, model.Quantity, model.Discount);
 
@@ -159,6 +189,19 @@ namespace WarehouseManagment.Services
                 courier.CourierPaymentMethod = method;
                 courier.CourierName = name;
                 courier.IsPayed = method == CourierPaymentMethod.BankTransfer;
+
+                if (stockMovementQuantity != 0)
+                {
+                    await _inventoryMovementService.CreateMovementAsync(new InventoryMovementModel
+                    {
+                        ProductInventoryId = inventory.Id,
+                        MovementType = MovementType.Adjustment,
+                        Quantity = stockMovementQuantity,
+                        ReferenceType = "CourierEdit",
+                        ReferenceId = courier.Id,
+                        Notes = $"Courier quantity changed from {oldQuantity} to {model.Quantity}."
+                    });
+                }
 
                 await _repository.SaveChangesAsync();
                 await transaction.CommitAsync();
