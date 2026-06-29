@@ -21,7 +21,7 @@ namespace WarehouseManagment.Models
         [StringLength(100)]
         public string ReferenceType { get; set; } = null!;
 
-        [Range(1, long.MaxValue)]
+        [Range(typeof(long), "1", "9223372036854775807")]
         public long ReferenceId { get; set; }
 
         [StringLength(450)]
