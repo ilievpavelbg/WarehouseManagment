@@ -16,7 +16,6 @@ namespace WarehouseManagment.Data
         public int? ProductId { get; set; }
         public Product? Product { get; set; }
 
-        [Required]
         public int? ProductInventoryId { get; set; }
         public ProductInventory? ProductInventory { get; set; }
 
