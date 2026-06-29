@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WarehouseManagment.Data
 {
@@ -17,14 +16,16 @@ namespace WarehouseManagment.Data
         public int? ProductId { get; set; }
         public Product? Product { get; set; }
 
+        [Required]
         public int? ProductInventoryId { get; set; }
         public ProductInventory? ProductInventory { get; set; }
 
         [Required]
-        [Range(0.0001, double.MaxValue)]
         public decimal Quantity { get; set; }
 
         public DateTime MovementDate { get; set; } = DateTime.Now;
+
+        public DateTime CreatedOn { get; set; } = DateTime.Now;
 
         public int? WarehouseId { get; set; }
         public Warehouse? Warehouse { get; set; }
@@ -43,6 +44,13 @@ namespace WarehouseManagment.Data
 
         public int? DestinationWarehouseLocationId { get; set; }
         public WarehouseLocation? DestinationWarehouseLocation { get; set; }
+
+        [Required]
+        [StringLength(100)]
+        public string ReferenceType { get; set; } = null!;
+
+        [Range(1, long.MaxValue)]
+        public long ReferenceId { get; set; }
 
         [StringLength(100)]
         public string? ReferenceNumber { get; set; }
