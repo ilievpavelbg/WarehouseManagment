@@ -1,0 +1,91 @@
+﻿@model MaterialModel
+
+@{
+    ViewData["Title"] = "Редакция материал";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<form asp-controller="Material" asp-action="Edit" method="post">
+    <input asp-for="Id" type="hidden" />
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="Code" class="form-label">Код</label>
+            <input asp-for="Code" class="form-control" />
+            <span asp-validation-for="Code" class="text-danger"></span>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label asp-for="Name" class="form-label">Име</label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Description" class="form-label">Описание</label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label asp-for="MaterialCategoryId" class="form-label">Категория</label>
+            <select asp-for="MaterialCategoryId" asp-items="ViewBag.Categories" class="form-control">
+                <option value="">Избери</option>
+            </select>
+            <span asp-validation-for="MaterialCategoryId" class="text-danger"></span>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label asp-for="UnitOfMeasureId" class="form-label">Мерна единица</label>
+            <select asp-for="UnitOfMeasureId" asp-items="ViewBag.Units" class="form-control">
+                <option value="">Избери</option>
+            </select>
+            <span asp-validation-for="UnitOfMeasureId" class="text-danger"></span>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label asp-for="SupplierId" class="form-label">Доставчик</label>
+            <select asp-for="SupplierId" asp-items="ViewBag.Suppliers" class="form-control">
+                <option value="">Без доставчик</option>
+            </select>
+            <span asp-validation-for="SupplierId" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label asp-for="StandardCost" class="form-label">Стандартна цена</label>
+            <input asp-for="StandardCost" class="form-control" />
+            <span asp-validation-for="StandardCost" class="text-danger"></span>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label asp-for="MinimumStock" class="form-label">Минимална наличност</label>
+            <input asp-for="MinimumStock" class="form-control" />
+            <span asp-validation-for="MinimumStock" class="text-danger"></span>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label asp-for="Barcode" class="form-label">Баркод</label>
+            <input asp-for="Barcode" class="form-control" />
+            <span asp-validation-for="Barcode" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="form-check mb-2">
+        <input asp-for="IsBatchTracked" class="form-check-input" />
+        <label asp-for="IsBatchTracked" class="form-check-label">Следене по партиди</label>
+    </div>
+
+    <div class="form-check mb-2">
+        <input asp-for="IsLotTracked" class="form-check-input" />
+        <label asp-for="IsLotTracked" class="form-check-label">Следене по lot</label>
+    </div>
+
+    <div class="form-check mb-3">
+        <input asp-for="IsActive" class="form-check-input" />
+        <label asp-for="IsActive" class="form-check-label">Активен</label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Запази</button>
+    <a class="btn btn-secondary" asp-controller="Material" asp-action="Index">Назад</a>
+</form>
