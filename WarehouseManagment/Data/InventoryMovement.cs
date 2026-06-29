@@ -20,6 +20,12 @@ namespace WarehouseManagment.Data
         public int? ProductInventoryId { get; set; }
         public ProductInventory? ProductInventory { get; set; }
 
+        public int? MaterialId { get; set; }
+        public Material? Material { get; set; }
+
+        public int? MaterialBatchId { get; set; }
+        public MaterialBatch? MaterialBatch { get; set; }
+
         [Required]
         public decimal Quantity { get; set; }
 
