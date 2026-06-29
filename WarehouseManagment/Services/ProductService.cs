@@ -14,11 +14,18 @@ namespace WarehouseManagment.Services
     {
         private readonly IRepository _repository;
         private readonly IProductInventoryService _productInventoryService;
+        private readonly ApplicationDbContext _dbContext;
+        private readonly IInventoryMovementService _inventoryMovementService;
 
-        public ProductService(IRepository repository, IProductInventoryService productInventoryService)
+        public ProductService(IRepository repository,
+            IProductInventoryService productInventoryService,
+            ApplicationDbContext dbContext,
+            IInventoryMovementService inventoryMovementService)
         {
             _repository = repository;
             _productInventoryService = productInventoryService;
+            _dbContext = dbContext;
+            _inventoryMovementService = inventoryMovementService;
         }
         public async Task<Product> CreateProductAsync(ProductModel model, bool returnProduct)
         {
@@ -64,6 +71,7 @@ namespace WarehouseManagment.Services
                 using var package = new ExcelPackage(excelFile.OpenReadStream());
 
                 var worksheet = package.Workbook.Worksheets[0];
+                await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
                 try
                 {
@@ -73,11 +81,13 @@ namespace WarehouseManagment.Services
                         // Stop processing if the row is empty or contains no relevant data
                         if (RowHasNoData(worksheet, row))
                         {
+                            await transaction.CommitAsync();
                             return;
                         }
 
                         if (TryValidateRow(worksheet, row, out var product, out var productInventory))
                         {
+                            var importQuantity = productInventory.Quantity;
                             var findProduct = await GetProductBySKUAsync(product.SKU.ToUpper());
 
                             if (findProduct == null)
@@ -93,6 +103,20 @@ namespace WarehouseManagment.Services
 
                                 var productInventoryId = productInventory.Id.ToString();
                                 productInventory.Barcode = BarcodeService.GenerateBarcodeImage(productInventoryId);
+
+                                if (importQuantity > 0)
+                                {
+                                    await _inventoryMovementService.CreateMovementAsync(new InventoryMovementModel
+                                    {
+                                        ProductInventoryId = productInventory.Id,
+                                        MovementType = MovementType.ImportReceipt,
+                                        Quantity = importQuantity,
+                                        ReferenceType = "ExcelImport",
+                                        ReferenceId = productInventory.Id,
+                                        Notes = $"Excel import receipt, row {row}."
+                                    });
+                                }
+
                                 await _repository.SaveChangesAsync();
                             }
                             else
@@ -103,7 +127,21 @@ namespace WarehouseManagment.Services
 
                                 if (inventorySizeExist != null)
                                 {
-                                    inventorySizeExist.Quantity += productInventory.Quantity;
+                                    inventorySizeExist.Quantity += importQuantity;
+
+                                    if (importQuantity > 0)
+                                    {
+                                        await _inventoryMovementService.CreateMovementAsync(new InventoryMovementModel
+                                        {
+                                            ProductInventoryId = inventorySizeExist.Id,
+                                            MovementType = MovementType.ImportReceipt,
+                                            Quantity = importQuantity,
+                                            ReferenceType = "ExcelImport",
+                                            ReferenceId = inventorySizeExist.Id,
+                                            Notes = $"Excel import receipt, row {row}."
+                                        });
+                                    }
+
                                     await _repository.SaveChangesAsync();
                                 }
                                 else
@@ -111,13 +149,27 @@ namespace WarehouseManagment.Services
                                     productInventory.ProductSKU = findProduct.SKU;
                                     productInventory.ProductId = findProduct.Id;
                                     productInventory.Size = productInventory.Size;
-                                    productInventory.Quantity = productInventory.Quantity;
+                                    productInventory.Quantity = importQuantity;
 
                                     await _repository.AddAsync(productInventory);
                                     await _repository.SaveChangesAsync();
 
                                     var productInventoryId = productInventory.Id.ToString();
                                     productInventory.Barcode = BarcodeService.GenerateBarcodeImage(productInventoryId);
+
+                                    if (importQuantity > 0)
+                                    {
+                                        await _inventoryMovementService.CreateMovementAsync(new InventoryMovementModel
+                                        {
+                                            ProductInventoryId = productInventory.Id,
+                                            MovementType = MovementType.ImportReceipt,
+                                            Quantity = importQuantity,
+                                            ReferenceType = "ExcelImport",
+                                            ReferenceId = productInventory.Id,
+                                            Notes = $"Excel import receipt, row {row}."
+                                        });
+                                    }
+
                                     await _repository.SaveChangesAsync();
 
                                 }
@@ -129,10 +181,12 @@ namespace WarehouseManagment.Services
                             throw new Exception("Excel Table data validation error");
                         }
                     }
+
+                    await transaction.CommitAsync();
                 }
                 catch (Exception ex)
                 {
-
+                    await transaction.RollbackAsync();
                     throw new Exception(ex.Message);
                 }
             }
