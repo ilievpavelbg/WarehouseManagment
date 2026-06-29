@@ -10,14 +10,22 @@ namespace WarehouseManagment.Services
     public class ProductInventoryService : IProductInventoryService
     {
         private readonly IRepository _repository;
+        private readonly ApplicationDbContext _dbContext;
+        private readonly IInventoryMovementService _inventoryMovementService;
 
-        public ProductInventoryService(IRepository repository)
+        public ProductInventoryService(IRepository repository,
+            ApplicationDbContext dbContext,
+            IInventoryMovementService inventoryMovementService)
         {
             _repository = repository;
+            _dbContext = dbContext;
+            _inventoryMovementService = inventoryMovementService;
         }
 
         public async Task CreateProductInventoryAsync(ProductInventoryModel model)
         {
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
             try
             {
                 if (model.Quantity < 0)
@@ -46,17 +54,34 @@ namespace WarehouseManagment.Services
 
                 var productInventoryId = productInventory.Id.ToString();
                 productInventory.Barcode = BarcodeService.GenerateBarcodeImage(productInventoryId);
+
+                if (model.Quantity > 0)
+                {
+                    await _inventoryMovementService.CreateMovementAsync(new InventoryMovementModel
+                    {
+                        ProductInventoryId = productInventory.Id,
+                        MovementType = MovementType.ImportReceipt,
+                        Quantity = model.Quantity,
+                        ReferenceType = "ProductInventoryCreate",
+                        ReferenceId = productInventory.Id,
+                        Notes = "Initial product inventory quantity."
+                    });
+                }
+
                 await _repository.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (Exception)
             {
-
+                await transaction.RollbackAsync();
                 throw;
             }
         }
 
         public async Task EditProductInventoryAsync(ProductInventoryModel model)
         {
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
             try
             {
                 if (model.Quantity < 0)
@@ -65,14 +90,30 @@ namespace WarehouseManagment.Services
                 }
 
                 var productInventory = await GetProductInventoryByIdAsync(model.Id);
+                var oldQuantity = productInventory.Quantity;
+                var movementQuantity = model.Quantity - oldQuantity;
 
                 productInventory.Quantity = model.Quantity;
 
+                if (movementQuantity != 0)
+                {
+                    await _inventoryMovementService.CreateMovementAsync(new InventoryMovementModel
+                    {
+                        ProductInventoryId = productInventory.Id,
+                        MovementType = MovementType.Adjustment,
+                        Quantity = movementQuantity,
+                        ReferenceType = "ManualInventoryAdjustment",
+                        ReferenceId = productInventory.Id,
+                        Notes = $"Manual stock adjustment from {oldQuantity} to {model.Quantity}."
+                    });
+                }
+
                 await _repository.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
-
+                await transaction.RollbackAsync();
                 throw new Exception(ex.Message);
             }
 
@@ -112,23 +153,47 @@ namespace WarehouseManagment.Services
 
         public async Task UpdateInventoryAsync(int id, int quantity)
         {
-            var inventory = await _repository.GetByIdAsync<ProductInventory>(id);
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-            if (inventory == null)
+            try
             {
-                throw new ArgumentNullException(nameof(inventory));
+                var inventory = await _repository.GetByIdAsync<ProductInventory>(id);
+
+                if (inventory == null)
+                {
+                    throw new ArgumentNullException(nameof(inventory));
+                }
+
+                var updatedQuantity = inventory.Quantity - quantity;
+
+                if (updatedQuantity < 0)
+                {
+                    throw new InvalidOperationException("Insufficient stock quantity.");
+                }
+
+                inventory.Quantity = updatedQuantity;
+
+                if (quantity != 0)
+                {
+                    await _inventoryMovementService.CreateMovementAsync(new InventoryMovementModel
+                    {
+                        ProductInventoryId = inventory.Id,
+                        MovementType = MovementType.Adjustment,
+                        Quantity = -quantity,
+                        ReferenceType = "InventoryUpdate",
+                        ReferenceId = inventory.Id,
+                        Notes = $"Inventory updated by {-quantity}."
+                    });
+                }
+
+                await _repository.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
-
-            var updatedQuantity = inventory.Quantity - quantity;
-
-            if (updatedQuantity < 0)
+            catch (Exception)
             {
-                throw new InvalidOperationException("Insufficient stock quantity.");
+                await transaction.RollbackAsync();
+                throw;
             }
-
-            inventory.Quantity = updatedQuantity;
-
-            await _repository.SaveChangesAsync();
         }
     }
 }
