@@ -10,11 +10,15 @@ namespace WarehouseManagment.Services
     {
         private readonly IRepository _repository;
         private readonly ApplicationDbContext _dbContext;
+        private readonly IInventoryMovementService _inventoryMovementService;
 
-        public SaleService(IRepository repository, ApplicationDbContext dbContext)
+        public SaleService(IRepository repository,
+            ApplicationDbContext dbContext,
+            IInventoryMovementService inventoryMovementService)
         {
             _repository = repository;
             _dbContext = dbContext;
+            _inventoryMovementService = inventoryMovementService;
         }
 
         public async Task CreateSaleAsync(SaleModel model)
@@ -46,6 +50,18 @@ namespace WarehouseManagment.Services
                 inventory.Quantity -= model.Quantity;
 
                 await _repository.AddAsync(sale);
+                await _repository.SaveChangesAsync();
+
+                await _inventoryMovementService.CreateMovementAsync(new InventoryMovementModel
+                {
+                    ProductInventoryId = inventory.Id,
+                    MovementType = MovementType.Sale,
+                    Quantity = -model.Quantity,
+                    ReferenceType = nameof(Sale),
+                    ReferenceId = sale.Id,
+                    Notes = model.Notes
+                });
+
                 await _repository.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
@@ -102,6 +118,18 @@ namespace WarehouseManagment.Services
 
                 await _repository.AddAsync(creditSale);
                 await _repository.SaveChangesAsync();
+
+                await _inventoryMovementService.CreateMovementAsync(new InventoryMovementModel
+                {
+                    ProductInventoryId = inventory.Id,
+                    MovementType = MovementType.SaleReversal,
+                    Quantity = sale.Quantity,
+                    ReferenceType = nameof(Sale),
+                    ReferenceId = creditSale.Id,
+                    Notes = $"Reversal for sale #{sale.Id}"
+                });
+
+                await _repository.SaveChangesAsync();
                 await transaction.CommitAsync();
 
                 return sale.ProductInventoryId;
@@ -130,6 +158,8 @@ namespace WarehouseManagment.Services
                 var availableForEdit = inventory.Quantity + sale.Quantity;
                 ValidateQuantity(model.Quantity, availableForEdit);
 
+                var oldQuantity = sale.Quantity;
+                var stockMovementQuantity = oldQuantity - model.Quantity;
                 var unitPrice = GetRetailPrice(inventory.Product);
                 var totalPrice = CalculateTotalPrice(unitPrice, model.Quantity, model.Discount);
 
@@ -141,6 +171,19 @@ namespace WarehouseManagment.Services
                 sale.Discount = model.Discount;
                 sale.PaymentMethod = model.PaymentMethod;
                 sale.Notes = model.Notes;
+
+                if (stockMovementQuantity != 0)
+                {
+                    await _inventoryMovementService.CreateMovementAsync(new InventoryMovementModel
+                    {
+                        ProductInventoryId = inventory.Id,
+                        MovementType = MovementType.Adjustment,
+                        Quantity = stockMovementQuantity,
+                        ReferenceType = "SaleEdit",
+                        ReferenceId = sale.Id,
+                        Notes = $"Sale quantity changed from {oldQuantity} to {model.Quantity}."
+                    });
+                }
                 
                 await _repository.SaveChangesAsync();
                 await transaction.CommitAsync();
