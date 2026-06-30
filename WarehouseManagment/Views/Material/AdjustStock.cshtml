@@ -2,6 +2,8 @@
 
 @{
     ViewData["Title"] = "Корекция наличност";
+    var currentSelectedStock = $"{Model.CurrentSelectedStock:N4} {Model.UnitOfMeasureName}";
+    var difference = $"{Model.Difference:N4} {Model.UnitOfMeasureName}";
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
@@ -54,7 +56,7 @@
     <div class="row">
         <div class="col-md-4 mb-3">
             <label class="form-label">Текуща наличност за избора</label>
-            <input value="@Model.CurrentSelectedStock.ToString("N4") @Model.UnitOfMeasureName" class="form-control" readonly />
+            <input value="@currentSelectedStock" class="form-control" readonly />
         </div>
         <div class="col-md-4 mb-3">
             <label asp-for="NewQuantity" class="form-label">Нова наличност</label>
@@ -63,7 +65,7 @@
         </div>
         <div class="col-md-4 mb-3">
             <label class="form-label">Разлика</label>
-            <input value="@Model.Difference.ToString("N4") @Model.UnitOfMeasureName" class="form-control" readonly />
+            <input value="@difference" class="form-control" readonly />
         </div>
     </div>
 
