@@ -6,6 +6,19 @@
 
 <h1 class="text-center">@ViewData["Title"]</h1>
 
+@if (TempData["MaterialStockAdjustmentMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["MaterialStockAdjustmentMessage"]</div>
+}
+
+<div class="alert alert-secondary">
+    <div><strong>Текуща обща наличност:</strong> @Model.CurrentTotalStock.ToString("N4") @Model.UnitOfMeasureName</div>
+    <div>Наличността не се редактира от този екран. Използвайте отделната корекция на наличност.</div>
+    <div class="mt-2">
+        <a class="btn btn-sm btn-outline-warning" asp-controller="Material" asp-action="AdjustStock" asp-route-id="@Model.Id">Корекция наличност</a>
+    </div>
+</div>
+
 <form asp-controller="Material" asp-action="Edit" method="post">
     <input asp-for="Id" type="hidden" />
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
