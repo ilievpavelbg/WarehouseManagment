@@ -23,6 +23,19 @@ namespace WarehouseManagment.Controllers
             return View(materials);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Import(IFormFile excelFile)
+        {
+            var summary = await _materialMasterService.ImportMaterialsFromExcelAsync(excelFile);
+            TempData["MaterialImportCreated"] = summary.Created;
+            TempData["MaterialImportUpdated"] = summary.Updated;
+            TempData["MaterialImportSkipped"] = summary.Skipped;
+            TempData["MaterialImportErrors"] = string.Join("|", summary.Errors);
+
+            return RedirectToAction(nameof(Index));
+        }
+
         [HttpGet]
         public async Task<IActionResult> Create()
         {
