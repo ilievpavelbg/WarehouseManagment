@@ -1,7 +1,8 @@
-﻿@model List<Material>
+﻿@model MaterialIndexModel
 
 @{
     ViewData["Title"] = "Материали";
+    var importWarnings = TempData["MaterialImportWarnings"]?.ToString()?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
     var importErrors = TempData["MaterialImportErrors"]?.ToString()?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
 }
 
@@ -23,12 +24,63 @@
     </div>
 </form>
 
+<form asp-controller="Material" asp-action="Index" method="get" class="mb-3">
+    <div class="row align-items-end">
+        <div class="col-md-3 mb-2">
+            <label asp-for="CategoryId" class="form-label">Категория</label>
+            <select asp-for="CategoryId" class="form-control">
+                <option value="">Всички</option>
+                @foreach (var category in Model.Categories)
+                {
+                    <option value="@category.Id">@category.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3 mb-2">
+            <label asp-for="SupplierId" class="form-label">Доставчик</label>
+            <select asp-for="SupplierId" class="form-control">
+                <option value="">Всички</option>
+                @foreach (var supplier in Model.Suppliers)
+                {
+                    <option value="@supplier.Id">@supplier.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2 mb-2">
+            <div class="form-check">
+                <input asp-for="LowStockOnly" class="form-check-input" />
+                <label asp-for="LowStockOnly" class="form-check-label">Под минимум</label>
+            </div>
+        </div>
+        <div class="col-md-2 mb-2">
+            <div class="form-check">
+                <input asp-for="ActiveOnly" class="form-check-input" />
+                <label asp-for="ActiveOnly" class="form-check-label">Само активни</label>
+            </div>
+        </div>
+        <div class="col-md-2 mb-2">
+            <button type="submit" class="btn btn-outline-secondary">Филтрирай</button>
+        </div>
+    </div>
+</form>
+
 @if (TempData["MaterialImportCreated"] != null)
 {
     <div class="alert alert-info">
         <div>Създадени: @TempData["MaterialImportCreated"]</div>
         <div>Обновени: @TempData["MaterialImportUpdated"]</div>
         <div>Пропуснати: @TempData["MaterialImportSkipped"]</div>
+        @if (importWarnings.Any())
+        {
+            <hr />
+            <strong>Предупреждения:</strong>
+            <ul class="mb-0">
+                @foreach (var warning in importWarnings)
+                {
+                    <li>@warning</li>
+                }
+            </ul>
+        }
         @if (importErrors.Any())
         {
             <hr />
@@ -43,7 +95,7 @@
     </div>
 }
 
-@if (!Model.Any())
+@if (!Model.Materials.Any())
 {
     <p>Няма създадени материали.</p>
 }
@@ -55,8 +107,9 @@ else
                 <th>Код</th>
                 <th>Име</th>
                 <th>Категория</th>
-                <th>Мярка</th>
                 <th>Доставчик</th>
+                <th>Наличност</th>
+                <th>Мерна единица</th>
                 <th>Стандартна цена</th>
                 <th>Мин. наличност</th>
                 <th>Партиди</th>
@@ -65,16 +118,17 @@ else
             </tr>
         </thead>
         <tbody>
-            @foreach (var material in Model)
+            @foreach (var material in Model.Materials)
             {
                 <tr>
                     <td>@material.Code</td>
                     <td>@material.Name</td>
-                    <td>@material.MaterialCategory?.Name</td>
-                    <td>@material.UnitOfMeasure?.Name</td>
-                    <td>@material.Supplier?.Name</td>
-                    <td>@material.StandardCost</td>
-                    <td>@material.MinimumStock</td>
+                    <td>@material.CategoryName</td>
+                    <td>@material.SupplierName</td>
+                    <td>@material.CurrentStock.ToString("N4") @material.UnitOfMeasureName</td>
+                    <td>@material.UnitOfMeasureName</td>
+                    <td>@material.StandardCost.ToString("N4")</td>
+                    <td>@material.MinimumStock.ToString("N4")</td>
                     <td>@(material.IsBatchTracked ? "Да" : "Не")</td>
                     <td>@(material.IsActive ? "Да" : "Не")</td>
                     <td>
