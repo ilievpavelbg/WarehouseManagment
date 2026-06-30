@@ -133,6 +133,7 @@ else
                     <td>@(material.IsActive ? "Да" : "Не")</td>
                     <td>
                         <a class="btn btn-sm btn-outline-primary" asp-controller="Material" asp-action="Edit" asp-route-id="@material.Id">Редакция</a>
+                        <a class="btn btn-sm btn-outline-warning" asp-controller="Material" asp-action="AdjustStock" asp-route-id="@material.Id">Корекция наличност</a>
                     </td>
                 </tr>
             }
