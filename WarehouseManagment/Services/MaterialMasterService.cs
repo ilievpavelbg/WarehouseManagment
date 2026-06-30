@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using OfficeOpenXml;
+using System.Globalization;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
@@ -107,6 +109,117 @@ namespace WarehouseManagment.Services
             material.UpdatedOn = DateTime.Now;
 
             await _repository.SaveChangesAsync();
+        }
+
+        public async Task<MaterialImportSummaryModel> ImportMaterialsFromExcelAsync(IFormFile excelFile)
+        {
+            var summary = new MaterialImportSummaryModel();
+
+            if (excelFile == null || excelFile.Length == 0)
+            {
+                summary.Errors.Add("No Excel file was selected.");
+                return summary;
+            }
+
+            using var package = new ExcelPackage(excelFile.OpenReadStream());
+            var worksheet = package.Workbook.Worksheets.FirstOrDefault();
+
+            if (worksheet == null || worksheet.Dimension == null)
+            {
+                summary.Errors.Add("The Excel file does not contain a readable worksheet.");
+                return summary;
+            }
+
+            var headers = BuildHeaderMap(worksheet);
+            var rowNumberColumn = FindColumn(headers, "№", "No", "N");
+            var categoryColumn = FindColumn(headers, "Категория", "Category");
+            var materialColumn = FindColumn(headers, "Материал / Артикул", "Материал", "Артикул", "Material", "Item");
+            var descriptionColumn = FindColumn(headers, "Описание", "Description");
+            var unitColumn = FindColumn(headers, "Мерна единица", "Мярка", "Unit", "UOM");
+            var supplierColumn = FindColumn(headers, "Доставчик", "Supplier");
+            var priceColumn = FindColumn(headers, "Цена", "Price");
+
+            if (materialColumn == null)
+            {
+                summary.Errors.Add("Required column 'Материал / Артикул' was not found.");
+                return summary;
+            }
+
+            for (int row = 2; row <= worksheet.Dimension.End.Row; row++)
+            {
+                try
+                {
+                    if (IsEmptyRow(worksheet, row))
+                    {
+                        summary.Skipped++;
+                        continue;
+                    }
+
+                    var materialName = GetCellText(worksheet, row, materialColumn);
+
+                    if (string.IsNullOrWhiteSpace(materialName))
+                    {
+                        summary.Skipped++;
+                        summary.Errors.Add($"Row {row}: material name is empty.");
+                        continue;
+                    }
+
+                    var rowReference = GetCellText(worksheet, row, rowNumberColumn);
+                    var categoryName = GetCellText(worksheet, row, categoryColumn);
+                    var unitName = GetCellText(worksheet, row, unitColumn);
+                    var supplierName = GetCellText(worksheet, row, supplierColumn);
+                    var description = GetCellText(worksheet, row, descriptionColumn);
+                    var standardCost = ParseDecimal(worksheet, row, priceColumn);
+
+                    var category = await GetOrCreateCategoryAsync(categoryName);
+                    var unit = await GetOrCreateUnitOfMeasureAsync(unitName);
+                    var supplier = await GetOrCreateSupplierAsync(supplierName);
+                    var code = await GenerateMaterialCodeAsync(rowReference, materialName);
+
+                    var material = await _repository.All<Material>()
+                        .FirstOrDefaultAsync(x => x.Code == code || x.Name == materialName.Trim());
+
+                    if (material == null)
+                    {
+                        material = new Material
+                        {
+                            Code = code,
+                            Name = materialName.Trim(),
+                            Description = description,
+                            MaterialCategoryId = category.Id,
+                            UnitOfMeasureId = unit.Id,
+                            SupplierId = supplier?.Id,
+                            StandardCost = standardCost,
+                            IsActive = true,
+                            CreatedOn = DateTime.Now
+                        };
+
+                        await _repository.AddAsync(material);
+                        summary.Created++;
+                    }
+                    else
+                    {
+                        material.Name = materialName.Trim();
+                        material.Description = description;
+                        material.MaterialCategoryId = category.Id;
+                        material.UnitOfMeasureId = unit.Id;
+                        material.SupplierId = supplier?.Id;
+                        material.StandardCost = standardCost;
+                        material.IsActive = true;
+                        material.UpdatedOn = DateTime.Now;
+                        summary.Updated++;
+                    }
+
+                    await _repository.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    summary.Skipped++;
+                    summary.Errors.Add($"Row {row}: {ex.Message}");
+                }
+            }
+
+            return summary;
         }
 
         public async Task<List<MaterialCategory>> GetCategoriesAsync(bool activeOnly = false)
@@ -325,6 +438,90 @@ namespace WarehouseManagment.Services
             await _repository.SaveChangesAsync();
         }
 
+        private async Task<MaterialCategory> GetOrCreateCategoryAsync(string? name)
+        {
+            var categoryName = string.IsNullOrWhiteSpace(name) ? "Без категория" : name.Trim();
+            var normalizedName = categoryName.ToUpper();
+            var category = await _repository.All<MaterialCategory>()
+                .FirstOrDefaultAsync(x => x.Name.ToUpper() == normalizedName);
+
+            if (category != null)
+            {
+                return category;
+            }
+
+            var code = await GenerateUniqueCategoryCodeAsync(categoryName);
+            category = new MaterialCategory
+            {
+                Code = code,
+                Name = categoryName,
+                IsActive = true
+            };
+
+            await _repository.AddAsync(category);
+            await _repository.SaveChangesAsync();
+
+            return category;
+        }
+
+        private async Task<UnitOfMeasure> GetOrCreateUnitOfMeasureAsync(string? name)
+        {
+            var unitName = string.IsNullOrWhiteSpace(name) ? "бр" : name.Trim();
+            var normalizedName = unitName.ToUpper();
+            var unit = await _repository.All<UnitOfMeasure>()
+                .FirstOrDefaultAsync(x => x.Name.ToUpper() == normalizedName || x.Code.ToUpper() == normalizedName);
+
+            if (unit != null)
+            {
+                return unit;
+            }
+
+            var code = await GenerateUniqueUnitCodeAsync(unitName);
+            unit = new UnitOfMeasure
+            {
+                Code = code,
+                Name = unitName,
+                Symbol = unitName,
+                IsActive = true
+            };
+
+            await _repository.AddAsync(unit);
+            await _repository.SaveChangesAsync();
+
+            return unit;
+        }
+
+        private async Task<Supplier?> GetOrCreateSupplierAsync(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return null;
+            }
+
+            var supplierName = name.Trim();
+            var normalizedName = supplierName.ToUpper();
+            var supplier = await _repository.All<Supplier>()
+                .FirstOrDefaultAsync(x => x.Name.ToUpper() == normalizedName);
+
+            if (supplier != null)
+            {
+                return supplier;
+            }
+
+            var code = await GenerateUniqueSupplierCodeAsync(supplierName);
+            supplier = new Supplier
+            {
+                Code = code,
+                Name = supplierName,
+                IsActive = true
+            };
+
+            await _repository.AddAsync(supplier);
+            await _repository.SaveChangesAsync();
+
+            return supplier;
+        }
+
         private async Task ValidateMaterialReferencesAsync(MaterialModel model)
         {
             var categoryExists = await _repository.AllReadonly<MaterialCategory>()
@@ -399,9 +596,207 @@ namespace WarehouseManagment.Services
             }
         }
 
+        private static Dictionary<string, int> BuildHeaderMap(ExcelWorksheet worksheet)
+        {
+            var headers = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            for (int column = 1; column <= worksheet.Dimension.End.Column; column++)
+            {
+                var header = worksheet.Cells[1, column].Text?.Trim();
+
+                if (!string.IsNullOrWhiteSpace(header) && !headers.ContainsKey(header))
+                {
+                    headers.Add(header, column);
+                }
+            }
+
+            return headers;
+        }
+
+        private static int? FindColumn(Dictionary<string, int> headers, params string[] names)
+        {
+            foreach (var name in names)
+            {
+                var exact = headers.FirstOrDefault(x => x.Key.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+                if (!string.IsNullOrWhiteSpace(exact.Key))
+                {
+                    return exact.Value;
+                }
+
+                var contains = headers.FirstOrDefault(x => x.Key.Contains(name, StringComparison.OrdinalIgnoreCase));
+
+                if (!string.IsNullOrWhiteSpace(contains.Key))
+                {
+                    return contains.Value;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsEmptyRow(ExcelWorksheet worksheet, int row)
+        {
+            for (int column = 1; column <= worksheet.Dimension.End.Column; column++)
+            {
+                if (!string.IsNullOrWhiteSpace(worksheet.Cells[row, column].Text))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static string? GetCellText(ExcelWorksheet worksheet, int row, int? column)
+        {
+            if (!column.HasValue)
+            {
+                return null;
+            }
+
+            var text = worksheet.Cells[row, column.Value].Text;
+            return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+        }
+
+        private static decimal ParseDecimal(ExcelWorksheet worksheet, int row, int? column)
+        {
+            if (!column.HasValue)
+            {
+                return 0;
+            }
+
+            var value = worksheet.Cells[row, column.Value].Value;
+
+            if (value == null)
+            {
+                return 0;
+            }
+
+            if (value is double doubleValue)
+            {
+                return Convert.ToDecimal(doubleValue);
+            }
+
+            if (value is decimal decimalValue)
+            {
+                return decimalValue;
+            }
+
+            var text = value.ToString();
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return 0;
+            }
+
+            if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.GetCultureInfo("bg-BG"), out var bgValue))
+            {
+                return bgValue;
+            }
+
+            if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var invariantValue))
+            {
+                return invariantValue;
+            }
+
+            return 0;
+        }
+
+        private async Task<string> GenerateMaterialCodeAsync(string? rowReference, string materialName)
+        {
+            if (!string.IsNullOrWhiteSpace(rowReference))
+            {
+                return TrimCode($"MAT-{NormalizeCodePart(rowReference)}", 64);
+            }
+
+            var code = TrimCode($"MAT-{NormalizeCodePart(materialName)}", 64);
+
+            if (await _repository.AllReadonly<Material>().AnyAsync(x => x.Code == code && x.Name != materialName.Trim()))
+            {
+                code = TrimCode($"MAT-{NormalizeCodePart(materialName)}-{materialName.Trim().Length}", 64);
+            }
+
+            return code;
+        }
+
+        private async Task<string> GenerateUniqueCategoryCodeAsync(string name)
+        {
+            var code = TrimCode($"MC-{NormalizeCodePart(name)}", 32);
+            return await MakeCategoryCodeUniqueAsync(code);
+        }
+
+        private async Task<string> GenerateUniqueUnitCodeAsync(string name)
+        {
+            var code = TrimCode(NormalizeCodePart(name), 32);
+            return await MakeUnitCodeUniqueAsync(code);
+        }
+
+        private async Task<string> GenerateUniqueSupplierCodeAsync(string name)
+        {
+            var code = TrimCode($"SUP-{NormalizeCodePart(name)}", 32);
+            return await MakeSupplierCodeUniqueAsync(code);
+        }
+
+        private async Task<string> MakeCategoryCodeUniqueAsync(string code)
+        {
+            var result = code;
+            var suffix = 2;
+
+            while (await _repository.AllReadonly<MaterialCategory>().AnyAsync(x => x.Code == result))
+            {
+                result = TrimCode($"{code}-{suffix}", 32);
+                suffix++;
+            }
+
+            return result;
+        }
+
+        private async Task<string> MakeUnitCodeUniqueAsync(string code)
+        {
+            var result = code;
+            var suffix = 2;
+
+            while (await _repository.AllReadonly<UnitOfMeasure>().AnyAsync(x => x.Code == result))
+            {
+                result = TrimCode($"{code}-{suffix}", 32);
+                suffix++;
+            }
+
+            return result;
+        }
+
+        private async Task<string> MakeSupplierCodeUniqueAsync(string code)
+        {
+            var result = code;
+            var suffix = 2;
+
+            while (await _repository.AllReadonly<Supplier>().AnyAsync(x => x.Code == result))
+            {
+                result = TrimCode($"{code}-{suffix}", 32);
+                suffix++;
+            }
+
+            return result;
+        }
+
         private static string NormalizeCode(string code)
         {
             return code.Trim().ToUpper();
+        }
+
+        private static string NormalizeCodePart(string value)
+        {
+            var chars = value.Trim().ToUpper()
+                .Where(char.IsLetterOrDigit)
+                .ToArray();
+
+            return chars.Length == 0 ? "AUTO" : new string(chars);
+        }
+
+        private static string TrimCode(string code, int maxLength)
+        {
+            return code.Length <= maxLength ? code : code.Substring(0, maxLength);
         }
 
         private static string? NormalizeOptional(string? value)
