@@ -157,7 +157,7 @@ namespace WarehouseManagment.Services
 
         private async Task<MaterialStock> GetOrCreateStockAsync(MaterialStockChangeModel model)
         {
-            var stock = await FindStockQuery(model).FirstOrDefaultAsync();
+            var stock = await GetSingleStockOrDefaultAsync(model);
 
             if (stock != null)
             {
@@ -180,7 +180,7 @@ namespace WarehouseManagment.Services
 
         private async Task<MaterialStock> GetExistingStockAsync(MaterialStockChangeModel model)
         {
-            var stock = await FindStockQuery(model).FirstOrDefaultAsync();
+            var stock = await GetSingleStockOrDefaultAsync(model);
 
             if (stock == null)
             {
@@ -188,6 +188,18 @@ namespace WarehouseManagment.Services
             }
 
             return stock;
+        }
+
+        private async Task<MaterialStock?> GetSingleStockOrDefaultAsync(MaterialStockChangeModel model)
+        {
+            var rows = await FindStockQuery(model).Take(2).ToListAsync();
+
+            if (rows.Count > 1)
+            {
+                throw new InvalidOperationException("Duplicate material stock rows exist for the selected material, warehouse, location and batch.");
+            }
+
+            return rows.FirstOrDefault();
         }
 
         private IQueryable<MaterialStock> FindStockQuery(MaterialStockChangeModel model)
