@@ -9,7 +9,7 @@ namespace WarehouseManagment.Interfaces
         Task<MaterialModel> GetMaterialModelAsync(int id);
         Task CreateMaterialAsync(MaterialModel model);
         Task UpdateMaterialAsync(MaterialModel model);
-        Task<MaterialImportSummaryModel> ImportMaterialsFromExcelAsync(IFormFile excelFile);
+        Task<MaterialImportSummaryModel> ImportMaterialsFromExcelAsync(IFormFile? excelFile);
 
         Task<List<MaterialCategory>> GetCategoriesAsync(bool activeOnly = false);
         Task<MaterialCategoryModel> GetCategoryModelAsync(int id);
