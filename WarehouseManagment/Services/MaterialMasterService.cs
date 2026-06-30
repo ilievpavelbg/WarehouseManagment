@@ -111,7 +111,7 @@ namespace WarehouseManagment.Services
             await _repository.SaveChangesAsync();
         }
 
-        public async Task<MaterialImportSummaryModel> ImportMaterialsFromExcelAsync(IFormFile excelFile)
+        public async Task<MaterialImportSummaryModel> ImportMaterialsFromExcelAsync(IFormFile? excelFile)
         {
             var summary = new MaterialImportSummaryModel();
 
