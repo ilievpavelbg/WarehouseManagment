@@ -6,6 +6,7 @@ namespace WarehouseManagment.Interfaces
     public interface IMaterialMasterService
     {
         Task<List<Material>> GetMaterialsAsync();
+        Task<MaterialIndexModel> GetMaterialIndexAsync(int? categoryId, int? supplierId, bool lowStockOnly, bool activeOnly);
         Task<MaterialModel> GetMaterialModelAsync(int id);
         Task CreateMaterialAsync(MaterialModel model);
         Task UpdateMaterialAsync(MaterialModel model);
