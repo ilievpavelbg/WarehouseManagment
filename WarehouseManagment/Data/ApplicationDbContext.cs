@@ -24,6 +24,7 @@ namespace WarehouseManagment.Data
         public DbSet<UnitOfMeasure> UnitsOfMeasure { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<MaterialBatch> MaterialBatches { get; set; }
+        public DbSet<MaterialStock> MaterialStocks { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -128,6 +129,38 @@ namespace WarehouseManagment.Data
                 .HasOne(x => x.Supplier)
                 .WithMany(x => x.MaterialBatches)
                 .HasForeignKey(x => x.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<MaterialStock>()
+                .Property(x => x.Quantity)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<MaterialStock>()
+                .HasIndex(x => new { x.MaterialId, x.WarehouseId, x.WarehouseLocationId, x.MaterialBatchId })
+                .IsUnique();
+
+            builder.Entity<MaterialStock>()
+                .HasOne(x => x.Material)
+                .WithMany(x => x.MaterialStocks)
+                .HasForeignKey(x => x.MaterialId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<MaterialStock>()
+                .HasOne(x => x.Warehouse)
+                .WithMany()
+                .HasForeignKey(x => x.WarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<MaterialStock>()
+                .HasOne(x => x.WarehouseLocation)
+                .WithMany()
+                .HasForeignKey(x => x.WarehouseLocationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<MaterialStock>()
+                .HasOne(x => x.MaterialBatch)
+                .WithMany()
+                .HasForeignKey(x => x.MaterialBatchId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<InventoryMovement>()
