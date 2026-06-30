@@ -26,6 +26,110 @@ namespace WarehouseManagment.Services
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<decimal> GetTotalStockAsync(int materialId)
+        {
+            return await _dbContext.MaterialStocks
+                .AsNoTracking()
+                .Where(x => x.MaterialId == materialId)
+                .SumAsync(x => x.Quantity);
+        }
+
+        public async Task<MaterialStockAdjustmentModel> GetAdjustmentModelAsync(int materialId)
+        {
+            var material = await _dbContext.Materials
+                .AsNoTracking()
+                .Include(x => x.UnitOfMeasure)
+                .FirstOrDefaultAsync(x => x.Id == materialId);
+
+            if (material == null)
+            {
+                throw new ArgumentNullException(nameof(material));
+            }
+
+            var defaultWarehouse = await GetDefaultActiveWarehouseAsync();
+            var model = new MaterialStockAdjustmentModel
+            {
+                MaterialId = material.Id,
+                MaterialCode = material.Code,
+                MaterialName = material.Name,
+                UnitOfMeasureName = material.UnitOfMeasure.Name,
+                CurrentTotalStock = await GetTotalStockAsync(material.Id),
+                WarehouseId = defaultWarehouse?.Id ?? 0
+            };
+
+            return await PrepareAdjustmentModelAsync(model);
+        }
+
+        public async Task<MaterialStockAdjustmentModel> PrepareAdjustmentModelAsync(MaterialStockAdjustmentModel model)
+        {
+            var material = await _dbContext.Materials
+                .AsNoTracking()
+                .Include(x => x.UnitOfMeasure)
+                .FirstOrDefaultAsync(x => x.Id == model.MaterialId);
+
+            if (material == null)
+            {
+                throw new ArgumentNullException(nameof(material));
+            }
+
+            model.MaterialCode = material.Code;
+            model.MaterialName = material.Name;
+            model.UnitOfMeasureName = material.UnitOfMeasure.Name;
+            model.CurrentTotalStock = await GetTotalStockAsync(material.Id);
+            model.CurrentSelectedStock = model.WarehouseId > 0
+                ? await GetCurrentStockAsync(model.MaterialId, model.WarehouseId, model.WarehouseLocationId, model.MaterialBatchId)
+                : 0;
+            model.Difference = model.NewQuantity - model.CurrentSelectedStock;
+            model.Warehouses = await _dbContext.Warehouses
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.Code)
+                .ToListAsync();
+            model.WarehouseLocations = await _dbContext.WarehouseLocations
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.Warehouse.Code)
+                .ThenBy(x => x.Code)
+                .ToListAsync();
+            model.MaterialBatches = await _dbContext.MaterialBatches
+                .AsNoTracking()
+                .Where(x => x.MaterialId == model.MaterialId && x.IsActive)
+                .OrderBy(x => x.BatchNumber)
+                .ToListAsync();
+
+            return model;
+        }
+
+        public async Task<decimal> ApplyStockAdjustmentAsync(MaterialStockAdjustmentModel model)
+        {
+            var preparedModel = await PrepareAdjustmentModelAsync(model);
+
+            if (preparedModel.NewQuantity < 0)
+            {
+                throw new InvalidOperationException("Material stock adjustment quantity cannot be negative.");
+            }
+
+            if (preparedModel.Difference == 0)
+            {
+                return 0;
+            }
+
+            await AdjustStockAsync(new MaterialStockChangeModel
+            {
+                MaterialId = preparedModel.MaterialId,
+                WarehouseId = preparedModel.WarehouseId,
+                WarehouseLocationId = preparedModel.WarehouseLocationId,
+                MaterialBatchId = preparedModel.MaterialBatchId,
+                Quantity = preparedModel.NewQuantity,
+                MovementType = MovementType.Adjustment,
+                ReferenceType = "MaterialStockAdjustment",
+                ReferenceId = preparedModel.MaterialId,
+                Notes = preparedModel.Notes
+            });
+
+            return preparedModel.Difference;
+        }
+
         public async Task IncreaseStockAsync(MaterialStockChangeModel model)
         {
             ValidateChangeModel(model, requirePositiveQuantity: true);
@@ -114,6 +218,20 @@ namespace WarehouseManagment.Services
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        private async Task<decimal> GetCurrentStockAsync(int materialId, int warehouseId, int? warehouseLocationId, int? materialBatchId)
+        {
+            var stock = await _dbContext.MaterialStocks
+                .AsNoTracking()
+                .Where(x => x.MaterialId == materialId &&
+                    x.WarehouseId == warehouseId &&
+                    x.WarehouseLocationId == warehouseLocationId &&
+                    x.MaterialBatchId == materialBatchId)
+                .Select(x => (decimal?)x.Quantity)
+                .FirstOrDefaultAsync();
+
+            return stock ?? 0;
         }
 
         private async Task ValidateReferencesAsync(MaterialStockChangeModel model)
