@@ -10,10 +10,12 @@ namespace WarehouseManagment.Controllers
     public class MaterialController : Controller
     {
         private readonly IMaterialMasterService _materialMasterService;
+        private readonly IMaterialStockService _materialStockService;
 
-        public MaterialController(IMaterialMasterService materialMasterService)
+        public MaterialController(IMaterialMasterService materialMasterService, IMaterialStockService materialStockService)
         {
             _materialMasterService = materialMasterService;
+            _materialStockService = materialStockService;
         }
 
         [HttpGet]
@@ -35,6 +37,44 @@ namespace WarehouseManagment.Controllers
             TempData["MaterialImportErrors"] = string.Join("|", summary.Errors);
 
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> AdjustStock(int id)
+        {
+            try
+            {
+                var model = await _materialStockService.GetAdjustmentModelAsync(id);
+                return View(model);
+            }
+            catch
+            {
+                return NotFound();
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AdjustStock(MaterialStockAdjustmentModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                model = await _materialStockService.PrepareAdjustmentModelAsync(model);
+                return View(model);
+            }
+
+            try
+            {
+                var difference = await _materialStockService.ApplyStockAdjustmentAsync(model);
+                TempData["MaterialStockAdjustmentMessage"] = $"Корекцията е записана. Разлика: {difference:N4} {model.UnitOfMeasureName}";
+                return RedirectToAction(nameof(Edit), new { id = model.MaterialId });
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError(string.Empty, ex.Message);
+                model = await _materialStockService.PrepareAdjustmentModelAsync(model);
+                return View(model);
+            }
         }
 
         [HttpGet]
@@ -73,6 +113,7 @@ namespace WarehouseManagment.Controllers
             try
             {
                 var model = await _materialMasterService.GetMaterialModelAsync(id);
+                await PopulateReadonlyStockAsync(model);
                 await PrepareSelectListsAsync(model.MaterialCategoryId, model.UnitOfMeasureId, model.SupplierId);
                 return View(model);
             }
@@ -88,6 +129,7 @@ namespace WarehouseManagment.Controllers
         {
             if (!ModelState.IsValid)
             {
+                await PopulateReadonlyStockAsync(model);
                 await PrepareSelectListsAsync(model.MaterialCategoryId, model.UnitOfMeasureId, model.SupplierId);
                 return View(model);
             }
@@ -100,9 +142,17 @@ namespace WarehouseManagment.Controllers
             catch (Exception ex)
             {
                 ModelState.AddModelError(string.Empty, ex.Message);
+                await PopulateReadonlyStockAsync(model);
                 await PrepareSelectListsAsync(model.MaterialCategoryId, model.UnitOfMeasureId, model.SupplierId);
                 return View(model);
             }
+        }
+
+        private async Task PopulateReadonlyStockAsync(MaterialModel model)
+        {
+            model.CurrentTotalStock = await _materialStockService.GetTotalStockAsync(model.Id);
+            var units = await _materialMasterService.GetUnitsOfMeasureAsync();
+            model.UnitOfMeasureName = units.FirstOrDefault(x => x.Id == model.UnitOfMeasureId)?.Name;
         }
 
         private async Task PrepareSelectListsAsync(int? selectedCategoryId, int? selectedUnitId, int? selectedSupplierId)
