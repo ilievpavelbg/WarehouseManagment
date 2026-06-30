@@ -1,0 +1,78 @@
+﻿@model MaterialStockAdjustmentModel
+
+@{
+    ViewData["Title"] = "Корекция наличност";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<div class="alert alert-secondary">
+    <div><strong>Материал:</strong> @Model.MaterialCode - @Model.MaterialName</div>
+    <div><strong>Обща наличност:</strong> @Model.CurrentTotalStock.ToString("N4") @Model.UnitOfMeasureName</div>
+</div>
+
+<form asp-controller="Material" asp-action="AdjustStock" method="post">
+    <input asp-for="MaterialId" type="hidden" />
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label asp-for="WarehouseId" class="form-label">Склад</label>
+            <select asp-for="WarehouseId" class="form-control">
+                <option value="">Избери</option>
+                @foreach (var warehouse in Model.Warehouses)
+                {
+                    <option value="@warehouse.Id">@warehouse.Code - @warehouse.Name</option>
+                }
+            </select>
+            <span asp-validation-for="WarehouseId" class="text-danger"></span>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label asp-for="WarehouseLocationId" class="form-label">Локация</label>
+            <select asp-for="WarehouseLocationId" class="form-control">
+                <option value="">Без локация</option>
+                @foreach (var location in Model.WarehouseLocations)
+                {
+                    <option value="@location.Id">@location.Warehouse.Code - @location.Code - @location.Name</option>
+                }
+            </select>
+            <span asp-validation-for="WarehouseLocationId" class="text-danger"></span>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label asp-for="MaterialBatchId" class="form-label">Партида</label>
+            <select asp-for="MaterialBatchId" class="form-control">
+                <option value="">Без партида</option>
+                @foreach (var batch in Model.MaterialBatches)
+                {
+                    <option value="@batch.Id">@batch.BatchNumber</option>
+                }
+            </select>
+            <span asp-validation-for="MaterialBatchId" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Текуща наличност за избора</label>
+            <input value="@Model.CurrentSelectedStock.ToString("N4") @Model.UnitOfMeasureName" class="form-control" readonly />
+        </div>
+        <div class="col-md-4 mb-3">
+            <label asp-for="NewQuantity" class="form-label">Нова наличност</label>
+            <input asp-for="NewQuantity" class="form-control" />
+            <span asp-validation-for="NewQuantity" class="text-danger"></span>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Разлика</label>
+            <input value="@Model.Difference.ToString("N4") @Model.UnitOfMeasureName" class="form-control" readonly />
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Notes" class="form-label">Причина / бележка</label>
+        <textarea asp-for="Notes" class="form-control"></textarea>
+        <span asp-validation-for="Notes" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Запази корекция</button>
+    <a class="btn btn-secondary" asp-controller="Material" asp-action="Edit" asp-route-id="@Model.MaterialId">Назад</a>
+</form>
