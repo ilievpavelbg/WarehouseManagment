@@ -17,10 +17,10 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? categoryId, int? supplierId, bool lowStockOnly = false, bool activeOnly = true)
         {
-            var materials = await _materialMasterService.GetMaterialsAsync();
-            return View(materials);
+            var model = await _materialMasterService.GetMaterialIndexAsync(categoryId, supplierId, lowStockOnly, activeOnly);
+            return View(model);
         }
 
         [HttpPost]
@@ -31,6 +31,7 @@ namespace WarehouseManagment.Controllers
             TempData["MaterialImportCreated"] = summary.Created;
             TempData["MaterialImportUpdated"] = summary.Updated;
             TempData["MaterialImportSkipped"] = summary.Skipped;
+            TempData["MaterialImportWarnings"] = string.Join("|", summary.Warnings);
             TempData["MaterialImportErrors"] = string.Join("|", summary.Errors);
 
             return RedirectToAction(nameof(Index));
