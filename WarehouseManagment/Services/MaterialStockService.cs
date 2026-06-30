@@ -114,23 +114,14 @@ namespace WarehouseManagment.Services
                 throw new InvalidOperationException("Material stock adjustment quantity cannot be negative.");
             }
 
-            if (preparedModel.Difference == 0)
+            if (preparedModel.Difference > 0)
             {
-                return 0;
+                await IncreaseStockAsync(CreateAdjustmentChangeModel(preparedModel, preparedModel.Difference));
             }
-
-            await AdjustStockAsync(new MaterialStockChangeModel
+            else if (preparedModel.Difference < 0)
             {
-                MaterialId = preparedModel.MaterialId,
-                WarehouseId = preparedModel.WarehouseId,
-                WarehouseLocationId = preparedModel.WarehouseLocationId,
-                MaterialBatchId = preparedModel.MaterialBatchId,
-                Quantity = preparedModel.NewQuantity,
-                MovementType = MovementType.Adjustment,
-                ReferenceType = "MaterialStockAdjustment",
-                ReferenceId = preparedModel.MaterialId,
-                Notes = preparedModel.Notes
-            });
+                await DecreaseStockAsync(CreateAdjustmentChangeModel(preparedModel, Math.Abs(preparedModel.Difference)));
+            }
 
             return preparedModel.Difference;
         }
@@ -223,6 +214,22 @@ namespace WarehouseManagment.Services
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        private static MaterialStockChangeModel CreateAdjustmentChangeModel(MaterialStockAdjustmentModel model, decimal quantity)
+        {
+            return new MaterialStockChangeModel
+            {
+                MaterialId = model.MaterialId,
+                WarehouseId = model.WarehouseId,
+                WarehouseLocationId = model.WarehouseLocationId,
+                MaterialBatchId = model.MaterialBatchId,
+                Quantity = quantity,
+                MovementType = MovementType.Adjustment,
+                ReferenceType = "MaterialStockAdjustment",
+                ReferenceId = model.MaterialId,
+                Notes = model.Notes
+            };
         }
 
         private async Task<decimal> GetCurrentStockAsync(int materialId, int warehouseId, int? warehouseLocationId, int? materialBatchId)
