@@ -7,6 +7,14 @@ namespace WarehouseManagment.Interfaces
     {
         Task<Warehouse?> GetDefaultActiveWarehouseAsync();
 
+        Task<decimal> GetTotalStockAsync(int materialId);
+
+        Task<MaterialStockAdjustmentModel> GetAdjustmentModelAsync(int materialId);
+
+        Task<MaterialStockAdjustmentModel> PrepareAdjustmentModelAsync(MaterialStockAdjustmentModel model);
+
+        Task<decimal> ApplyStockAdjustmentAsync(MaterialStockAdjustmentModel model);
+
         Task IncreaseStockAsync(MaterialStockChangeModel model);
 
         Task DecreaseStockAsync(MaterialStockChangeModel model);
