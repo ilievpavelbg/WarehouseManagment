@@ -11,10 +11,12 @@ namespace WarehouseManagment.Services
     public class MaterialMasterService : IMaterialMasterService
     {
         private readonly IRepository _repository;
+        private readonly IMaterialStockService _materialStockService;
 
-        public MaterialMasterService(IRepository repository)
+        public MaterialMasterService(IRepository repository, IMaterialStockService materialStockService)
         {
             _repository = repository;
+            _materialStockService = materialStockService;
         }
 
         public async Task<List<Material>> GetMaterialsAsync()
@@ -25,6 +27,74 @@ namespace WarehouseManagment.Services
                 .Include(x => x.Supplier)
                 .OrderBy(x => x.Code)
                 .ToListAsync();
+        }
+
+        public async Task<MaterialIndexModel> GetMaterialIndexAsync(int? categoryId, int? supplierId, bool lowStockOnly, bool activeOnly)
+        {
+            var materialsQuery = _repository.AllReadonly<Material>()
+                .Include(x => x.MaterialCategory)
+                .Include(x => x.UnitOfMeasure)
+                .Include(x => x.Supplier)
+                .AsQueryable();
+
+            if (categoryId.HasValue)
+            {
+                materialsQuery = materialsQuery.Where(x => x.MaterialCategoryId == categoryId.Value);
+            }
+
+            if (supplierId.HasValue)
+            {
+                materialsQuery = materialsQuery.Where(x => x.SupplierId == supplierId.Value);
+            }
+
+            if (activeOnly)
+            {
+                materialsQuery = materialsQuery.Where(x => x.IsActive);
+            }
+
+            var materials = await materialsQuery
+                .OrderBy(x => x.Code)
+                .ToListAsync();
+
+            var materialIds = materials.Select(x => x.Id).ToList();
+            var stockTotals = await _repository.AllReadonly<MaterialStock>()
+                .Where(x => materialIds.Contains(x.MaterialId))
+                .GroupBy(x => x.MaterialId)
+                .Select(x => new { MaterialId = x.Key, Quantity = x.Sum(s => s.Quantity) })
+                .ToDictionaryAsync(x => x.MaterialId, x => x.Quantity);
+
+            var rows = materials.Select(material => new MaterialListItemModel
+            {
+                Id = material.Id,
+                Code = material.Code,
+                Name = material.Name,
+                CategoryName = material.MaterialCategory?.Name,
+                SupplierName = material.Supplier?.Name,
+                UnitOfMeasureName = material.UnitOfMeasure?.Name ?? string.Empty,
+                CurrentStock = stockTotals.TryGetValue(material.Id, out var quantity) ? quantity : 0,
+                StandardCost = material.StandardCost,
+                MinimumStock = material.MinimumStock,
+                IsBatchTracked = material.IsBatchTracked,
+                IsActive = material.IsActive
+            }).ToList();
+
+            if (lowStockOnly)
+            {
+                rows = rows
+                    .Where(x => x.MinimumStock > 0 && x.CurrentStock <= x.MinimumStock)
+                    .ToList();
+            }
+
+            return new MaterialIndexModel
+            {
+                CategoryId = categoryId,
+                SupplierId = supplierId,
+                LowStockOnly = lowStockOnly,
+                ActiveOnly = activeOnly,
+                Materials = rows,
+                Categories = await GetCategoriesAsync(),
+                Suppliers = await GetSuppliersAsync()
+            };
         }
 
         public async Task<MaterialModel> GetMaterialModelAsync(int id)
@@ -137,6 +207,7 @@ namespace WarehouseManagment.Services
             var descriptionColumn = FindColumn(headers, "Описание", "Description");
             var unitColumn = FindColumn(headers, "Мерна единица", "Мярка", "Unit", "UOM");
             var supplierColumn = FindColumn(headers, "Доставчик", "Supplier");
+            var quantityColumn = FindColumn(headers, "Наличност", "Quantity", "Stock");
             var priceColumn = FindColumn(headers, "Цена", "Price");
 
             if (materialColumn == null)
@@ -144,6 +215,9 @@ namespace WarehouseManagment.Services
                 summary.Errors.Add("Required column 'Материал / Артикул' was not found.");
                 return summary;
             }
+
+            var defaultWarehouse = await _materialStockService.GetDefaultActiveWarehouseAsync();
+            var missingWarehouseWarningAdded = false;
 
             for (int row = 2; row <= worksheet.Dimension.End.Row; row++)
             {
@@ -164,6 +238,15 @@ namespace WarehouseManagment.Services
                         continue;
                     }
 
+                    var importQuantity = ParseDecimal(worksheet, row, quantityColumn);
+
+                    if (importQuantity < 0)
+                    {
+                        summary.Skipped++;
+                        summary.Errors.Add($"Row {row}: material quantity cannot be negative.");
+                        continue;
+                    }
+
                     var rowReference = GetCellText(worksheet, row, rowNumberColumn);
                     var categoryName = GetCellText(worksheet, row, categoryColumn);
                     var unitName = GetCellText(worksheet, row, unitColumn);
@@ -178,6 +261,8 @@ namespace WarehouseManagment.Services
 
                     var material = await _repository.All<Material>()
                         .FirstOrDefaultAsync(x => x.Code == code || x.Name == materialName.Trim());
+
+                    var isNewMaterial = material == null;
 
                     if (material == null)
                     {
@@ -195,7 +280,6 @@ namespace WarehouseManagment.Services
                         };
 
                         await _repository.AddAsync(material);
-                        summary.Created++;
                     }
                     else
                     {
@@ -207,10 +291,43 @@ namespace WarehouseManagment.Services
                         material.StandardCost = standardCost;
                         material.IsActive = true;
                         material.UpdatedOn = DateTime.Now;
-                        summary.Updated++;
                     }
 
                     await _repository.SaveChangesAsync();
+
+                    if (isNewMaterial)
+                    {
+                        summary.Created++;
+                    }
+                    else
+                    {
+                        summary.Updated++;
+                    }
+
+                    if (importQuantity > 0)
+                    {
+                        if (defaultWarehouse == null)
+                        {
+                            if (!missingWarehouseWarningAdded)
+                            {
+                                summary.Warnings.Add("No active warehouse exists. Materials were imported, but stock quantities were not created.");
+                                missingWarehouseWarningAdded = true;
+                            }
+                        }
+                        else
+                        {
+                            await _materialStockService.IncreaseStockAsync(new MaterialStockChangeModel
+                            {
+                                MaterialId = material.Id,
+                                WarehouseId = defaultWarehouse.Id,
+                                Quantity = importQuantity,
+                                MovementType = MovementType.ImportReceipt,
+                                ReferenceType = "MaterialExcelImport",
+                                ReferenceId = material.Id,
+                                Notes = $"Material Excel import receipt, row {row}."
+                            });
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
