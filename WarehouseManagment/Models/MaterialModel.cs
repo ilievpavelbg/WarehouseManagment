@@ -41,5 +41,9 @@ namespace WarehouseManagment.Models
         public bool IsLotTracked { get; set; }
 
         public bool IsActive { get; set; } = true;
+
+        public decimal CurrentTotalStock { get; set; }
+
+        public string? UnitOfMeasureName { get; set; }
     }
 }
