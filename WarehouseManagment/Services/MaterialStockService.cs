@@ -57,7 +57,11 @@ namespace WarehouseManagment.Services
                 WarehouseId = defaultWarehouse?.Id ?? 0
             };
 
-            return await PrepareAdjustmentModelAsync(model);
+            model = await PrepareAdjustmentModelAsync(model);
+            model.NewQuantity = model.CurrentSelectedStock;
+            model.Difference = 0;
+
+            return model;
         }
 
         public async Task<MaterialStockAdjustmentModel> PrepareAdjustmentModelAsync(MaterialStockAdjustmentModel model)
@@ -87,6 +91,7 @@ namespace WarehouseManagment.Services
                 .ToListAsync();
             model.WarehouseLocations = await _dbContext.WarehouseLocations
                 .AsNoTracking()
+                .Include(x => x.Warehouse)
                 .Where(x => x.IsActive)
                 .OrderBy(x => x.Warehouse.Code)
                 .ThenBy(x => x.Code)
