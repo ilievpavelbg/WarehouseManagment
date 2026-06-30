@@ -49,6 +49,7 @@ namespace WarehouseManagment.Data
         public DateTime? UpdatedOn { get; set; }
 
         public List<MaterialBatch> MaterialBatches { get; set; } = new List<MaterialBatch>();
+        public List<MaterialStock> MaterialStocks { get; set; } = new List<MaterialStock>();
         public List<InventoryMovement> InventoryMovements { get; set; } = new List<InventoryMovement>();
     }
 }
