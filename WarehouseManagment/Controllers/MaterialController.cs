@@ -25,7 +25,7 @@ namespace WarehouseManagment.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Import(IFormFile excelFile)
+        public async Task<IActionResult> Import(IFormFile? excelFile)
         {
             var summary = await _materialMasterService.ImportMaterialsFromExcelAsync(excelFile);
             TempData["MaterialImportCreated"] = summary.Created;
