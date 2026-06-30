@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Материали";
+    var importErrors = TempData["MaterialImportErrors"]?.ToString()?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
@@ -9,6 +10,38 @@
 <div class="mb-3">
     <a class="btn btn-primary" asp-controller="Material" asp-action="Create">Нов материал</a>
 </div>
+
+<form asp-controller="Material" asp-action="Import" method="post" enctype="multipart/form-data" class="mb-3">
+    <div class="row align-items-end">
+        <div class="col-md-6">
+            <label for="excelFile" class="form-label">Импорт от Excel</label>
+            <input id="excelFile" name="excelFile" type="file" accept=".xlsx,.xls" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-outline-primary">Импортирай</button>
+        </div>
+    </div>
+</form>
+
+@if (TempData["MaterialImportCreated"] != null)
+{
+    <div class="alert alert-info">
+        <div>Създадени: @TempData["MaterialImportCreated"]</div>
+        <div>Обновени: @TempData["MaterialImportUpdated"]</div>
+        <div>Пропуснати: @TempData["MaterialImportSkipped"]</div>
+        @if (importErrors.Any())
+        {
+            <hr />
+            <strong>Грешки:</strong>
+            <ul class="mb-0">
+                @foreach (var error in importErrors)
+                {
+                    <li>@error</li>
+                }
+            </ul>
+        }
+    </div>
+}
 
 @if (!Model.Any())
 {
