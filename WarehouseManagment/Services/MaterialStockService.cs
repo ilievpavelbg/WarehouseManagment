@@ -34,6 +34,121 @@ namespace WarehouseManagment.Services
                 .SumAsync(x => x.Quantity);
         }
 
+        public async Task<GoodsReceiptModel> GetGoodsReceiptModelAsync(int materialId)
+        {
+            var material = await _dbContext.Materials
+                .AsNoTracking()
+                .Include(x => x.UnitOfMeasure)
+                .FirstOrDefaultAsync(x => x.Id == materialId);
+
+            if (material == null)
+            {
+                throw new ArgumentNullException(nameof(material));
+            }
+
+            var defaultWarehouse = await GetDefaultActiveWarehouseAsync();
+            var model = new GoodsReceiptModel
+            {
+                MaterialId = material.Id,
+                MaterialCode = material.Code,
+                MaterialName = material.Name,
+                UnitOfMeasureName = material.UnitOfMeasure.Name,
+                WarehouseId = defaultWarehouse?.Id ?? 0
+            };
+
+            return await PrepareGoodsReceiptModelAsync(model);
+        }
+
+        public async Task<GoodsReceiptModel> PrepareGoodsReceiptModelAsync(GoodsReceiptModel model)
+        {
+            var material = await _dbContext.Materials
+                .AsNoTracking()
+                .Include(x => x.UnitOfMeasure)
+                .FirstOrDefaultAsync(x => x.Id == model.MaterialId);
+
+            if (material == null)
+            {
+                throw new ArgumentNullException(nameof(material));
+            }
+
+            model.MaterialCode = material.Code;
+            model.MaterialName = material.Name;
+            model.UnitOfMeasureName = material.UnitOfMeasure.Name;
+            model.Warehouses = await _dbContext.Warehouses
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.Code)
+                .ToListAsync();
+            model.WarehouseLocations = await _dbContext.WarehouseLocations
+                .AsNoTracking()
+                .Include(x => x.Warehouse)
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.Warehouse.Code)
+                .ThenBy(x => x.Code)
+                .ToListAsync();
+            model.Suppliers = await _dbContext.Suppliers
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.Name)
+                .ToListAsync();
+
+            return model;
+        }
+
+        public async Task ReceiveGoodsAsync(GoodsReceiptModel model)
+        {
+            var preparedModel = await PrepareGoodsReceiptModelAsync(model);
+
+            if (preparedModel.ReceivedQuantity <= 0)
+            {
+                throw new InvalidOperationException("Received quantity must be greater than zero.");
+            }
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+            try
+            {
+                var materialBatch = await GetOrCreateReceiptBatchAsync(preparedModel);
+
+                if (materialBatch != null && materialBatch.Id == 0)
+                {
+                    await _dbContext.SaveChangesAsync();
+                }
+
+                var changeModel = new MaterialStockChangeModel
+                {
+                    MaterialId = preparedModel.MaterialId,
+                    WarehouseId = preparedModel.WarehouseId,
+                    WarehouseLocationId = preparedModel.WarehouseLocationId,
+                    MaterialBatchId = materialBatch?.Id,
+                    Quantity = preparedModel.ReceivedQuantity,
+                    MovementType = MovementType.ImportReceipt,
+                    ReferenceType = "GoodsReceipt",
+                    ReferenceId = preparedModel.MaterialId,
+                    ReferenceNumber = preparedModel.DocumentNumber,
+                    BatchNumber = preparedModel.BatchNumber,
+                    LotNumber = preparedModel.LotNumber,
+                    Notes = preparedModel.Notes
+                };
+
+                ValidateChangeModel(changeModel, requirePositiveQuantity: true);
+                await ValidateReferencesAsync(changeModel);
+
+                var stock = await GetOrCreateStockAsync(changeModel);
+                stock.Quantity += changeModel.Quantity;
+                stock.LastUpdatedOn = DateTime.Now;
+
+                await CreateMovementAsync(changeModel, changeModel.Quantity);
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
         public async Task<MaterialStockAdjustmentModel> GetAdjustmentModelAsync(int materialId)
         {
             var material = await _dbContext.Materials
@@ -232,6 +347,41 @@ namespace WarehouseManagment.Services
             };
         }
 
+        private async Task<MaterialBatch?> GetOrCreateReceiptBatchAsync(GoodsReceiptModel model)
+        {
+            var batchNumber = model.BatchNumber?.Trim();
+            var lotNumber = model.LotNumber?.Trim();
+
+            if (string.IsNullOrWhiteSpace(batchNumber) && string.IsNullOrWhiteSpace(lotNumber))
+            {
+                return null;
+            }
+
+            var batch = await _dbContext.MaterialBatches
+                .FirstOrDefaultAsync(x =>
+                    x.MaterialId == model.MaterialId &&
+                    x.BatchNumber == (batchNumber ?? lotNumber) &&
+                    x.LotNumber == lotNumber);
+
+            if (batch != null)
+            {
+                return batch;
+            }
+
+            batch = new MaterialBatch
+            {
+                MaterialId = model.MaterialId,
+                SupplierId = model.SupplierId,
+                BatchNumber = batchNumber ?? lotNumber!,
+                LotNumber = lotNumber,
+                ReceivedDate = DateTime.Now,
+                IsActive = true
+            };
+
+            await _dbContext.MaterialBatches.AddAsync(batch);
+            return batch;
+        }
+
         private async Task<decimal> GetCurrentStockAsync(int materialId, int warehouseId, int? warehouseLocationId, int? materialBatchId)
         {
             var stock = await _dbContext.MaterialStocks
@@ -357,6 +507,9 @@ namespace WarehouseManagment.Services
                 CreatedOn = createdOn,
                 ReferenceType = model.ReferenceType,
                 ReferenceId = model.ReferenceId,
+                ReferenceNumber = model.ReferenceNumber,
+                BatchNumber = model.BatchNumber,
+                LotNumber = model.LotNumber,
                 UserId = model.UserId ?? GetCurrentUserId(),
                 Notes = model.Notes
             };
