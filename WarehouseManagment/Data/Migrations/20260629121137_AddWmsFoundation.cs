@@ -9,6 +9,7 @@ namespace WarehouseManagment.Data.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+           
             migrationBuilder.CreateTable(
                 name: "Warehouses",
                 columns: table => new
@@ -155,6 +156,7 @@ namespace WarehouseManagment.Data.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
+
             migrationBuilder.CreateIndex(
                 name: "IX_InventoryMovements_DestinationWarehouseId",
                 table: "InventoryMovements",
@@ -237,6 +239,7 @@ namespace WarehouseManagment.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "Warehouses");
+
         }
     }
 }

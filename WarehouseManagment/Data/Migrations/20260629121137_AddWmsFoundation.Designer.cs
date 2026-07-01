@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WarehouseManagment.Data;
 
@@ -11,9 +12,10 @@ using WarehouseManagment.Data;
 namespace WarehouseManagment.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260629121137_AddWmsFoundation")]
+    partial class AddWmsFoundation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -306,9 +308,6 @@ namespace WarehouseManagment.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("datetime2");
-
                     b.Property<int?>("DestinationWarehouseId")
                         .HasColumnType("int");
 
@@ -321,12 +320,6 @@ namespace WarehouseManagment.Data.Migrations
                     b.Property<string>("LotNumber")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<int?>("MaterialBatchId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("MaterialId")
-                        .HasColumnType("int");
 
                     b.Property<DateTime>("MovementDate")
                         .HasColumnType("datetime2");
@@ -347,15 +340,7 @@ namespace WarehouseManagment.Data.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<long>("ReferenceId")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("ReferenceNumber")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("ReferenceType")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -382,10 +367,6 @@ namespace WarehouseManagment.Data.Migrations
                     b.HasIndex("DestinationWarehouseLocationId");
 
                     b.HasIndex("DestinationWarehouseZoneId");
-
-                    b.HasIndex("MaterialBatchId");
-
-                    b.HasIndex("MaterialId");
 
                     b.HasIndex("MovementDate");
 
@@ -424,198 +405,6 @@ namespace WarehouseManagment.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("LoginHistories");
-                });
-
-            modelBuilder.Entity("WarehouseManagment.Data.Material", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<string>("Barcode")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsBatchTracked")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsLotTracked")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("MaterialCategoryId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("MinimumStock")
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<decimal>("StandardCost")
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<int?>("SupplierId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UnitOfMeasureId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedOn")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Barcode");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.HasIndex("MaterialCategoryId");
-
-                    b.HasIndex("SupplierId");
-
-                    b.HasIndex("UnitOfMeasureId");
-
-                    b.ToTable("Materials");
-                });
-
-            modelBuilder.Entity("WarehouseManagment.Data.MaterialBatch", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<string>("BatchNumber")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("ExpirationDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("LotNumber")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("MaterialId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ReceivedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal?>("StandardCost")
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<int?>("SupplierId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SupplierId");
-
-                    b.HasIndex("MaterialId", "BatchNumber");
-
-                    b.HasIndex("MaterialId", "LotNumber");
-
-                    b.ToTable("MaterialBatches");
-                });
-
-            modelBuilder.Entity("WarehouseManagment.Data.MaterialCategory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.ToTable("MaterialCategories");
-                });
-
-            modelBuilder.Entity("WarehouseManagment.Data.MaterialStock", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<DateTime>("LastUpdatedOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("MaterialBatchId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MaterialId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Quantity")
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<int>("WarehouseId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("WarehouseLocationId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MaterialBatchId");
-
-                    b.HasIndex("WarehouseId");
-
-                    b.HasIndex("WarehouseLocationId");
-
-                    b.HasIndex("MaterialId", "WarehouseId", "WarehouseLocationId", "MaterialBatchId")
-                        .IsUnique()
-                        .HasFilter("[WarehouseLocationId] IS NOT NULL AND [MaterialBatchId] IS NOT NULL");
-
-                    b.ToTable("MaterialStocks");
                 });
 
             modelBuilder.Entity("WarehouseManagment.Data.Product", b =>
@@ -739,88 +528,6 @@ namespace WarehouseManagment.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Sales");
-                });
-
-            modelBuilder.Entity("WarehouseManagment.Data.Supplier", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<string>("Address")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.Property<string>("ContactPerson")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("Phone")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("TaxNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.ToTable("Suppliers");
-                });
-
-            modelBuilder.Entity("WarehouseManagment.Data.UnitOfMeasure", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Symbol")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.ToTable("UnitsOfMeasure");
                 });
 
             modelBuilder.Entity("WarehouseManagment.Data.Warehouse", b =>
@@ -1001,16 +708,6 @@ namespace WarehouseManagment.Data.Migrations
                         .HasForeignKey("DestinationWarehouseZoneId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("WarehouseManagment.Data.MaterialBatch", "MaterialBatch")
-                        .WithMany("InventoryMovements")
-                        .HasForeignKey("MaterialBatchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("WarehouseManagment.Data.Material", "Material")
-                        .WithMany("InventoryMovements")
-                        .HasForeignKey("MaterialId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("WarehouseManagment.Data.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
@@ -1042,10 +739,6 @@ namespace WarehouseManagment.Data.Migrations
 
                     b.Navigation("DestinationWarehouseZone");
 
-                    b.Navigation("Material");
-
-                    b.Navigation("MaterialBatch");
-
                     b.Navigation("Product");
 
                     b.Navigation("ProductInventory");
@@ -1055,83 +748,6 @@ namespace WarehouseManagment.Data.Migrations
                     b.Navigation("WarehouseLocation");
 
                     b.Navigation("WarehouseZone");
-                });
-
-            modelBuilder.Entity("WarehouseManagment.Data.Material", b =>
-                {
-                    b.HasOne("WarehouseManagment.Data.MaterialCategory", "MaterialCategory")
-                        .WithMany("Materials")
-                        .HasForeignKey("MaterialCategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("WarehouseManagment.Data.Supplier", "Supplier")
-                        .WithMany("Materials")
-                        .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("WarehouseManagment.Data.UnitOfMeasure", "UnitOfMeasure")
-                        .WithMany("Materials")
-                        .HasForeignKey("UnitOfMeasureId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("MaterialCategory");
-
-                    b.Navigation("Supplier");
-
-                    b.Navigation("UnitOfMeasure");
-                });
-
-            modelBuilder.Entity("WarehouseManagment.Data.MaterialBatch", b =>
-                {
-                    b.HasOne("WarehouseManagment.Data.Material", "Material")
-                        .WithMany("MaterialBatches")
-                        .HasForeignKey("MaterialId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("WarehouseManagment.Data.Supplier", "Supplier")
-                        .WithMany("MaterialBatches")
-                        .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Material");
-
-                    b.Navigation("Supplier");
-                });
-
-            modelBuilder.Entity("WarehouseManagment.Data.MaterialStock", b =>
-                {
-                    b.HasOne("WarehouseManagment.Data.MaterialBatch", "MaterialBatch")
-                        .WithMany()
-                        .HasForeignKey("MaterialBatchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("WarehouseManagment.Data.Material", "Material")
-                        .WithMany("MaterialStocks")
-                        .HasForeignKey("MaterialId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("WarehouseManagment.Data.Warehouse", "Warehouse")
-                        .WithMany()
-                        .HasForeignKey("WarehouseId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("WarehouseManagment.Data.WarehouseLocation", "WarehouseLocation")
-                        .WithMany()
-                        .HasForeignKey("WarehouseLocationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Material");
-
-                    b.Navigation("MaterialBatch");
-
-                    b.Navigation("Warehouse");
-
-                    b.Navigation("WarehouseLocation");
                 });
 
             modelBuilder.Entity("WarehouseManagment.Data.ProductInventory", b =>
@@ -1174,40 +790,9 @@ namespace WarehouseManagment.Data.Migrations
                     b.Navigation("Warehouse");
                 });
 
-            modelBuilder.Entity("WarehouseManagment.Data.Material", b =>
-                {
-                    b.Navigation("InventoryMovements");
-
-                    b.Navigation("MaterialBatches");
-
-                    b.Navigation("MaterialStocks");
-                });
-
-            modelBuilder.Entity("WarehouseManagment.Data.MaterialBatch", b =>
-                {
-                    b.Navigation("InventoryMovements");
-                });
-
-            modelBuilder.Entity("WarehouseManagment.Data.MaterialCategory", b =>
-                {
-                    b.Navigation("Materials");
-                });
-
             modelBuilder.Entity("WarehouseManagment.Data.Product", b =>
                 {
                     b.Navigation("ProductInventories");
-                });
-
-            modelBuilder.Entity("WarehouseManagment.Data.Supplier", b =>
-                {
-                    b.Navigation("MaterialBatches");
-
-                    b.Navigation("Materials");
-                });
-
-            modelBuilder.Entity("WarehouseManagment.Data.UnitOfMeasure", b =>
-                {
-                    b.Navigation("Materials");
                 });
 
             modelBuilder.Entity("WarehouseManagment.Data.Warehouse", b =>

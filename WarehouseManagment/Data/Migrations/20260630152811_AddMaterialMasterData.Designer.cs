@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WarehouseManagment.Data;
 
@@ -11,9 +12,10 @@ using WarehouseManagment.Data;
 namespace WarehouseManagment.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260630152811_AddMaterialMasterData")]
+    partial class AddMaterialMasterData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -577,47 +579,6 @@ namespace WarehouseManagment.Data.Migrations
                     b.ToTable("MaterialCategories");
                 });
 
-            modelBuilder.Entity("WarehouseManagment.Data.MaterialStock", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<DateTime>("LastUpdatedOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("MaterialBatchId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MaterialId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Quantity")
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<int>("WarehouseId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("WarehouseLocationId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MaterialBatchId");
-
-                    b.HasIndex("WarehouseId");
-
-                    b.HasIndex("WarehouseLocationId");
-
-                    b.HasIndex("MaterialId", "WarehouseId", "WarehouseLocationId", "MaterialBatchId")
-                        .IsUnique()
-                        .HasFilter("[WarehouseLocationId] IS NOT NULL AND [MaterialBatchId] IS NOT NULL");
-
-                    b.ToTable("MaterialStocks");
-                });
-
             modelBuilder.Entity("WarehouseManagment.Data.Product", b =>
                 {
                     b.Property<int>("Id")
@@ -1101,39 +1062,6 @@ namespace WarehouseManagment.Data.Migrations
                     b.Navigation("Supplier");
                 });
 
-            modelBuilder.Entity("WarehouseManagment.Data.MaterialStock", b =>
-                {
-                    b.HasOne("WarehouseManagment.Data.MaterialBatch", "MaterialBatch")
-                        .WithMany()
-                        .HasForeignKey("MaterialBatchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("WarehouseManagment.Data.Material", "Material")
-                        .WithMany("MaterialStocks")
-                        .HasForeignKey("MaterialId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("WarehouseManagment.Data.Warehouse", "Warehouse")
-                        .WithMany()
-                        .HasForeignKey("WarehouseId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("WarehouseManagment.Data.WarehouseLocation", "WarehouseLocation")
-                        .WithMany()
-                        .HasForeignKey("WarehouseLocationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Material");
-
-                    b.Navigation("MaterialBatch");
-
-                    b.Navigation("Warehouse");
-
-                    b.Navigation("WarehouseLocation");
-                });
-
             modelBuilder.Entity("WarehouseManagment.Data.ProductInventory", b =>
                 {
                     b.HasOne("WarehouseManagment.Data.Product", "Product")
@@ -1179,8 +1107,6 @@ namespace WarehouseManagment.Data.Migrations
                     b.Navigation("InventoryMovements");
 
                     b.Navigation("MaterialBatches");
-
-                    b.Navigation("MaterialStocks");
                 });
 
             modelBuilder.Entity("WarehouseManagment.Data.MaterialBatch", b =>
