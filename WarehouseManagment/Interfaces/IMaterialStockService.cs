@@ -15,6 +15,12 @@ namespace WarehouseManagment.Interfaces
 
         Task ReceiveGoodsAsync(GoodsReceiptModel model);
 
+        Task<MaterialTransferModel> GetTransferModelAsync(int materialId);
+
+        Task<MaterialTransferModel> PrepareTransferModelAsync(MaterialTransferModel model);
+
+        Task TransferMaterialAsync(MaterialTransferModel model);
+
         Task<MaterialStockAdjustmentModel> GetAdjustmentModelAsync(int materialId);
 
         Task<MaterialStockAdjustmentModel> PrepareAdjustmentModelAsync(MaterialStockAdjustmentModel model);
