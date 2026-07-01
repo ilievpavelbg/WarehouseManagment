@@ -53,6 +53,8 @@ namespace WarehouseManagment.Services
                 MaterialCode = material.Code,
                 MaterialName = material.Name,
                 UnitOfMeasureName = material.UnitOfMeasure.Name,
+                IsBatchTracked = material.IsBatchTracked,
+                IsLotTracked = material.IsLotTracked,
                 WarehouseId = defaultWarehouse?.Id ?? 0
             };
 
@@ -71,9 +73,13 @@ namespace WarehouseManagment.Services
                 throw new ArgumentNullException(nameof(material));
             }
 
+            ApplyBatchSelection(model);
             model.MaterialCode = material.Code;
             model.MaterialName = material.Name;
             model.UnitOfMeasureName = material.UnitOfMeasure.Name;
+            model.IsBatchTracked = material.IsBatchTracked;
+            model.IsLotTracked = material.IsLotTracked;
+            model.BatchSelection = model.CreateNewBatch ? "new" : model.MaterialBatchId?.ToString();
             model.Warehouses = await _dbContext.Warehouses
                 .AsNoTracking()
                 .Where(x => x.IsActive)
@@ -90,6 +96,12 @@ namespace WarehouseManagment.Services
                 .AsNoTracking()
                 .Where(x => x.IsActive)
                 .OrderBy(x => x.Name)
+                .ToListAsync();
+            model.MaterialBatches = await _dbContext.MaterialBatches
+                .AsNoTracking()
+                .Where(x => x.MaterialId == model.MaterialId && x.IsActive)
+                .OrderBy(x => x.BatchNumber)
+                .ThenBy(x => x.LotNumber)
                 .ToListAsync();
 
             return model;
@@ -109,7 +121,7 @@ namespace WarehouseManagment.Services
             try
             {
                 await ValidateReceiptReferencesAsync(preparedModel);
-                var materialBatch = await GetOrCreateReceiptBatchAsync(preparedModel);
+                var materialBatch = await ResolveReceiptBatchAsync(preparedModel);
 
                 if (materialBatch != null && materialBatch.Id == 0)
                 {
@@ -127,8 +139,8 @@ namespace WarehouseManagment.Services
                     ReferenceType = "GoodsReceipt",
                     ReferenceId = preparedModel.MaterialId,
                     ReferenceNumber = preparedModel.DocumentNumber,
-                    BatchNumber = preparedModel.BatchNumber,
-                    LotNumber = preparedModel.LotNumber,
+                    BatchNumber = materialBatch?.BatchNumber ?? preparedModel.BatchNumber,
+                    LotNumber = materialBatch?.LotNumber ?? preparedModel.LotNumber,
                     Notes = preparedModel.Notes
                 };
 
@@ -348,32 +360,39 @@ namespace WarehouseManagment.Services
             };
         }
 
-        private async Task<MaterialBatch?> GetOrCreateReceiptBatchAsync(GoodsReceiptModel model)
+        private async Task<MaterialBatch?> ResolveReceiptBatchAsync(GoodsReceiptModel model)
         {
-            var batchNumber = model.BatchNumber?.Trim();
-            var lotNumber = model.LotNumber?.Trim();
+            if (model.MaterialBatchId.HasValue)
+            {
+                return await _dbContext.MaterialBatches
+                    .FirstOrDefaultAsync(x => x.Id == model.MaterialBatchId.Value && x.MaterialId == model.MaterialId);
+            }
 
-            if (string.IsNullOrWhiteSpace(batchNumber) && string.IsNullOrWhiteSpace(lotNumber))
+            if (!model.CreateNewBatch)
             {
                 return null;
             }
 
-            var batch = await _dbContext.MaterialBatches
+            var batchNumber = model.BatchNumber?.Trim();
+            var lotNumber = model.LotNumber?.Trim();
+            var batchNumberForStorage = !string.IsNullOrWhiteSpace(batchNumber) ? batchNumber : lotNumber;
+
+            var existingBatch = await _dbContext.MaterialBatches
                 .FirstOrDefaultAsync(x =>
                     x.MaterialId == model.MaterialId &&
-                    x.BatchNumber == (batchNumber ?? lotNumber) &&
+                    x.BatchNumber == batchNumberForStorage &&
                     x.LotNumber == lotNumber);
 
-            if (batch != null)
+            if (existingBatch != null)
             {
-                return batch;
+                return existingBatch;
             }
 
-            batch = new MaterialBatch
+            var batch = new MaterialBatch
             {
                 MaterialId = model.MaterialId,
                 SupplierId = model.SupplierId,
-                BatchNumber = batchNumber ?? lotNumber!,
+                BatchNumber = batchNumberForStorage!,
                 LotNumber = lotNumber,
                 ReceivedDate = DateTime.Now,
                 IsActive = true
@@ -381,6 +400,26 @@ namespace WarehouseManagment.Services
 
             await _dbContext.MaterialBatches.AddAsync(batch);
             return batch;
+        }
+
+        private static void ApplyBatchSelection(GoodsReceiptModel model)
+        {
+            if (string.Equals(model.BatchSelection, "new", StringComparison.OrdinalIgnoreCase))
+            {
+                model.CreateNewBatch = true;
+                model.MaterialBatchId = null;
+                return;
+            }
+
+            model.CreateNewBatch = false;
+
+            if (int.TryParse(model.BatchSelection, out var materialBatchId))
+            {
+                model.MaterialBatchId = materialBatchId;
+                return;
+            }
+
+            model.MaterialBatchId = null;
         }
 
         private async Task<decimal> GetCurrentStockAsync(int materialId, int warehouseId, int? warehouseLocationId, int? materialBatchId)
@@ -399,9 +438,11 @@ namespace WarehouseManagment.Services
 
         private async Task ValidateReceiptReferencesAsync(GoodsReceiptModel model)
         {
-            var materialExists = await _dbContext.Materials.AnyAsync(x => x.Id == model.MaterialId);
+            var material = await _dbContext.Materials
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == model.MaterialId);
 
-            if (!materialExists)
+            if (material == null)
             {
                 throw new InvalidOperationException("Material does not exist.");
             }
@@ -431,6 +472,40 @@ namespace WarehouseManagment.Services
                 if (!supplierExists)
                 {
                     throw new InvalidOperationException("Supplier does not exist.");
+                }
+            }
+
+            if (model.MaterialBatchId.HasValue)
+            {
+                var batchBelongsToMaterial = await _dbContext.MaterialBatches
+                    .AnyAsync(x => x.Id == model.MaterialBatchId.Value && x.MaterialId == model.MaterialId);
+
+                if (!batchBelongsToMaterial)
+                {
+                    throw new InvalidOperationException("Selected material batch does not belong to the selected material.");
+                }
+            }
+
+            if ((material.IsBatchTracked || material.IsLotTracked) && !model.MaterialBatchId.HasValue && !model.CreateNewBatch)
+            {
+                throw new InvalidOperationException("Изберете съществуваща партида или Нова партида.");
+            }
+
+            if (model.CreateNewBatch)
+            {
+                if (material.IsBatchTracked && string.IsNullOrWhiteSpace(model.BatchNumber))
+                {
+                    throw new InvalidOperationException("Въведете Номер партида.");
+                }
+
+                if (material.IsLotTracked && string.IsNullOrWhiteSpace(model.LotNumber))
+                {
+                    throw new InvalidOperationException("Въведете Lot номер.");
+                }
+
+                if (string.IsNullOrWhiteSpace(model.BatchNumber) && string.IsNullOrWhiteSpace(model.LotNumber))
+                {
+                    throw new InvalidOperationException("Въведете Номер партида или Lot номер.");
                 }
             }
         }
