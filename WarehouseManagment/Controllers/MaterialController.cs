@@ -67,7 +67,7 @@ namespace WarehouseManagment.Controllers
             {
                 var difference = await _materialStockService.ApplyStockAdjustmentAsync(model);
                 TempData["MaterialStockAdjustmentMessage"] = $"Корекцията е записана. Разлика: {difference:N4}";
-                return RedirectToAction(nameof(Edit), new { id = model.MaterialId });
+                return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
