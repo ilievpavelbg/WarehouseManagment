@@ -78,6 +78,44 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> Transfer(int id)
+        {
+            try
+            {
+                var model = await _materialStockService.GetTransferModelAsync(id);
+                return View(model);
+            }
+            catch
+            {
+                return NotFound();
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Transfer(MaterialTransferModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                model = await _materialStockService.PrepareTransferModelAsync(model);
+                return View(model);
+            }
+
+            try
+            {
+                await _materialStockService.TransferMaterialAsync(model);
+                TempData["MaterialTransferMessage"] = "Материалът е преместен успешно.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError(string.Empty, ex.Message);
+                model = await _materialStockService.PrepareTransferModelAsync(model);
+                return View(model);
+            }
+        }
+
+        [HttpGet]
         public async Task<IActionResult> AdjustStock(int id)
         {
             try
