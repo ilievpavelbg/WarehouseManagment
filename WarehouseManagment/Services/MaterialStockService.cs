@@ -108,6 +108,7 @@ namespace WarehouseManagment.Services
 
             try
             {
+                await ValidateReceiptReferencesAsync(preparedModel);
                 var materialBatch = await GetOrCreateReceiptBatchAsync(preparedModel);
 
                 if (materialBatch != null && materialBatch.Id == 0)
@@ -394,6 +395,44 @@ namespace WarehouseManagment.Services
                 .FirstOrDefaultAsync();
 
             return stock ?? 0;
+        }
+
+        private async Task ValidateReceiptReferencesAsync(GoodsReceiptModel model)
+        {
+            var materialExists = await _dbContext.Materials.AnyAsync(x => x.Id == model.MaterialId);
+
+            if (!materialExists)
+            {
+                throw new InvalidOperationException("Material does not exist.");
+            }
+
+            var warehouseExists = await _dbContext.Warehouses.AnyAsync(x => x.Id == model.WarehouseId);
+
+            if (!warehouseExists)
+            {
+                throw new InvalidOperationException("Warehouse does not exist.");
+            }
+
+            if (model.WarehouseLocationId.HasValue)
+            {
+                var locationBelongsToWarehouse = await _dbContext.WarehouseLocations
+                    .AnyAsync(x => x.Id == model.WarehouseLocationId.Value && x.WarehouseId == model.WarehouseId);
+
+                if (!locationBelongsToWarehouse)
+                {
+                    throw new InvalidOperationException("Selected warehouse location does not belong to the selected warehouse.");
+                }
+            }
+
+            if (model.SupplierId.HasValue)
+            {
+                var supplierExists = await _dbContext.Suppliers.AnyAsync(x => x.Id == model.SupplierId.Value);
+
+                if (!supplierExists)
+                {
+                    throw new InvalidOperationException("Supplier does not exist.");
+                }
+            }
         }
 
         private async Task ValidateReferencesAsync(MaterialStockChangeModel model)
