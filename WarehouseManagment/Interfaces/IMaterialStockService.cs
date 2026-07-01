@@ -9,6 +9,12 @@ namespace WarehouseManagment.Interfaces
 
         Task<decimal> GetTotalStockAsync(int materialId);
 
+        Task<GoodsReceiptModel> GetGoodsReceiptModelAsync(int materialId);
+
+        Task<GoodsReceiptModel> PrepareGoodsReceiptModelAsync(GoodsReceiptModel model);
+
+        Task ReceiveGoodsAsync(GoodsReceiptModel model);
+
         Task<MaterialStockAdjustmentModel> GetAdjustmentModelAsync(int materialId);
 
         Task<MaterialStockAdjustmentModel> PrepareAdjustmentModelAsync(MaterialStockAdjustmentModel model);
