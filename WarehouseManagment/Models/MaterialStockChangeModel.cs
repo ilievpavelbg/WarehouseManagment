@@ -13,6 +13,10 @@ namespace WarehouseManagment.Models
 
         public int? WarehouseLocationId { get; set; }
 
+        public int? DestinationWarehouseId { get; set; }
+
+        public int? DestinationWarehouseLocationId { get; set; }
+
         public int? MaterialBatchId { get; set; }
 
         public decimal Quantity { get; set; }
