@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using WarehouseManagment.Data;
 
 namespace WarehouseManagment.Models
@@ -8,11 +9,14 @@ namespace WarehouseManagment.Models
         [Range(1, int.MaxValue)]
         public int MaterialId { get; set; }
 
-        public string MaterialCode { get; set; } = null!;
+        [ValidateNever]
+        public string MaterialCode { get; set; } = string.Empty;
 
-        public string MaterialName { get; set; } = null!;
+        [ValidateNever]
+        public string MaterialName { get; set; } = string.Empty;
 
-        public string UnitOfMeasureName { get; set; } = null!;
+        [ValidateNever]
+        public string UnitOfMeasureName { get; set; } = string.Empty;
 
         public decimal CurrentTotalStock { get; set; }
 
@@ -33,10 +37,13 @@ namespace WarehouseManagment.Models
         [StringLength(500)]
         public string? Notes { get; set; }
 
+        [ValidateNever]
         public List<Warehouse> Warehouses { get; set; } = new List<Warehouse>();
 
+        [ValidateNever]
         public List<WarehouseLocation> WarehouseLocations { get; set; } = new List<WarehouseLocation>();
 
+        [ValidateNever]
         public List<MaterialBatch> MaterialBatches { get; set; } = new List<MaterialBatch>();
     }
 }
