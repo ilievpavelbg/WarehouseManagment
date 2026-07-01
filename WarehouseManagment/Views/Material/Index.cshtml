@@ -13,6 +13,11 @@
     <div class="alert alert-success">@TempData["MaterialGoodsReceiptMessage"]</div>
 }
 
+@if (TempData["MaterialTransferMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["MaterialTransferMessage"]</div>
+}
+
 @if (TempData["MaterialStockAdjustmentMessage"] != null)
 {
     <div class="alert alert-success">@TempData["MaterialStockAdjustmentMessage"]</div>
@@ -144,6 +149,7 @@ else
                     <td>
                         <a class="btn btn-sm btn-outline-primary" asp-controller="Material" asp-action="Edit" asp-route-id="@material.Id">Редакция</a>
                         <a class="btn btn-sm btn-primary" asp-controller="Material" asp-action="Receive" asp-route-id="@material.Id">Приемане</a>
+                        <a class="btn btn-sm btn-outline-primary" asp-controller="Material" asp-action="Transfer" asp-route-id="@material.Id">Преместване</a>
                         <a class="btn btn-sm btn-outline-secondary" asp-controller="Material" asp-action="AdjustStock" asp-route-id="@material.Id">Корекция наличност</a>
                     </td>
                 </tr>
