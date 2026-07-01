@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Приемане на материали";
+    var selectedBatch = Model.MaterialBatches.FirstOrDefault(x => x.Id == Model.MaterialBatchId);
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
@@ -41,19 +42,44 @@
 
     <div class="row">
         <div class="col-md-4 mb-3">
-            <label asp-for="BatchNumber" class="form-label">Партида</label>
-            <input asp-for="BatchNumber" class="form-control" />
-            <span asp-validation-for="BatchNumber" class="text-danger"></span>
+            <label asp-for="BatchSelection" class="form-label">Партида</label>
+            <select asp-for="BatchSelection" id="batchSelection" class="form-control">
+                <option value="">Без партида</option>
+                @foreach (var batch in Model.MaterialBatches)
+                {
+                    var batchLabel = string.IsNullOrWhiteSpace(batch.LotNumber)
+                        ? batch.BatchNumber
+                        : $"{batch.BatchNumber} / {batch.LotNumber}";
+                    <option value="@batch.Id" data-lot="@batch.LotNumber">@batchLabel</option>
+                }
+                <option value="new">Нова партида</option>
+            </select>
+            <span asp-validation-for="BatchSelection" class="text-danger"></span>
         </div>
-        <div class="col-md-4 mb-3">
-            <label asp-for="LotNumber" class="form-label">Лот</label>
-            <input asp-for="LotNumber" class="form-control" />
-            <span asp-validation-for="LotNumber" class="text-danger"></span>
+        <div class="col-md-4 mb-3 existing-batch-info">
+            <label class="form-label">Lot номер</label>
+            <input id="existingLotNumber" value="@selectedBatch?.LotNumber" class="form-control" readonly />
         </div>
         <div class="col-md-4 mb-3">
             <label asp-for="ReceivedQuantity" class="form-label">Получено количество (@Model.UnitOfMeasureName)</label>
             <input asp-for="ReceivedQuantity" class="form-control" />
             <span asp-validation-for="ReceivedQuantity" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div id="newBatchFields" class="border rounded p-3 mb-3">
+        <h5>Нова партида</h5>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="BatchNumber" class="form-label">Номер партида</label>
+                <input asp-for="BatchNumber" class="form-control" />
+                <span asp-validation-for="BatchNumber" class="text-danger"></span>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="LotNumber" class="form-label">Lot номер</label>
+                <input asp-for="LotNumber" class="form-control" />
+                <span asp-validation-for="LotNumber" class="text-danger"></span>
+            </div>
         </div>
     </div>
 
@@ -85,3 +111,27 @@
     <button type="submit" class="btn btn-primary">Приеми</button>
     <a class="btn btn-secondary" asp-controller="Material" asp-action="Index">Отказ</a>
 </form>
+
+@section Scripts {
+    <script>
+        (function () {
+            const batchSelection = document.getElementById('batchSelection');
+            const newBatchFields = document.getElementById('newBatchFields');
+            const existingBatchInfo = document.querySelector('.existing-batch-info');
+            const existingLotNumber = document.getElementById('existingLotNumber');
+
+            function updateBatchFields() {
+                const selectedOption = batchSelection.options[batchSelection.selectedIndex];
+                const isNewBatch = batchSelection.value === 'new';
+                const hasExistingBatch = batchSelection.value && !isNewBatch;
+
+                newBatchFields.style.display = isNewBatch ? '' : 'none';
+                existingBatchInfo.style.display = hasExistingBatch ? '' : 'none';
+                existingLotNumber.value = hasExistingBatch ? (selectedOption.getAttribute('data-lot') || '') : '';
+            }
+
+            batchSelection.addEventListener('change', updateBatchFields);
+            updateBatchFields();
+        })();
+    </script>
+}
