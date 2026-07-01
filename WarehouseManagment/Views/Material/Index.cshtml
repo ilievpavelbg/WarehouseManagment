@@ -8,6 +8,11 @@
 
 <h1 class="text-center">@ViewData["Title"]</h1>
 
+@if (TempData["MaterialStockAdjustmentMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["MaterialStockAdjustmentMessage"]</div>
+}
+
 <div class="mb-3">
     <a class="btn btn-primary" asp-controller="Material" asp-action="Create">Нов материал</a>
 </div>
