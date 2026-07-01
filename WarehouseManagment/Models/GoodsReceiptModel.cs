@@ -18,10 +18,22 @@ namespace WarehouseManagment.Models
         [ValidateNever]
         public string UnitOfMeasureName { get; set; } = string.Empty;
 
+        [ValidateNever]
+        public bool IsBatchTracked { get; set; }
+
+        [ValidateNever]
+        public bool IsLotTracked { get; set; }
+
         [Range(1, int.MaxValue, ErrorMessage = "Изберете склад.")]
         public int WarehouseId { get; set; }
 
         public int? WarehouseLocationId { get; set; }
+
+        public int? MaterialBatchId { get; set; }
+
+        public bool CreateNewBatch { get; set; }
+
+        public string? BatchSelection { get; set; }
 
         [StringLength(100)]
         public string? BatchNumber { get; set; }
@@ -48,5 +60,8 @@ namespace WarehouseManagment.Models
 
         [ValidateNever]
         public List<Supplier> Suppliers { get; set; } = new List<Supplier>();
+
+        [ValidateNever]
+        public List<MaterialBatch> MaterialBatches { get; set; } = new List<MaterialBatch>();
     }
 }
