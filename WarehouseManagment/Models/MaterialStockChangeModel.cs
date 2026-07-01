@@ -27,6 +27,15 @@ namespace WarehouseManagment.Models
         [Range(typeof(long), "1", "9223372036854775807")]
         public long ReferenceId { get; set; }
 
+        [StringLength(100)]
+        public string? ReferenceNumber { get; set; }
+
+        [StringLength(100)]
+        public string? BatchNumber { get; set; }
+
+        [StringLength(100)]
+        public string? LotNumber { get; set; }
+
         [StringLength(450)]
         public string? UserId { get; set; }
 
