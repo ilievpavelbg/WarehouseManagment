@@ -8,6 +8,11 @@
 
 <h1 class="text-center">@ViewData["Title"]</h1>
 
+@if (TempData["MaterialGoodsReceiptMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["MaterialGoodsReceiptMessage"]</div>
+}
+
 @if (TempData["MaterialStockAdjustmentMessage"] != null)
 {
     <div class="alert alert-success">@TempData["MaterialStockAdjustmentMessage"]</div>
@@ -138,7 +143,8 @@ else
                     <td>@(material.IsActive ? "Да" : "Не")</td>
                     <td>
                         <a class="btn btn-sm btn-outline-primary" asp-controller="Material" asp-action="Edit" asp-route-id="@material.Id">Редакция</a>
-                        <a class="btn btn-sm btn-outline-warning" asp-controller="Material" asp-action="AdjustStock" asp-route-id="@material.Id">Корекция наличност</a>
+                        <a class="btn btn-sm btn-primary" asp-controller="Material" asp-action="Receive" asp-route-id="@material.Id">Приемане</a>
+                        <a class="btn btn-sm btn-outline-secondary" asp-controller="Material" asp-action="AdjustStock" asp-route-id="@material.Id">Корекция наличност</a>
                     </td>
                 </tr>
             }
