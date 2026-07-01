@@ -40,6 +40,44 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> Receive(int id)
+        {
+            try
+            {
+                var model = await _materialStockService.GetGoodsReceiptModelAsync(id);
+                return View(model);
+            }
+            catch
+            {
+                return NotFound();
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Receive(GoodsReceiptModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                model = await _materialStockService.PrepareGoodsReceiptModelAsync(model);
+                return View(model);
+            }
+
+            try
+            {
+                await _materialStockService.ReceiveGoodsAsync(model);
+                TempData["MaterialGoodsReceiptMessage"] = "Материалът е приет успешно.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError(string.Empty, ex.Message);
+                model = await _materialStockService.PrepareGoodsReceiptModelAsync(model);
+                return View(model);
+            }
+        }
+
+        [HttpGet]
         public async Task<IActionResult> AdjustStock(int id)
         {
             try
