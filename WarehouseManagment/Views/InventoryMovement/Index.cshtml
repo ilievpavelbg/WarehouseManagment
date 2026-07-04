@@ -1,0 +1,231 @@
+﻿@model InventoryMovementIndexModel
+
+@{
+    ViewData["Title"] = "Движения склад";
+    var hasNotes = Model.Movements.Any(x => !string.IsNullOrWhiteSpace(x.Notes));
+    var previousPage = Math.Max(1, Model.Filter.Page - 1);
+    var nextPage = Math.Min(Model.TotalPages, Model.Filter.Page + 1);
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<form asp-controller="InventoryMovement" asp-action="Index" method="get" class="mb-3">
+    <div class="row align-items-end">
+        <div class="col-md-2 mb-2">
+            <label for="DateFrom" class="form-label">Дата от</label>
+            <input id="DateFrom" name="DateFrom" type="date" value="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+        </div>
+        <div class="col-md-2 mb-2">
+            <label for="DateTo" class="form-label">Дата до</label>
+            <input id="DateTo" name="DateTo" type="date" value="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")" class="form-control" />
+        </div>
+        <div class="col-md-3 mb-2">
+            <label for="MaterialId" class="form-label">Материал</label>
+            <select id="MaterialId" name="MaterialId" class="form-control">
+                <option value="">Всички</option>
+                @foreach (var material in Model.Materials)
+                {
+                    <option value="@material.Id" selected="@(Model.Filter.MaterialId == material.Id)">@material.Code - @material.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2 mb-2">
+            <label for="MovementType" class="form-label">Тип движение</label>
+            <select id="MovementType" name="MovementType" class="form-control">
+                <option value="">Всички</option>
+                @foreach (var movementType in Model.MovementTypes)
+                {
+                    <option value="@movementType" selected="@(Model.Filter.MovementType == movementType)">@movementType</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3 mb-2">
+            <label for="ReferenceType" class="form-label">Референция</label>
+            <select id="ReferenceType" name="ReferenceType" class="form-control">
+                <option value="">Всички</option>
+                @foreach (var referenceType in Model.ReferenceTypes)
+                {
+                    <option value="@referenceType" selected="@(Model.Filter.ReferenceType == referenceType)">@referenceType</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="row align-items-end">
+        <div class="col-md-3 mb-2">
+            <label for="WarehouseId" class="form-label">Склад</label>
+            <select id="WarehouseId" name="WarehouseId" class="form-control">
+                <option value="">Всички</option>
+                @foreach (var warehouse in Model.Warehouses)
+                {
+                    <option value="@warehouse.Id" selected="@(Model.Filter.WarehouseId == warehouse.Id)">@warehouse.Code - @warehouse.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3 mb-2">
+            <label for="WarehouseLocationId" class="form-label">Локация източник</label>
+            <select id="WarehouseLocationId" name="WarehouseLocationId" class="form-control">
+                <option value="">Всички</option>
+                @foreach (var location in Model.WarehouseLocations)
+                {
+                    <option value="@location.Id" selected="@(Model.Filter.WarehouseLocationId == location.Id)">@location.Warehouse.Code - @location.Code - @location.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3 mb-2">
+            <label for="DestinationWarehouseId" class="form-label">Склад получател</label>
+            <select id="DestinationWarehouseId" name="DestinationWarehouseId" class="form-control">
+                <option value="">Всички</option>
+                @foreach (var warehouse in Model.Warehouses)
+                {
+                    <option value="@warehouse.Id" selected="@(Model.Filter.DestinationWarehouseId == warehouse.Id)">@warehouse.Code - @warehouse.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3 mb-2">
+            <label for="DestinationWarehouseLocationId" class="form-label">Локация получател</label>
+            <select id="DestinationWarehouseLocationId" name="DestinationWarehouseLocationId" class="form-control">
+                <option value="">Всички</option>
+                @foreach (var location in Model.WarehouseLocations)
+                {
+                    <option value="@location.Id" selected="@(Model.Filter.DestinationWarehouseLocationId == location.Id)">@location.Warehouse.Code - @location.Code - @location.Name</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="row align-items-end">
+        <div class="col-md-3 mb-2">
+            <label for="BatchOrLot" class="form-label">Партида / Lot</label>
+            <input id="BatchOrLot" name="BatchOrLot" value="@Model.Filter.BatchOrLot" class="form-control" />
+        </div>
+        <div class="col-md-2 mb-2">
+            <label for="PageSize" class="form-label">Редове</label>
+            <select id="PageSize" name="PageSize" class="form-control">
+                <option value="25" selected="@(Model.Filter.PageSize == 25)">25</option>
+                <option value="50" selected="@(Model.Filter.PageSize == 50)">50</option>
+                <option value="100" selected="@(Model.Filter.PageSize == 100)">100</option>
+            </select>
+        </div>
+        <div class="col-md-7 mb-2">
+            <input type="hidden" name="Page" value="1" />
+            <button type="submit" class="btn btn-primary">Филтрирай</button>
+            <a class="btn btn-outline-secondary" asp-controller="InventoryMovement" asp-action="Index">Изчисти</a>
+            <a class="btn btn-success"
+               asp-controller="InventoryMovement"
+               asp-action="Export"
+               asp-route-DateFrom="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")"
+               asp-route-DateTo="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")"
+               asp-route-MaterialId="@Model.Filter.MaterialId"
+               asp-route-WarehouseId="@Model.Filter.WarehouseId"
+               asp-route-WarehouseLocationId="@Model.Filter.WarehouseLocationId"
+               asp-route-DestinationWarehouseId="@Model.Filter.DestinationWarehouseId"
+               asp-route-DestinationWarehouseLocationId="@Model.Filter.DestinationWarehouseLocationId"
+               asp-route-BatchOrLot="@Model.Filter.BatchOrLot"
+               asp-route-MovementType="@Model.Filter.MovementType"
+               asp-route-ReferenceType="@Model.Filter.ReferenceType">Excel</a>
+        </div>
+    </div>
+</form>
+
+@if (!Model.Movements.Any())
+{
+    <p>Няма намерени движения.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Вид</th>
+                    <th>Код</th>
+                    <th>Име</th>
+                    <th>Тип движение</th>
+                    <th>Количество</th>
+                    <th>Склад</th>
+                    <th>Локация</th>
+                    <th>Склад получател</th>
+                    <th>Локация получател</th>
+                    <th>Партида</th>
+                    <th>Lot номер</th>
+                    <th>Референция</th>
+                    <th>Документ</th>
+                    <th>Потребител</th>
+                    @if (hasNotes)
+                    {
+                        <th>Бележки</th>
+                    }
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var movement in Model.Movements)
+                {
+                    <tr>
+                        <td>@movement.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>@movement.ItemKind</td>
+                        <td>@movement.Code</td>
+                        <td>@movement.Name</td>
+                        <td><span class="badge @movement.MovementTypeCssClass">@movement.MovementTypeName</span></td>
+                        <td>@movement.Quantity.ToString("+0.####;-0.####;0")</td>
+                        <td>@movement.WarehouseName</td>
+                        <td>@movement.WarehouseLocationName</td>
+                        <td>@movement.DestinationWarehouseName</td>
+                        <td>@movement.DestinationWarehouseLocationName</td>
+                        <td>@movement.BatchNumber</td>
+                        <td>@movement.LotNumber</td>
+                        <td>@movement.ReferenceType</td>
+                        <td>@movement.ReferenceNumber</td>
+                        <td>@movement.UserName</td>
+                        @if (hasNotes)
+                        {
+                            <td>@movement.Notes</td>
+                        }
+                        <td>
+                            <a class="btn btn-sm btn-outline-primary" asp-controller="InventoryMovement" asp-action="Details" asp-route-id="@movement.Id">Детайли</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center">
+        <div>Общо: @Model.TotalItems</div>
+        <div>
+            <a class="btn btn-sm btn-outline-secondary @(Model.Filter.Page <= 1 ? "disabled" : string.Empty)"
+               asp-controller="InventoryMovement"
+               asp-action="Index"
+               asp-route-Page="@previousPage"
+               asp-route-PageSize="@Model.Filter.PageSize"
+               asp-route-DateFrom="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")"
+               asp-route-DateTo="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")"
+               asp-route-MaterialId="@Model.Filter.MaterialId"
+               asp-route-WarehouseId="@Model.Filter.WarehouseId"
+               asp-route-WarehouseLocationId="@Model.Filter.WarehouseLocationId"
+               asp-route-DestinationWarehouseId="@Model.Filter.DestinationWarehouseId"
+               asp-route-DestinationWarehouseLocationId="@Model.Filter.DestinationWarehouseLocationId"
+               asp-route-BatchOrLot="@Model.Filter.BatchOrLot"
+               asp-route-MovementType="@Model.Filter.MovementType"
+               asp-route-ReferenceType="@Model.Filter.ReferenceType">Назад</a>
+            <span class="mx-2">Страница @Model.Filter.Page от @Model.TotalPages</span>
+            <a class="btn btn-sm btn-outline-secondary @(Model.Filter.Page >= Model.TotalPages ? "disabled" : string.Empty)"
+               asp-controller="InventoryMovement"
+               asp-action="Index"
+               asp-route-Page="@nextPage"
+               asp-route-PageSize="@Model.Filter.PageSize"
+               asp-route-DateFrom="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")"
+               asp-route-DateTo="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")"
+               asp-route-MaterialId="@Model.Filter.MaterialId"
+               asp-route-WarehouseId="@Model.Filter.WarehouseId"
+               asp-route-WarehouseLocationId="@Model.Filter.WarehouseLocationId"
+               asp-route-DestinationWarehouseId="@Model.Filter.DestinationWarehouseId"
+               asp-route-DestinationWarehouseLocationId="@Model.Filter.DestinationWarehouseLocationId"
+               asp-route-BatchOrLot="@Model.Filter.BatchOrLot"
+               asp-route-MovementType="@Model.Filter.MovementType"
+               asp-route-ReferenceType="@Model.Filter.ReferenceType">Напред</a>
+        </div>
+    </div>
+}
