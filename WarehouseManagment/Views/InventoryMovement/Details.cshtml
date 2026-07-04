@@ -1,0 +1,103 @@
+﻿@model InventoryMovementDetailsModel
+
+@{
+    ViewData["Title"] = "Детайли движение";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<div class="mb-3">
+    <a class="btn btn-secondary" asp-controller="InventoryMovement" asp-action="Index">Назад</a>
+</div>
+
+<table class="table table-bordered">
+    <tbody>
+        <tr>
+            <th>Дата създаване</th>
+            <td>@Model.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
+        </tr>
+        <tr>
+            <th>Дата движение</th>
+            <td>@Model.MovementDate.ToString("dd.MM.yyyy HH:mm")</td>
+        </tr>
+        <tr>
+            <th>Тип движение</th>
+            <td><span class="badge @Model.MovementTypeCssClass">@Model.MovementTypeName</span></td>
+        </tr>
+        <tr>
+            <th>Вид</th>
+            <td>@Model.ItemKind</td>
+        </tr>
+        <tr>
+            <th>Тип наличност</th>
+            <td>@Model.StockItemTypeName</td>
+        </tr>
+        <tr>
+            <th>Код</th>
+            <td>@Model.Code</td>
+        </tr>
+        <tr>
+            <th>Име</th>
+            <td>@Model.Name</td>
+        </tr>
+        <tr>
+            <th>Количество</th>
+            <td>@Model.Quantity.ToString("+0.####;-0.####;0")</td>
+        </tr>
+        <tr>
+            <th>Склад</th>
+            <td>@Model.WarehouseName</td>
+        </tr>
+        <tr>
+            <th>Локация</th>
+            <td>@Model.WarehouseLocationName</td>
+        </tr>
+        <tr>
+            <th>Склад получател</th>
+            <td>@Model.DestinationWarehouseName</td>
+        </tr>
+        <tr>
+            <th>Локация получател</th>
+            <td>@Model.DestinationWarehouseLocationName</td>
+        </tr>
+        <tr>
+            <th>Партида</th>
+            <td>@Model.BatchNumber</td>
+        </tr>
+        <tr>
+            <th>Lot номер</th>
+            <td>@Model.LotNumber</td>
+        </tr>
+        <tr>
+            <th>Референция</th>
+            <td>@Model.ReferenceType</td>
+        </tr>
+        <tr>
+            <th>ReferenceId</th>
+            <td>@Model.ReferenceId</td>
+        </tr>
+        <tr>
+            <th>Документ</th>
+            <td>@Model.ReferenceNumber</td>
+        </tr>
+        <tr>
+            <th>Продуктова наличност</th>
+            <td>@Model.ProductInventoryInfo</td>
+        </tr>
+        <tr>
+            <th>Потребител</th>
+            <td>@Model.UserName</td>
+        </tr>
+        <tr>
+            <th>UserId</th>
+            <td>@Model.UserId</td>
+        </tr>
+        @if (!string.IsNullOrWhiteSpace(Model.Notes))
+        {
+            <tr>
+                <th>Бележки</th>
+                <td>@Model.Notes</td>
+            </tr>
+        }
+    </tbody>
+</table>
