@@ -77,12 +77,14 @@
         </div>
         <div class="col-md-2 mb-2">
             <div class="form-check">
+                <input name="LowStockOnly" value="false" type="hidden" />
                 <input id="LowStockOnly" name="LowStockOnly" value="true" type="checkbox" checked="@Model.Filter.LowStockOnly" class="form-check-input" />
                 <label for="LowStockOnly" class="form-check-label">Под минимум</label>
             </div>
         </div>
         <div class="col-md-2 mb-2">
             <div class="form-check">
+                <input name="ZeroStockOnly" value="false" type="hidden" />
                 <input id="ZeroStockOnly" name="ZeroStockOnly" value="true" type="checkbox" checked="@Model.Filter.ZeroStockOnly" class="form-check-input" />
                 <label for="ZeroStockOnly" class="form-check-label">Нулева наличност</label>
             </div>
@@ -92,6 +94,7 @@
     <div class="row align-items-end">
         <div class="col-md-3 mb-2">
             <div class="form-check">
+                <input name="ActiveMaterialsOnly" value="false" type="hidden" />
                 <input id="ActiveMaterialsOnly" name="ActiveMaterialsOnly" value="true" type="checkbox" checked="@Model.Filter.ActiveMaterialsOnly" class="form-check-input" />
                 <label for="ActiveMaterialsOnly" class="form-check-label">Само активни материали</label>
             </div>
