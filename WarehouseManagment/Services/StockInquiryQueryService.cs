@@ -20,15 +20,15 @@ namespace WarehouseManagment.Services
             NormalizeFilter(filter);
             var query = ApplyFilters(BaseQuery(), filter);
             var stocks = await query.ToListAsync();
-            var rows = BuildRows(stocks)
+            var rows = ApplyStatusFilters(BuildRows(stocks), filter)
                 .OrderBy(x => x.SortPriority)
+                .ThenByDescending(x => x.LastUpdatedOn)
                 .ThenBy(x => x.MaterialCode)
                 .ThenBy(x => x.WarehouseName)
                 .ThenBy(x => x.WarehouseLocationName)
                 .ThenBy(x => x.BatchNumber)
                 .ToList();
 
-            rows = ApplyStatusFilters(rows, filter).ToList();
             var totalItems = rows.Count;
             var pageRows = rows
                 .Skip((filter.Page - 1) * filter.PageSize)
@@ -54,6 +54,7 @@ namespace WarehouseManagment.Services
             var stocks = await ApplyFilters(BaseQuery(), filter).ToListAsync();
             var rows = ApplyStatusFilters(BuildRows(stocks), filter)
                 .OrderBy(x => x.SortPriority)
+                .ThenByDescending(x => x.LastUpdatedOn)
                 .ThenBy(x => x.MaterialCode)
                 .ThenBy(x => x.WarehouseName)
                 .ThenBy(x => x.WarehouseLocationName)
@@ -172,14 +173,19 @@ namespace WarehouseManagment.Services
 
         private static IEnumerable<StockInquiryRowModel> ApplyStatusFilters(IEnumerable<StockInquiryRowModel> rows, StockInquiryFilterModel filter)
         {
+            if (filter.ZeroStockOnly && filter.LowStockOnly)
+            {
+                return rows.Where(x => x.Quantity <= 0 || (x.Quantity > 0 && x.Quantity < x.MinimumStock));
+            }
+
             if (filter.ZeroStockOnly)
             {
-                rows = rows.Where(x => x.Quantity <= 0);
+                return rows.Where(x => x.Quantity <= 0);
             }
 
             if (filter.LowStockOnly)
             {
-                rows = rows.Where(x => x.Quantity > 0 && x.Quantity < x.MinimumStock);
+                return rows.Where(x => x.Quantity > 0 && x.Quantity < x.MinimumStock);
             }
 
             return rows;
@@ -204,7 +210,8 @@ namespace WarehouseManagment.Services
                     MinimumStock = stock.Material.MinimumStock,
                     StatusName = status.Name,
                     StatusCssClass = status.CssClass,
-                    SortPriority = status.SortPriority
+                    SortPriority = status.SortPriority,
+                    LastUpdatedOn = stock.LastUpdatedOn
                 };
             }).ToList();
         }
