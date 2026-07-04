@@ -5,6 +5,8 @@
     var hasNotes = Model.Movements.Any(x => !string.IsNullOrWhiteSpace(x.Notes));
     var previousPage = Math.Max(1, Model.Filter.Page - 1);
     var nextPage = Math.Min(Model.TotalPages, Model.Filter.Page + 1);
+    var dateFrom = Model.Filter.DateFrom?.ToString("yyyy-MM-dd");
+    var dateTo = Model.Filter.DateTo?.ToString("yyyy-MM-dd");
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
@@ -13,11 +15,11 @@
     <div class="row align-items-end">
         <div class="col-md-2 mb-2">
             <label for="DateFrom" class="form-label">Дата от</label>
-            <input id="DateFrom" name="DateFrom" type="date" value="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+            <input id="DateFrom" name="DateFrom" type="date" value="@dateFrom" class="form-control" />
         </div>
         <div class="col-md-2 mb-2">
             <label for="DateTo" class="form-label">Дата до</label>
-            <input id="DateTo" name="DateTo" type="date" value="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")" class="form-control" />
+            <input id="DateTo" name="DateTo" type="date" value="@dateTo" class="form-control" />
         </div>
         <div class="col-md-3 mb-2">
             <label for="MaterialId" class="form-label">Материал</label>
@@ -114,8 +116,8 @@
             <a class="btn btn-success"
                asp-controller="InventoryMovement"
                asp-action="Export"
-               asp-route-DateFrom="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")"
-               asp-route-DateTo="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")"
+               asp-route-DateFrom="@dateFrom"
+               asp-route-DateTo="@dateTo"
                asp-route-MaterialId="@Model.Filter.MaterialId"
                asp-route-WarehouseId="@Model.Filter.WarehouseId"
                asp-route-WarehouseLocationId="@Model.Filter.WarehouseLocationId"
@@ -200,8 +202,8 @@ else
                asp-action="Index"
                asp-route-Page="@previousPage"
                asp-route-PageSize="@Model.Filter.PageSize"
-               asp-route-DateFrom="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")"
-               asp-route-DateTo="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")"
+               asp-route-DateFrom="@dateFrom"
+               asp-route-DateTo="@dateTo"
                asp-route-MaterialId="@Model.Filter.MaterialId"
                asp-route-WarehouseId="@Model.Filter.WarehouseId"
                asp-route-WarehouseLocationId="@Model.Filter.WarehouseLocationId"
@@ -216,8 +218,8 @@ else
                asp-action="Index"
                asp-route-Page="@nextPage"
                asp-route-PageSize="@Model.Filter.PageSize"
-               asp-route-DateFrom="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")"
-               asp-route-DateTo="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")"
+               asp-route-DateFrom="@dateFrom"
+               asp-route-DateTo="@dateTo"
                asp-route-MaterialId="@Model.Filter.MaterialId"
                asp-route-WarehouseId="@Model.Filter.WarehouseId"
                asp-route-WarehouseLocationId="@Model.Filter.WarehouseLocationId"
