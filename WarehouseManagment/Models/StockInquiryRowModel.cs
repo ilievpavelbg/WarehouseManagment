@@ -27,5 +27,7 @@ namespace WarehouseManagment.Models
         public string StatusCssClass { get; set; } = string.Empty;
 
         public int SortPriority { get; set; }
+
+        public DateTime LastUpdatedOn { get; set; }
     }
 }
