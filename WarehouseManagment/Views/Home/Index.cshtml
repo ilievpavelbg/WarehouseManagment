@@ -1,10 +1,200 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@using System.Text.Json
+@model WmsDashboardModel
+
+@{
+    ViewData["Title"] = "WMS Dashboard";
+    var chartOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    var stockByWarehouseLabels = JsonSerializer.Serialize(Model.StockByWarehouse.Labels, chartOptions);
+    var stockByWarehouseValues = JsonSerializer.Serialize(Model.StockByWarehouse.Values, chartOptions);
+    var materialsByCategoryLabels = JsonSerializer.Serialize(Model.MaterialsByCategory.Labels, chartOptions);
+    var materialsByCategoryValues = JsonSerializer.Serialize(Model.MaterialsByCategory.Values, chartOptions);
+    var movementTypesTodayLabels = JsonSerializer.Serialize(Model.MovementTypesToday.Labels, chartOptions);
+    var movementTypesTodayValues = JsonSerializer.Serialize(Model.MovementTypesToday.Values, chartOptions);
 }
 
-<div class="text-center">
-    <h1 style="font-size: 60px">Управление склад</h1>
-    <div class="mt-5 py-5">
-        <img src="./LogoVeteida.png" alt="Veteida" class="mx-auto" />
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="mb-1">WMS табло</h1>
+        <div class="text-muted">Оперативен преглед за складови действия</div>
+    </div>
+    <div class="btn-group mt-2" role="group" aria-label="Бързи действия">
+        <a class="btn btn-primary" asp-controller="Material" asp-action="Index">Приемане материал</a>
+        <a class="btn btn-outline-primary" asp-controller="Material" asp-action="Index">Преместване материал</a>
+        <a class="btn btn-outline-secondary" asp-controller="Material" asp-action="Index">Материали</a>
+        <a class="btn btn-outline-secondary" asp-controller="StockInquiry" asp-action="Index">Наличности</a>
+        <a class="btn btn-outline-secondary" asp-controller="InventoryMovement" asp-action="Index">Движения склад</a>
     </div>
 </div>
+
+<div class="row">
+    @foreach (var kpi in Model.Kpis)
+    {
+        <div class="col-sm-6 col-lg-4 col-xl-3 mb-3">
+            <div class="card h-100 border-3 @kpi.CssClass">
+                <div class="card-body">
+                    <div class="text-muted small">@kpi.Label</div>
+                    <div class="fs-3 fw-bold">@kpi.Value</div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="row">
+    <div class="col-lg-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">Наличност по склад</div>
+            <div class="card-body">
+                <canvas id="stockByWarehouseChart" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">Материали по категории</div>
+            <div class="card-body">
+                <canvas id="materialsByCategoryChart" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">Движения днес</div>
+            <div class="card-body">
+                <canvas id="movementTypesTodayChart" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">Материали под минимум</div>
+            <div class="card-body">
+                @if (!Model.BelowMinimumAlerts.Any())
+                {
+                    <div class="text-muted">Няма активни предупреждения.</div>
+                }
+                @foreach (var alert in Model.BelowMinimumAlerts)
+                {
+                    <div class="alert @alert.CssClass py-2 mb-2">
+                        <strong>@alert.Title</strong><br />@alert.Text
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">Материали без наличност</div>
+            <div class="card-body">
+                @if (!Model.OutOfStockAlerts.Any())
+                {
+                    <div class="text-muted">Няма активни предупреждения.</div>
+                }
+                @foreach (var alert in Model.OutOfStockAlerts)
+                {
+                    <div class="alert @alert.CssClass py-2 mb-2">
+                        <strong>@alert.Title</strong><br />@alert.Text
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">Скорошни корекции</div>
+            <div class="card-body">
+                @if (!Model.RecentAdjustmentAlerts.Any())
+                {
+                    <div class="text-muted">Няма скорошни корекции.</div>
+                }
+                @foreach (var alert in Model.RecentAdjustmentAlerts)
+                {
+                    <div class="alert @alert.CssClass py-2 mb-2">
+                        <strong>@alert.Title</strong><br />@alert.Text
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">Последни движения</div>
+    <div class="card-body">
+        @if (!Model.LatestActivities.Any())
+        {
+            <div class="text-muted">Няма регистрирани движения.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Дата</th>
+                            <th>Тип движение</th>
+                            <th>Материал</th>
+                            <th>Количество</th>
+                            <th>Склад</th>
+                            <th>Референция</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var activity in Model.LatestActivities)
+                        {
+                            <tr>
+                                <td>@activity.Date.ToString("dd.MM.yyyy HH:mm")</td>
+                                <td><span class="badge @activity.MovementTypeCssClass">@activity.MovementType</span></td>
+                                <td>@activity.Material</td>
+                                <td>@activity.Quantity.ToString("+0.####;-0.####;0")</td>
+                                <td>@activity.Warehouse</td>
+                                <td>@activity.Reference</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const chartColors = ['#198754', '#0d6efd', '#ffc107', '#dc3545', '#6c757d', '#0dcaf0', '#6610f2', '#fd7e14', '#20c997', '#adb5bd'];
+
+        function createChart(canvasId, labels, values, type) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas || !labels.length) {
+                return;
+            }
+
+            new Chart(canvas, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: chartColors,
+                        borderColor: chartColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: type !== 'bar' }
+                    },
+                    scales: type === 'bar' ? { y: { beginAtZero: true } } : {}
+                }
+            });
+        }
+
+        createChart('stockByWarehouseChart', @Html.Raw(stockByWarehouseLabels), @Html.Raw(stockByWarehouseValues), 'bar');
+        createChart('materialsByCategoryChart', @Html.Raw(materialsByCategoryLabels), @Html.Raw(materialsByCategoryValues), 'doughnut');
+        createChart('movementTypesTodayChart', @Html.Raw(movementTypesTodayLabels), @Html.Raw(movementTypesTodayValues), 'bar');
+    </script>
+}
