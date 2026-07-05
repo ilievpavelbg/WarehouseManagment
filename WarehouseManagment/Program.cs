@@ -47,6 +47,7 @@ builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 builder.Services.AddScoped<IInventoryMovementService, InventoryMovementService>();
 builder.Services.AddScoped<IInventoryMovementQueryService, InventoryMovementQueryService>();
 builder.Services.AddScoped<IStockInquiryQueryService, StockInquiryQueryService>();
+builder.Services.AddScoped<IWmsDashboardService, WmsDashboardService>();
 builder.Services.AddScoped<IMaterialMasterService, MaterialMasterService>();
 builder.Services.AddScoped<IMaterialStockService, MaterialStockService>();
 builder.Services.AddSingleton<IHttpContextAccessor,  HttpContextAccessor>();
