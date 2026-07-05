@@ -28,7 +28,7 @@ namespace WarehouseManagment.Services
 
             var materialStockTotals = materialStocks
                 .GroupBy(x => x.MaterialId)
-                .Select(x => new
+                .Select(x => new DashboardMaterialStockTotal
                 {
                     Material = x.First().Material,
                     Quantity = x.Sum(s => s.Quantity)
@@ -110,7 +110,7 @@ namespace WarehouseManagment.Services
             }).ToList();
         }
 
-        private static List<WmsDashboardAlertModel> BuildStockAlerts(IEnumerable<dynamic> stocks, string title, string cssClass)
+        private static List<WmsDashboardAlertModel> BuildStockAlerts(IEnumerable<DashboardMaterialStockTotal> stocks, string title, string cssClass)
         {
             return stocks.Take(8).Select(stock => new WmsDashboardAlertModel
             {
@@ -156,15 +156,18 @@ namespace WarehouseManagment.Services
 
         private async Task<WmsDashboardChartModel> BuildMaterialsByCategoryChartAsync()
         {
-            var rows = await _dbContext.Materials
+            var materials = await _dbContext.Materials
                 .AsNoTracking()
                 .Include(x => x.MaterialCategory)
                 .Where(x => x.IsActive)
-                .GroupBy(x => x.MaterialCategory != null ? x.MaterialCategory.Name : "Без категория")
+                .ToListAsync();
+
+            var rows = materials
+                .GroupBy(x => x.MaterialCategory?.Name ?? "Без категория")
                 .Select(x => new { Category = x.Key, Count = x.Count() })
                 .OrderByDescending(x => x.Count)
                 .Take(10)
-                .ToListAsync();
+                .ToList();
 
             return new WmsDashboardChartModel
             {
@@ -243,6 +246,13 @@ namespace WarehouseManagment.Services
         private static string FormatWarehouse(Warehouse? warehouse)
         {
             return warehouse == null ? string.Empty : $"{warehouse.Code} - {warehouse.Name}";
+        }
+
+        private class DashboardMaterialStockTotal
+        {
+            public Material Material { get; set; } = null!;
+
+            public decimal Quantity { get; set; }
         }
     }
 }
