@@ -9,10 +9,12 @@ namespace WarehouseManagment.Services
     public class StockInquiryQueryService : IStockInquiryQueryService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly IStockStatusService _stockStatusService;
 
-        public StockInquiryQueryService(ApplicationDbContext dbContext)
+        public StockInquiryQueryService(ApplicationDbContext dbContext, IStockStatusService stockStatusService)
         {
             _dbContext = dbContext;
+            _stockStatusService = stockStatusService;
         }
 
         public async Task<StockInquiryIndexModel> GetIndexAsync(StockInquiryFilterModel filter)
@@ -20,7 +22,7 @@ namespace WarehouseManagment.Services
             NormalizeFilter(filter);
             var query = ApplyFilters(BaseQuery(), filter);
             var stocks = await query.ToListAsync();
-            var rows = ApplyStatusFilters(BuildRows(stocks), filter)
+            var rows = ApplyStatusFilters(await BuildRowsAsync(stocks), filter)
                 .OrderBy(x => x.SortPriority)
                 .ThenByDescending(x => x.LastUpdatedOn)
                 .ThenBy(x => x.MaterialCode)
@@ -52,7 +54,7 @@ namespace WarehouseManagment.Services
         {
             NormalizeFilter(filter);
             var stocks = await ApplyFilters(BaseQuery(), filter).ToListAsync();
-            var rows = ApplyStatusFilters(BuildRows(stocks), filter)
+            var rows = ApplyStatusFilters(await BuildRowsAsync(stocks), filter)
                 .OrderBy(x => x.SortPriority)
                 .ThenByDescending(x => x.LastUpdatedOn)
                 .ThenBy(x => x.MaterialCode)
@@ -175,27 +177,30 @@ namespace WarehouseManagment.Services
         {
             if (filter.ZeroStockOnly && filter.LowStockOnly)
             {
-                return rows.Where(x => x.Quantity <= 0 || (x.Quantity > 0 && x.Quantity < x.MinimumStock));
+                return rows.Where(x => x.Status == MaterialStockStatus.OutOfStock || x.Status == MaterialStockStatus.BelowMinimum);
             }
 
             if (filter.ZeroStockOnly)
             {
-                return rows.Where(x => x.Quantity <= 0);
+                return rows.Where(x => x.Status == MaterialStockStatus.OutOfStock);
             }
 
             if (filter.LowStockOnly)
             {
-                return rows.Where(x => x.Quantity > 0 && x.Quantity < x.MinimumStock);
+                return rows.Where(x => x.Status == MaterialStockStatus.BelowMinimum);
             }
 
             return rows;
         }
 
-        private static List<StockInquiryRowModel> BuildRows(List<MaterialStock> stocks)
+        private async Task<List<StockInquiryRowModel>> BuildRowsAsync(List<MaterialStock> stocks)
         {
+            var stockSummaries = (await _stockStatusService.GetMaterialStockSummariesAsync(false))
+                .ToDictionary(x => x.MaterialId);
+
             return stocks.Select(stock =>
             {
-                var status = GetStockStatus(stock.Quantity, stock.Material.MinimumStock);
+                var summary = stockSummaries[stock.MaterialId];
                 return new StockInquiryRowModel
                 {
                     MaterialCode = stock.Material.Code,
@@ -208,9 +213,10 @@ namespace WarehouseManagment.Services
                     LotNumber = stock.MaterialBatch?.LotNumber ?? string.Empty,
                     Quantity = stock.Quantity,
                     MinimumStock = stock.Material.MinimumStock,
-                    StatusName = status.Name,
-                    StatusCssClass = status.CssClass,
-                    SortPriority = status.SortPriority,
+                    Status = summary.Status,
+                    StatusName = summary.StatusName,
+                    StatusCssClass = summary.StatusCssClass,
+                    SortPriority = summary.SortPriority,
                     LastUpdatedOn = stock.LastUpdatedOn
                 };
             }).ToList();
@@ -274,21 +280,6 @@ namespace WarehouseManagment.Services
             {
                 filter.PageSize = 25;
             }
-        }
-
-        private static (string Name, string CssClass, int SortPriority) GetStockStatus(decimal quantity, decimal minimumStock)
-        {
-            if (quantity <= 0)
-            {
-                return ("Няма наличност", "bg-secondary", 1);
-            }
-
-            if (minimumStock > 0 && quantity < minimumStock)
-            {
-                return ("Под минимум", "bg-danger", 2);
-            }
-
-            return ("OK", "bg-success", 3);
         }
 
         private static string FormatWarehouse(Warehouse? warehouse)
