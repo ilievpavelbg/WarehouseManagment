@@ -31,7 +31,8 @@ namespace WarehouseManagment.Services
             return await _dbContext.MaterialStocks
                 .AsNoTracking()
                 .Where(x => x.MaterialId == materialId)
-                .SumAsync(x => x.Quantity);
+                .Select(x => (decimal?)x.Quantity)
+                .SumAsync() ?? 0;
         }
 
         public async Task<GoodsReceiptModel> GetGoodsReceiptModelAsync(int materialId)
@@ -182,7 +183,6 @@ namespace WarehouseManagment.Services
                 MaterialName = material.Name,
                 UnitOfMeasureName = material.UnitOfMeasure.Name,
                 CurrentTotalStock = await GetTotalStockAsync(material.Id),
-                SourceWarehouseId = defaultWarehouse?.Id ?? 0,
                 DestinationWarehouseId = defaultWarehouse?.Id ?? 0
             };
 
@@ -205,6 +205,22 @@ namespace WarehouseManagment.Services
             model.MaterialName = material.Name;
             model.UnitOfMeasureName = material.UnitOfMeasure.Name;
             model.CurrentTotalStock = await GetTotalStockAsync(material.Id);
+            model.SourceStockPositions = await _dbContext.MaterialStocks
+                .AsNoTracking()
+                .Include(x => x.Warehouse)
+                .Include(x => x.WarehouseLocation)
+                .Include(x => x.MaterialBatch)
+                .Where(x => x.MaterialId == model.MaterialId && x.Quantity > 0)
+                .OrderBy(x => x.Warehouse.Code)
+                .ThenBy(x => x.WarehouseLocation == null ? string.Empty : x.WarehouseLocation.Code)
+                .ThenBy(x => x.MaterialBatch == null ? string.Empty : x.MaterialBatch.BatchNumber)
+                .ToListAsync();
+
+            if (model.SourceMaterialStockId <= 0 && model.SourceStockPositions.Count == 1)
+            {
+                model.SourceMaterialStockId = model.SourceStockPositions[0].Id;
+            }
+
             model.Warehouses = await _dbContext.Warehouses
                 .AsNoTracking()
                 .Where(x => x.IsActive)
@@ -233,7 +249,7 @@ namespace WarehouseManagment.Services
 
             if (preparedModel.Quantity <= 0)
             {
-                throw new InvalidOperationException("Transfer quantity must be greater than zero.");
+                throw new InvalidOperationException("Въведете количество по-голямо от нула.");
             }
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
@@ -241,26 +257,24 @@ namespace WarehouseManagment.Services
             try
             {
                 await ValidateTransferReferencesAsync(preparedModel);
+                var sourceStock = await GetSourceStockForTransferAsync(preparedModel);
 
-                var sourceModel = new MaterialStockChangeModel
+                if (sourceStock.Quantity <= 0)
                 {
-                    MaterialId = preparedModel.MaterialId,
-                    WarehouseId = preparedModel.SourceWarehouseId,
-                    WarehouseLocationId = preparedModel.SourceWarehouseLocationId,
-                    MaterialBatchId = preparedModel.MaterialBatchId,
-                    Quantity = preparedModel.Quantity,
-                    MovementType = MovementType.Transfer,
-                    ReferenceType = "MaterialTransfer",
-                    ReferenceId = preparedModel.MaterialId,
-                    Notes = preparedModel.Notes
-                };
+                    throw new InvalidOperationException("Избраната наличност източник няма налично количество.");
+                }
+
+                if (sourceStock.Quantity < preparedModel.Quantity)
+                {
+                    throw new InvalidOperationException("Недостатъчна наличност в избраната складова позиция.");
+                }
 
                 var destinationModel = new MaterialStockChangeModel
                 {
                     MaterialId = preparedModel.MaterialId,
                     WarehouseId = preparedModel.DestinationWarehouseId,
                     WarehouseLocationId = preparedModel.DestinationWarehouseLocationId,
-                    MaterialBatchId = preparedModel.MaterialBatchId,
+                    MaterialBatchId = sourceStock.MaterialBatchId,
                     Quantity = preparedModel.Quantity,
                     MovementType = MovementType.Transfer,
                     ReferenceType = "MaterialTransfer",
@@ -268,40 +282,28 @@ namespace WarehouseManagment.Services
                     Notes = preparedModel.Notes
                 };
 
-                ValidateChangeModel(sourceModel, requirePositiveQuantity: true);
                 ValidateChangeModel(destinationModel, requirePositiveQuantity: true);
-
-                var sourceStock = await GetExistingStockAsync(sourceModel);
-
-                if (sourceStock.Quantity < preparedModel.Quantity)
-                {
-                    throw new InvalidOperationException("Not enough source stock for transfer.");
-                }
-
                 var destinationStock = await GetOrCreateStockAsync(destinationModel);
+
                 sourceStock.Quantity -= preparedModel.Quantity;
                 sourceStock.LastUpdatedOn = DateTime.Now;
                 destinationStock.Quantity += preparedModel.Quantity;
                 destinationStock.LastUpdatedOn = DateTime.Now;
 
-                var batch = preparedModel.MaterialBatchId.HasValue
-                    ? await _dbContext.MaterialBatches.AsNoTracking().FirstOrDefaultAsync(x => x.Id == preparedModel.MaterialBatchId.Value)
-                    : null;
-
                 var movementModel = new MaterialStockChangeModel
                 {
                     MaterialId = preparedModel.MaterialId,
-                    WarehouseId = preparedModel.SourceWarehouseId,
-                    WarehouseLocationId = preparedModel.SourceWarehouseLocationId,
+                    WarehouseId = sourceStock.WarehouseId,
+                    WarehouseLocationId = sourceStock.WarehouseLocationId,
                     DestinationWarehouseId = preparedModel.DestinationWarehouseId,
                     DestinationWarehouseLocationId = preparedModel.DestinationWarehouseLocationId,
-                    MaterialBatchId = preparedModel.MaterialBatchId,
+                    MaterialBatchId = sourceStock.MaterialBatchId,
                     Quantity = preparedModel.Quantity,
                     MovementType = MovementType.Transfer,
                     ReferenceType = "MaterialTransfer",
                     ReferenceId = preparedModel.MaterialId,
-                    BatchNumber = batch?.BatchNumber,
-                    LotNumber = batch?.LotNumber,
+                    BatchNumber = sourceStock.MaterialBatch?.BatchNumber,
+                    LotNumber = sourceStock.MaterialBatch?.LotNumber,
                     Notes = preparedModel.Notes
                 };
 
@@ -670,32 +672,19 @@ namespace WarehouseManagment.Services
 
             if (!materialExists)
             {
-                throw new InvalidOperationException("Material does not exist.");
+                throw new InvalidOperationException("Материалът не съществува.");
             }
 
-            var sourceWarehouseExists = await _dbContext.Warehouses.AnyAsync(x => x.Id == model.SourceWarehouseId);
-
-            if (!sourceWarehouseExists)
+            if (model.SourceMaterialStockId <= 0)
             {
-                throw new InvalidOperationException("Source warehouse does not exist.");
+                throw new InvalidOperationException("Изберете наличност източник.");
             }
 
             var destinationWarehouseExists = await _dbContext.Warehouses.AnyAsync(x => x.Id == model.DestinationWarehouseId);
 
             if (!destinationWarehouseExists)
             {
-                throw new InvalidOperationException("Destination warehouse does not exist.");
-            }
-
-            if (model.SourceWarehouseLocationId.HasValue)
-            {
-                var sourceLocationBelongsToWarehouse = await _dbContext.WarehouseLocations
-                    .AnyAsync(x => x.Id == model.SourceWarehouseLocationId.Value && x.WarehouseId == model.SourceWarehouseId);
-
-                if (!sourceLocationBelongsToWarehouse)
-                {
-                    throw new InvalidOperationException("Selected source location does not belong to the source warehouse.");
-                }
+                throw new InvalidOperationException("Складът получател не съществува.");
             }
 
             if (model.DestinationWarehouseLocationId.HasValue)
@@ -705,20 +694,28 @@ namespace WarehouseManagment.Services
 
                 if (!destinationLocationBelongsToWarehouse)
                 {
-                    throw new InvalidOperationException("Selected destination location does not belong to the destination warehouse.");
+                    throw new InvalidOperationException("Избраната локация получател не принадлежи към избрания склад получател.");
                 }
             }
+        }
 
-            if (model.MaterialBatchId.HasValue)
+        private async Task<MaterialStock> GetSourceStockForTransferAsync(MaterialTransferModel model)
+        {
+            var sourceStock = await _dbContext.MaterialStocks
+                .Include(x => x.MaterialBatch)
+                .FirstOrDefaultAsync(x => x.Id == model.SourceMaterialStockId);
+
+            if (sourceStock == null)
             {
-                var batchBelongsToMaterial = await _dbContext.MaterialBatches
-                    .AnyAsync(x => x.Id == model.MaterialBatchId.Value && x.MaterialId == model.MaterialId);
-
-                if (!batchBelongsToMaterial)
-                {
-                    throw new InvalidOperationException("Selected material batch does not belong to the selected material.");
-                }
+                throw new InvalidOperationException("Избраната наличност източник не съществува.");
             }
+
+            if (sourceStock.MaterialId != model.MaterialId)
+            {
+                throw new InvalidOperationException("Избраната наличност източник не е за текущия материал.");
+            }
+
+            return sourceStock;
         }
 
         private async Task ValidateReferencesAsync(MaterialStockChangeModel model)
