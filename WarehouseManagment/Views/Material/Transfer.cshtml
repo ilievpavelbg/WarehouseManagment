@@ -31,7 +31,8 @@
                         : string.IsNullOrWhiteSpace(stock.MaterialBatch.LotNumber)
                             ? $"Партида {stock.MaterialBatch.BatchNumber}"
                             : $"Партида {stock.MaterialBatch.BatchNumber} / Lot {stock.MaterialBatch.LotNumber}";
-                    <option value="@stock.Id">@stock.Warehouse.Code - @stock.Warehouse.Name / @locationLabel / @batchLabel / Наличност @stock.Quantity.ToString("N4") @Model.UnitOfMeasureName</option>
+                    var quantityLabel = stock.Quantity.ToString("N4");
+                    <option value="@stock.Id">@stock.Warehouse.Code - @stock.Warehouse.Name / @locationLabel / @batchLabel / Наличност @quantityLabel @Model.UnitOfMeasureName</option>
                 }
             </select>
             <span asp-validation-for="SourceMaterialStockId" class="text-danger"></span>
