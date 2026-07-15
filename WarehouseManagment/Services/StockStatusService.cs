@@ -19,7 +19,8 @@ namespace WarehouseManagment.Services
             return await _dbContext.MaterialStocks
                 .AsNoTracking()
                 .Where(x => x.MaterialId == materialId)
-                .SumAsync(x => x.Quantity);
+                .Select(x => (decimal?)x.Quantity)
+                .SumAsync() ?? 0;
         }
 
         public async Task<IReadOnlyList<MaterialWarehouseStockModel>> GetMaterialStockByWarehouseAsync(int materialId)
