@@ -21,7 +21,9 @@ namespace WarehouseManagment.Models
         [ValidateNever]
         public decimal CurrentTotalStock { get; set; }
 
-        [Range(1, int.MaxValue, ErrorMessage = "Изберете склад източник.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Изберете наличност източник.")]
+        public int SourceMaterialStockId { get; set; }
+
         public int SourceWarehouseId { get; set; }
 
         public int? SourceWarehouseLocationId { get; set; }
@@ -38,6 +40,9 @@ namespace WarehouseManagment.Models
 
         [StringLength(500)]
         public string? Notes { get; set; }
+
+        [ValidateNever]
+        public List<MaterialStock> SourceStockPositions { get; set; } = new List<MaterialStock>();
 
         [ValidateNever]
         public List<Warehouse> Warehouses { get; set; } = new List<Warehouse>();
