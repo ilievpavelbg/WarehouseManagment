@@ -22,6 +22,8 @@ namespace WarehouseManagment.Models
 
         public decimal MinimumStock { get; set; }
 
+        public MaterialStockStatus Status { get; set; }
+
         public string StatusName { get; set; } = string.Empty;
 
         public string StatusCssClass { get; set; } = string.Empty;
