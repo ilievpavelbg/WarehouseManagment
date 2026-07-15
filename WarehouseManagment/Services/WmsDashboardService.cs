@@ -8,10 +8,12 @@ namespace WarehouseManagment.Services
     public class WmsDashboardService : IWmsDashboardService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly IStockStatusService _stockStatusService;
 
-        public WmsDashboardService(ApplicationDbContext dbContext)
+        public WmsDashboardService(ApplicationDbContext dbContext, IStockStatusService stockStatusService)
         {
             _dbContext = dbContext;
+            _stockStatusService = stockStatusService;
         }
 
         public async Task<WmsDashboardModel> GetDashboardAsync()
@@ -26,22 +28,15 @@ namespace WarehouseManagment.Services
                 .Include(x => x.MaterialBatch)
                 .ToListAsync();
 
-            var materialStockTotals = materialStocks
-                .GroupBy(x => x.MaterialId)
-                .Select(x => new DashboardMaterialStockTotal
-                {
-                    Material = x.First().Material,
-                    Quantity = x.Sum(s => s.Quantity)
-                })
+            var stockSummaries = await _stockStatusService.GetMaterialStockSummariesAsync();
+            var belowMinimum = stockSummaries
+                .Where(x => x.Status == MaterialStockStatus.BelowMinimum)
+                .OrderBy(x => x.TotalQuantity)
+                .ThenBy(x => x.MaterialCode)
                 .ToList();
-
-            var belowMinimum = materialStockTotals
-                .Where(x => x.Material.MinimumStock > 0 && x.Quantity > 0 && x.Quantity < x.Material.MinimumStock)
-                .OrderBy(x => x.Quantity)
-                .ToList();
-            var outOfStock = materialStockTotals
-                .Where(x => x.Quantity <= 0)
-                .OrderBy(x => x.Material.Code)
+            var outOfStock = stockSummaries
+                .Where(x => x.Status == MaterialStockStatus.OutOfStock)
+                .OrderBy(x => x.MaterialCode)
                 .ToList();
 
             var todayMovements = await _dbContext.InventoryMovements
@@ -110,12 +105,12 @@ namespace WarehouseManagment.Services
             }).ToList();
         }
 
-        private static List<WmsDashboardAlertModel> BuildStockAlerts(IEnumerable<DashboardMaterialStockTotal> stocks, string title, string cssClass)
+        private static List<WmsDashboardAlertModel> BuildStockAlerts(IEnumerable<MaterialStockSummaryModel> stocks, string title, string cssClass)
         {
             return stocks.Take(8).Select(stock => new WmsDashboardAlertModel
             {
                 Title = title,
-                Text = $"{stock.Material.Code} - {stock.Material.Name}: {stock.Quantity:N4} / мин. {stock.Material.MinimumStock:N4}",
+                Text = $"{stock.MaterialCode} - {stock.MaterialName}: {stock.TotalQuantity:N4} / мин. {stock.MinimumStock:N4}",
                 CssClass = cssClass
             }).ToList();
         }
@@ -246,13 +241,6 @@ namespace WarehouseManagment.Services
         private static string FormatWarehouse(Warehouse? warehouse)
         {
             return warehouse == null ? string.Empty : $"{warehouse.Code} - {warehouse.Name}";
-        }
-
-        private class DashboardMaterialStockTotal
-        {
-            public Material Material { get; set; } = null!;
-
-            public decimal Quantity { get; set; }
         }
     }
 }
