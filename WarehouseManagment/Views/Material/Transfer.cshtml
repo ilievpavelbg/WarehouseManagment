@@ -17,41 +17,25 @@
 
     <h4>От</h4>
     <div class="row">
-        <div class="col-md-4 mb-3">
-            <label asp-for="SourceWarehouseId" class="form-label">Склад източник</label>
-            <select asp-for="SourceWarehouseId" class="form-control">
-                <option value="">Избери</option>
-                @foreach (var warehouse in Model.Warehouses)
+        <div class="col-md-12 mb-3">
+            <label asp-for="SourceMaterialStockId" class="form-label">Наличност източник</label>
+            <select asp-for="SourceMaterialStockId" class="form-control">
+                <option value="">Избери наличност</option>
+                @foreach (var stock in Model.SourceStockPositions)
                 {
-                    <option value="@warehouse.Id">@warehouse.Code - @warehouse.Name</option>
+                    var locationLabel = stock.WarehouseLocation == null
+                        ? "Без локация"
+                        : $"{stock.WarehouseLocation.Code} - {stock.WarehouseLocation.Name}";
+                    var batchLabel = stock.MaterialBatch == null
+                        ? "Без партида"
+                        : string.IsNullOrWhiteSpace(stock.MaterialBatch.LotNumber)
+                            ? $"Партида {stock.MaterialBatch.BatchNumber}"
+                            : $"Партида {stock.MaterialBatch.BatchNumber} / Lot {stock.MaterialBatch.LotNumber}";
+                    <option value="@stock.Id">@stock.Warehouse.Code - @stock.Warehouse.Name / @locationLabel / @batchLabel / Наличност @stock.Quantity.ToString("N4") @Model.UnitOfMeasureName</option>
                 }
             </select>
-            <span asp-validation-for="SourceWarehouseId" class="text-danger"></span>
-        </div>
-        <div class="col-md-4 mb-3">
-            <label asp-for="SourceWarehouseLocationId" class="form-label">Локация източник</label>
-            <select asp-for="SourceWarehouseLocationId" class="form-control">
-                <option value="">Без локация</option>
-                @foreach (var location in Model.WarehouseLocations)
-                {
-                    <option value="@location.Id">@location.Warehouse.Code - @location.Code - @location.Name</option>
-                }
-            </select>
-            <span asp-validation-for="SourceWarehouseLocationId" class="text-danger"></span>
-        </div>
-        <div class="col-md-4 mb-3">
-            <label asp-for="MaterialBatchId" class="form-label">Партида</label>
-            <select asp-for="MaterialBatchId" class="form-control">
-                <option value="">Без партида</option>
-                @foreach (var batch in Model.MaterialBatches)
-                {
-                    var batchLabel = string.IsNullOrWhiteSpace(batch.LotNumber)
-                        ? batch.BatchNumber
-                        : $"{batch.BatchNumber} / {batch.LotNumber}";
-                    <option value="@batch.Id">@batchLabel</option>
-                }
-            </select>
-            <span asp-validation-for="MaterialBatchId" class="text-danger"></span>
+            <span asp-validation-for="SourceMaterialStockId" class="text-danger"></span>
+            <div class="form-text">Показани са само реални складови позиции с наличност по-голяма от нула.</div>
         </div>
     </div>
 
