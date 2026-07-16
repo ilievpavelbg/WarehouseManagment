@@ -33,7 +33,7 @@
         <div class="col-md-3 mb-2">
             <label for="Status" class="form-label">Статус</label>
             <select id="Status" name="Status" class="form-control">
-                <option value="" selected="@(!Model.Filter.Status.HasValue)">Всички проблемни</option>
+                <option value="" selected="@(!Model.Filter.Status.HasValue)">Всички</option>
                 <option value="BelowMinimum" selected="@(Model.Filter.Status == MaterialStockStatus.BelowMinimum)">Под минимум</option>
                 <option value="OutOfStock" selected="@(Model.Filter.Status == MaterialStockStatus.OutOfStock)">Без наличност</option>
             </select>
