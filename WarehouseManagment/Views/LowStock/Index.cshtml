@@ -91,6 +91,7 @@ else
                     <th>Статус</th>
                     <th>Предпочитан доставчик</th>
                     <th>Предложено количество</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
@@ -107,6 +108,7 @@ else
                         <td><span class="badge @row.StatusCssClass">@row.StatusName</span></td>
                         <td>@row.PreferredSupplierName</td>
                         <td>@row.SuggestedReplenishmentQuantity.ToString("N4")</td>
+                        <td><a class="btn btn-sm btn-outline-info" asp-controller="MaterialStockCard" asp-action="Index" asp-route-id="@row.MaterialId">Картон</a></td>
                     </tr>
                 }
             </tbody>
