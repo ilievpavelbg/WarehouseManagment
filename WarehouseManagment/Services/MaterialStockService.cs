@@ -19,6 +19,24 @@ namespace WarehouseManagment.Services
 
         public async Task<Warehouse?> GetDefaultActiveWarehouseAsync()
         {
+            var configuredWarehouseId = await _dbContext.WarehouseSettings
+                .AsNoTracking()
+                .OrderBy(x => x.Id)
+                .Select(x => x.DefaultMaterialWarehouseId)
+                .FirstOrDefaultAsync();
+
+            if (configuredWarehouseId.HasValue)
+            {
+                var configuredWarehouse = await _dbContext.Warehouses
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == configuredWarehouseId.Value && x.IsActive);
+
+                if (configuredWarehouse != null)
+                {
+                    return configuredWarehouse;
+                }
+            }
+
             return await _dbContext.Warehouses
                 .AsNoTracking()
                 .Where(x => x.IsActive)
