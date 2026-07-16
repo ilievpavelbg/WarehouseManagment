@@ -19,6 +19,7 @@ namespace WarehouseManagment.Data
         public DbSet<WarehouseZone> WarehouseZones { get; set; }
         public DbSet<WarehouseLocation> WarehouseLocations { get; set; }
         public DbSet<WarehouseSettings> WarehouseSettings { get; set; }
+        public DbSet<DocumentSequence> DocumentSequences { get; set; }
         public DbSet<InventoryMovement> InventoryMovements { get; set; }
         public DbSet<Material> Materials { get; set; }
         public DbSet<MaterialCategory> MaterialCategories { get; set; }
@@ -37,6 +38,10 @@ namespace WarehouseManagment.Data
 
             builder.Entity<Warehouse>()
                 .HasIndex(w => w.Code)
+                .IsUnique();
+
+            builder.Entity<DocumentSequence>()
+                .HasIndex(x => new { x.DocumentType, x.Year })
                 .IsUnique();
 
             builder.Entity<WarehouseSettings>()
