@@ -2,6 +2,8 @@ namespace WarehouseManagment.Models
 {
     public class LowStockRowModel
     {
+        public int MaterialId { get; set; }
+
         public string MaterialCode { get; set; } = string.Empty;
 
         public string MaterialName { get; set; } = string.Empty;
