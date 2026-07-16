@@ -138,7 +138,7 @@
                         <option value="">Всички</option>
                         @foreach (MovementType movementType in Enum.GetValues(typeof(MovementType)))
                         {
-                            <option value="@movementType" selected="@(Model.Filter.MovementType == movementType)">@movementType</option>
+                            <option value="@movementType" selected="@(Model.Filter.MovementType == movementType)">@GetMovementTypeName(movementType)</option>
                         }
                     </select>
                 </div>
@@ -243,3 +243,23 @@
         }
     </div>
 </div>
+
+@functions {
+    private static string GetMovementTypeName(WarehouseManagment.Data.MovementType movementType)
+    {
+        return movementType switch
+        {
+            WarehouseManagment.Data.MovementType.ImportReceipt => "Приемане",
+            WarehouseManagment.Data.MovementType.Sale => "Продажба",
+            WarehouseManagment.Data.MovementType.SaleReversal => "Сторно продажба",
+            WarehouseManagment.Data.MovementType.CourierShipment => "Куриер",
+            WarehouseManagment.Data.MovementType.CourierReversal => "Сторно куриер",
+            WarehouseManagment.Data.MovementType.Adjustment => "Корекция",
+            WarehouseManagment.Data.MovementType.ProductionConsumption => "Производствен разход",
+            WarehouseManagment.Data.MovementType.ProductionOutput => "Производствен изход",
+            WarehouseManagment.Data.MovementType.Transfer => "Преместване",
+            WarehouseManagment.Data.MovementType.Return => "Връщане",
+            _ => movementType.ToString()
+        };
+    }
+}
