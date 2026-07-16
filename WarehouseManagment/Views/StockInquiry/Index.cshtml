@@ -140,6 +140,7 @@ else
                     <th>Количество</th>
                     <th>Минимална наличност</th>
                     <th>Статус</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
@@ -157,6 +158,7 @@ else
                         <td>@stock.Quantity.ToString("N4")</td>
                         <td>@stock.MinimumStock.ToString("N4")</td>
                         <td><span class="badge @stock.StatusCssClass">@stock.StatusName</span></td>
+                        <td><a class="btn btn-sm btn-outline-info" asp-controller="MaterialStockCard" asp-action="Index" asp-route-id="@stock.MaterialId">Картон</a></td>
                     </tr>
                 }
             </tbody>
