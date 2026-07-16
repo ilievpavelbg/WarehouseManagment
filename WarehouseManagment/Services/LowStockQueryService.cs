@@ -154,6 +154,7 @@ namespace WarehouseManagment.Services
             var shortage = summary.MinimumStock - summary.TotalQuantity;
             return new LowStockRowModel
             {
+                MaterialId = material.Id,
                 MaterialCode = material.Code,
                 MaterialName = material.Name,
                 CategoryName = material.MaterialCategory?.Name ?? string.Empty,
