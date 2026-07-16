@@ -63,7 +63,7 @@ namespace WarehouseManagment.Services
                 IsActive = material.IsActive,
                 Positions = positions,
                 StockByWarehouse = stockByWarehouse,
-                Movements = movements.Select(BuildMovement).ToList(),
+                Movements = await BuildMovementsAsync(movements),
                 Warehouses = await GetWarehousesAsync(),
                 TotalMovementItems = totalMovementItems
             };
@@ -111,6 +111,7 @@ namespace WarehouseManagment.Services
         {
             return _dbContext.InventoryMovements
                 .AsNoTracking()
+                .Include(x => x.MaterialBatch)
                 .Include(x => x.Warehouse)
                 .Include(x => x.WarehouseLocation)
                 .Include(x => x.DestinationWarehouse)
@@ -146,13 +147,30 @@ namespace WarehouseManagment.Services
                 var batchOrLot = filter.BatchOrLot.Trim();
                 query = query.Where(x =>
                     (x.BatchNumber != null && x.BatchNumber.Contains(batchOrLot)) ||
-                    (x.LotNumber != null && x.LotNumber.Contains(batchOrLot)));
+                    (x.LotNumber != null && x.LotNumber.Contains(batchOrLot)) ||
+                    (x.MaterialBatch != null && x.MaterialBatch.BatchNumber.Contains(batchOrLot)) ||
+                    (x.MaterialBatch != null && x.MaterialBatch.LotNumber != null && x.MaterialBatch.LotNumber.Contains(batchOrLot)));
             }
 
             return query;
         }
 
-        private static MaterialStockCardMovementModel BuildMovement(InventoryMovement movement)
+        private async Task<List<MaterialStockCardMovementModel>> BuildMovementsAsync(List<InventoryMovement> movements)
+        {
+            var userIds = movements
+                .Select(x => x.UserId)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .ToList();
+            var users = await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => userIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.UserName ?? x.Email ?? x.Id);
+
+            return movements.Select(movement => BuildMovement(movement, users)).ToList();
+        }
+
+        private static MaterialStockCardMovementModel BuildMovement(InventoryMovement movement, Dictionary<string, string> users)
         {
             return new MaterialStockCardMovementModel
             {
@@ -164,11 +182,13 @@ namespace WarehouseManagment.Services
                 WarehouseLocationName = FormatLocation(movement.WarehouseLocation),
                 DestinationWarehouseName = FormatWarehouse(movement.DestinationWarehouse),
                 DestinationWarehouseLocationName = FormatLocation(movement.DestinationWarehouseLocation),
-                BatchNumber = movement.BatchNumber ?? string.Empty,
-                LotNumber = movement.LotNumber ?? string.Empty,
+                BatchNumber = movement.BatchNumber ?? movement.MaterialBatch?.BatchNumber ?? string.Empty,
+                LotNumber = movement.LotNumber ?? movement.MaterialBatch?.LotNumber ?? string.Empty,
                 ReferenceType = movement.ReferenceType,
                 ReferenceNumber = movement.ReferenceNumber ?? string.Empty,
-                User = movement.UserId ?? string.Empty,
+                User = !string.IsNullOrWhiteSpace(movement.UserId) && users.TryGetValue(movement.UserId, out var userName)
+                    ? userName
+                    : string.Empty,
                 Notes = movement.Notes ?? string.Empty
             };
         }
