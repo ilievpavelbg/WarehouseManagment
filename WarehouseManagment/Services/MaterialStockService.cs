@@ -501,6 +501,11 @@ namespace WarehouseManagment.Services
                 throw new InvalidOperationException("Material stock adjustment quantity cannot be negative.");
             }
 
+            if (model.MovementType == MovementType.Adjustment && string.IsNullOrWhiteSpace(model.ReferenceNumber))
+            {
+                model.ReferenceNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.StockAdjustment);
+            }
+
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
             try
@@ -513,11 +518,6 @@ namespace WarehouseManagment.Services
                 {
                     await transaction.CommitAsync();
                     return;
-                }
-
-                if (model.MovementType == MovementType.Adjustment && string.IsNullOrWhiteSpace(model.ReferenceNumber))
-                {
-                    model.ReferenceNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.StockAdjustment);
                 }
 
                 stock.Quantity = model.Quantity;
