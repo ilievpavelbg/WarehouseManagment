@@ -4,6 +4,8 @@
     ViewData["Title"] = "Картон на материал";
     var previousPage = Math.Max(1, Model.Filter.Page - 1);
     var nextPage = Math.Min(Model.TotalMovementPages, Model.Filter.Page + 1);
+    var dateFromValue = Model.Filter.DateFrom?.ToString("yyyy-MM-dd");
+    var dateToValue = Model.Filter.DateTo?.ToString("yyyy-MM-dd");
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
@@ -114,11 +116,11 @@
             <div class="row align-items-end">
                 <div class="col-md-2 mb-2">
                     <label for="DateFrom" class="form-label">От дата</label>
-                    <input id="DateFrom" name="DateFrom" type="date" value="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+                    <input id="DateFrom" name="DateFrom" type="date" value="@dateFromValue" class="form-control" />
                 </div>
                 <div class="col-md-2 mb-2">
                     <label for="DateTo" class="form-label">До дата</label>
-                    <input id="DateTo" name="DateTo" type="date" value="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")" class="form-control" />
+                    <input id="DateTo" name="DateTo" type="date" value="@dateToValue" class="form-control" />
                 </div>
                 <div class="col-md-3 mb-2">
                     <label for="WarehouseId" class="form-label">Склад</label>
@@ -219,8 +221,8 @@
                        asp-route-id="@Model.MaterialId"
                        asp-route-Page="@previousPage"
                        asp-route-PageSize="@Model.Filter.PageSize"
-                       asp-route-DateFrom="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")"
-                       asp-route-DateTo="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")"
+                       asp-route-DateFrom="@dateFromValue"
+                       asp-route-DateTo="@dateToValue"
                        asp-route-WarehouseId="@Model.Filter.WarehouseId"
                        asp-route-MovementType="@Model.Filter.MovementType"
                        asp-route-BatchOrLot="@Model.Filter.BatchOrLot">Назад</a>
@@ -231,8 +233,8 @@
                        asp-route-id="@Model.MaterialId"
                        asp-route-Page="@nextPage"
                        asp-route-PageSize="@Model.Filter.PageSize"
-                       asp-route-DateFrom="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")"
-                       asp-route-DateTo="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")"
+                       asp-route-DateFrom="@dateFromValue"
+                       asp-route-DateTo="@dateToValue"
                        asp-route-WarehouseId="@Model.Filter.WarehouseId"
                        asp-route-MovementType="@Model.Filter.MovementType"
                        asp-route-BatchOrLot="@Model.Filter.BatchOrLot">Напред</a>
