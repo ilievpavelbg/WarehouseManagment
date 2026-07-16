@@ -134,9 +134,14 @@ namespace WarehouseManagment.Services
 
         private static IEnumerable<MaterialStockSummaryModel> ApplyStatusFilter(IEnumerable<MaterialStockSummaryModel> summaries, MaterialStockStatus? status)
         {
-            if (status.HasValue)
+            if (status == MaterialStockStatus.BelowMinimum || status == MaterialStockStatus.OutOfStock)
             {
                 return summaries.Where(x => x.Status == status.Value);
+            }
+
+            if (status.HasValue)
+            {
+                return Enumerable.Empty<MaterialStockSummaryModel>();
             }
 
             return summaries.Where(x =>
@@ -167,9 +172,12 @@ namespace WarehouseManagment.Services
 
         private static string GetReportStatusCssClass(MaterialStockStatus status)
         {
-            return status == MaterialStockStatus.OutOfStock
-                ? "bg-danger"
-                : "bg-warning text-dark";
+            return status switch
+            {
+                MaterialStockStatus.OutOfStock => "bg-danger",
+                MaterialStockStatus.BelowMinimum => "bg-warning text-dark",
+                _ => "bg-success"
+            };
         }
 
         private async Task<List<MaterialCategory>> GetCategoriesAsync()
