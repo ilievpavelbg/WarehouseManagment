@@ -49,6 +49,7 @@ builder.Services.AddScoped<IInventoryMovementQueryService, InventoryMovementQuer
 builder.Services.AddScoped<IStockStatusService, StockStatusService>();
 builder.Services.AddScoped<IStockInquiryQueryService, StockInquiryQueryService>();
 builder.Services.AddScoped<ILowStockQueryService, LowStockQueryService>();
+builder.Services.AddScoped<IMaterialStockCardQueryService, MaterialStockCardQueryService>();
 builder.Services.AddScoped<IWmsDashboardService, WmsDashboardService>();
 builder.Services.AddScoped<IMaterialMasterService, MaterialMasterService>();
 builder.Services.AddScoped<IMaterialStockService, MaterialStockService>();
