@@ -1,0 +1,140 @@
+﻿@model LowStockIndexModel
+
+@{
+    ViewData["Title"] = "Материали под минимална наличност";
+    var previousPage = Math.Max(1, Model.Filter.Page - 1);
+    var nextPage = Math.Min(Model.TotalPages, Model.Filter.Page + 1);
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<form asp-controller="LowStock" asp-action="Index" method="get" class="mb-3">
+    <div class="row align-items-end">
+        <div class="col-md-3 mb-2">
+            <label for="MaterialCategoryId" class="form-label">Категория</label>
+            <select id="MaterialCategoryId" name="MaterialCategoryId" class="form-control">
+                <option value="">Всички</option>
+                @foreach (var category in Model.Categories)
+                {
+                    <option value="@category.Id" selected="@(Model.Filter.MaterialCategoryId == category.Id)">@category.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3 mb-2">
+            <label for="SupplierId" class="form-label">Доставчик</label>
+            <select id="SupplierId" name="SupplierId" class="form-control">
+                <option value="">Всички</option>
+                @foreach (var supplier in Model.Suppliers)
+                {
+                    <option value="@supplier.Id" selected="@(Model.Filter.SupplierId == supplier.Id)">@supplier.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3 mb-2">
+            <label for="Status" class="form-label">Статус</label>
+            <select id="Status" name="Status" class="form-control">
+                <option value="" selected="@(!Model.Filter.Status.HasValue)">Всички проблемни</option>
+                <option value="BelowMinimum" selected="@(Model.Filter.Status == MaterialStockStatus.BelowMinimum)">Под минимум</option>
+                <option value="OutOfStock" selected="@(Model.Filter.Status == MaterialStockStatus.OutOfStock)">Без наличност</option>
+            </select>
+        </div>
+        <div class="col-md-3 mb-2">
+            <label for="PageSize" class="form-label">Редове</label>
+            <select id="PageSize" name="PageSize" class="form-control">
+                <option value="25" selected="@(Model.Filter.PageSize == 25)">25</option>
+                <option value="50" selected="@(Model.Filter.PageSize == 50)">50</option>
+                <option value="100" selected="@(Model.Filter.PageSize == 100)">100</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="row align-items-end">
+        <div class="col-md-3 mb-2">
+            <div class="form-check">
+                <input id="ActiveMaterialsOnly" name="ActiveMaterialsOnly" value="true" type="checkbox" checked="@Model.Filter.ActiveMaterialsOnly" class="form-check-input" />
+                <input name="ActiveMaterialsOnly" value="false" type="hidden" />
+                <label for="ActiveMaterialsOnly" class="form-check-label">Само активни материали</label>
+            </div>
+        </div>
+        <div class="col-md-9 mb-2">
+            <input type="hidden" name="Page" value="1" />
+            <button type="submit" class="btn btn-primary">Филтрирай</button>
+            <a class="btn btn-outline-secondary" asp-controller="LowStock" asp-action="Index">Изчисти</a>
+            <a class="btn btn-success"
+               asp-controller="LowStock"
+               asp-action="Export"
+               asp-route-MaterialCategoryId="@Model.Filter.MaterialCategoryId"
+               asp-route-SupplierId="@Model.Filter.SupplierId"
+               asp-route-Status="@Model.Filter.Status"
+               asp-route-ActiveMaterialsOnly="@Model.Filter.ActiveMaterialsOnly">Excel</a>
+        </div>
+    </div>
+</form>
+
+@if (!Model.Rows.Any())
+{
+    <p>Няма намерени материали под минимална наличност.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>Код</th>
+                    <th>Материал</th>
+                    <th>Категория</th>
+                    <th>Мерна единица</th>
+                    <th>Текуща наличност</th>
+                    <th>Минимална наличност</th>
+                    <th>Недостиг</th>
+                    <th>Статус</th>
+                    <th>Предпочитан доставчик</th>
+                    <th>Предложено количество</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    <tr>
+                        <td>@row.MaterialCode</td>
+                        <td>@row.MaterialName</td>
+                        <td>@row.CategoryName</td>
+                        <td>@row.UnitOfMeasureName</td>
+                        <td>@row.TotalCurrentStock.ToString("N4")</td>
+                        <td>@row.MinimumStock.ToString("N4")</td>
+                        <td>@row.Shortage.ToString("N4")</td>
+                        <td><span class="badge @row.StatusCssClass">@row.StatusName</span></td>
+                        <td>@row.PreferredSupplierName</td>
+                        <td>@row.SuggestedReplenishmentQuantity.ToString("N4")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center">
+        <div>Общо: @Model.TotalItems</div>
+        <div>
+            <a class="btn btn-sm btn-outline-secondary @(Model.Filter.Page <= 1 ? "disabled" : string.Empty)"
+               asp-controller="LowStock"
+               asp-action="Index"
+               asp-route-Page="@previousPage"
+               asp-route-PageSize="@Model.Filter.PageSize"
+               asp-route-MaterialCategoryId="@Model.Filter.MaterialCategoryId"
+               asp-route-SupplierId="@Model.Filter.SupplierId"
+               asp-route-Status="@Model.Filter.Status"
+               asp-route-ActiveMaterialsOnly="@Model.Filter.ActiveMaterialsOnly">Назад</a>
+            <span class="mx-2">Страница @Model.Filter.Page от @Model.TotalPages</span>
+            <a class="btn btn-sm btn-outline-secondary @(Model.Filter.Page >= Model.TotalPages ? "disabled" : string.Empty)"
+               asp-controller="LowStock"
+               asp-action="Index"
+               asp-route-Page="@nextPage"
+               asp-route-PageSize="@Model.Filter.PageSize"
+               asp-route-MaterialCategoryId="@Model.Filter.MaterialCategoryId"
+               asp-route-SupplierId="@Model.Filter.SupplierId"
+               asp-route-Status="@Model.Filter.Status"
+               asp-route-ActiveMaterialsOnly="@Model.Filter.ActiveMaterialsOnly">Напред</a>
+        </div>
+    </div>
+}
