@@ -18,6 +18,7 @@ namespace WarehouseManagment.Data
         public DbSet<Warehouse> Warehouses { get; set; }
         public DbSet<WarehouseZone> WarehouseZones { get; set; }
         public DbSet<WarehouseLocation> WarehouseLocations { get; set; }
+        public DbSet<WarehouseSettings> WarehouseSettings { get; set; }
         public DbSet<InventoryMovement> InventoryMovements { get; set; }
         public DbSet<Material> Materials { get; set; }
         public DbSet<MaterialCategory> MaterialCategories { get; set; }
@@ -37,6 +38,24 @@ namespace WarehouseManagment.Data
             builder.Entity<Warehouse>()
                 .HasIndex(w => w.Code)
                 .IsUnique();
+
+            builder.Entity<WarehouseSettings>()
+                .HasOne(x => x.DefaultMaterialWarehouse)
+                .WithMany()
+                .HasForeignKey(x => x.DefaultMaterialWarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<WarehouseSettings>()
+                .HasOne(x => x.DefaultWipWarehouse)
+                .WithMany()
+                .HasForeignKey(x => x.DefaultWipWarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<WarehouseSettings>()
+                .HasOne(x => x.DefaultFinishedGoodsWarehouse)
+                .WithMany()
+                .HasForeignKey(x => x.DefaultFinishedGoodsWarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<WarehouseZone>()
                 .HasIndex(z => new { z.WarehouseId, z.Code })
