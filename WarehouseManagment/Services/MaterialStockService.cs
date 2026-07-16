@@ -10,11 +10,16 @@ namespace WarehouseManagment.Services
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IDocumentNumberService _documentNumberService;
 
-        public MaterialStockService(ApplicationDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+        public MaterialStockService(
+            ApplicationDbContext dbContext,
+            IHttpContextAccessor httpContextAccessor,
+            IDocumentNumberService documentNumberService)
         {
             _dbContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
+            _documentNumberService = documentNumberService;
         }
 
         public async Task<Warehouse?> GetDefaultActiveWarehouseAsync()
@@ -135,6 +140,7 @@ namespace WarehouseManagment.Services
                 throw new InvalidOperationException("Received quantity must be greater than zero.");
             }
 
+            var documentNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.GoodsReceipt);
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
             try
@@ -157,7 +163,7 @@ namespace WarehouseManagment.Services
                     MovementType = MovementType.ImportReceipt,
                     ReferenceType = "GoodsReceipt",
                     ReferenceId = preparedModel.MaterialId,
-                    ReferenceNumber = preparedModel.DocumentNumber,
+                    ReferenceNumber = documentNumber,
                     BatchNumber = materialBatch?.BatchNumber ?? preparedModel.BatchNumber,
                     LotNumber = materialBatch?.LotNumber ?? preparedModel.LotNumber,
                     Notes = preparedModel.Notes
@@ -270,6 +276,7 @@ namespace WarehouseManagment.Services
                 throw new InvalidOperationException("Въведете количество по-голямо от нула.");
             }
 
+            var documentNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.MaterialTransfer);
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
             try
@@ -297,6 +304,7 @@ namespace WarehouseManagment.Services
                     MovementType = MovementType.Transfer,
                     ReferenceType = "MaterialTransfer",
                     ReferenceId = preparedModel.MaterialId,
+                    ReferenceNumber = documentNumber,
                     Notes = preparedModel.Notes
                 };
 
@@ -320,6 +328,7 @@ namespace WarehouseManagment.Services
                     MovementType = MovementType.Transfer,
                     ReferenceType = "MaterialTransfer",
                     ReferenceId = preparedModel.MaterialId,
+                    ReferenceNumber = documentNumber,
                     BatchNumber = sourceStock.MaterialBatch?.BatchNumber,
                     LotNumber = sourceStock.MaterialBatch?.LotNumber,
                     Notes = preparedModel.Notes
@@ -418,11 +427,13 @@ namespace WarehouseManagment.Services
 
             if (preparedModel.Difference > 0)
             {
-                await IncreaseStockAsync(CreateAdjustmentChangeModel(preparedModel, preparedModel.Difference));
+                var documentNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.StockAdjustment);
+                await IncreaseStockAsync(CreateAdjustmentChangeModel(preparedModel, preparedModel.Difference, documentNumber));
             }
             else if (preparedModel.Difference < 0)
             {
-                await DecreaseStockAsync(CreateAdjustmentChangeModel(preparedModel, Math.Abs(preparedModel.Difference)));
+                var documentNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.StockAdjustment);
+                await DecreaseStockAsync(CreateAdjustmentChangeModel(preparedModel, Math.Abs(preparedModel.Difference), documentNumber));
             }
 
             return preparedModel.Difference;
@@ -504,6 +515,11 @@ namespace WarehouseManagment.Services
                     return;
                 }
 
+                if (model.MovementType == MovementType.Adjustment && string.IsNullOrWhiteSpace(model.ReferenceNumber))
+                {
+                    model.ReferenceNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.StockAdjustment);
+                }
+
                 stock.Quantity = model.Quantity;
                 stock.LastUpdatedOn = DateTime.Now;
 
@@ -518,7 +534,7 @@ namespace WarehouseManagment.Services
             }
         }
 
-        private static MaterialStockChangeModel CreateAdjustmentChangeModel(MaterialStockAdjustmentModel model, decimal quantity)
+        private static MaterialStockChangeModel CreateAdjustmentChangeModel(MaterialStockAdjustmentModel model, decimal quantity, string documentNumber)
         {
             return new MaterialStockChangeModel
             {
@@ -530,6 +546,7 @@ namespace WarehouseManagment.Services
                 MovementType = MovementType.Adjustment,
                 ReferenceType = "MaterialStockAdjustment",
                 ReferenceId = model.MaterialId,
+                ReferenceNumber = documentNumber,
                 Notes = model.Notes
             };
         }
