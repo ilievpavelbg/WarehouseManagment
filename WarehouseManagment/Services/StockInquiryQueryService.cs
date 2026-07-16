@@ -203,6 +203,7 @@ namespace WarehouseManagment.Services
                 var summary = stockSummaries[stock.MaterialId];
                 return new StockInquiryRowModel
                 {
+                    MaterialId = stock.MaterialId,
                     MaterialCode = stock.Material.Code,
                     MaterialName = stock.Material.Name,
                     CategoryName = stock.Material.MaterialCategory?.Name ?? string.Empty,
