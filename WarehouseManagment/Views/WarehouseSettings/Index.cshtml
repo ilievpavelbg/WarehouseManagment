@@ -1,0 +1,69 @@
+﻿@model WarehouseSettingsModel
+
+@{
+    ViewData["Title"] = "Настройки складове";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+@if (TempData["WarehouseSettingsMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["WarehouseSettingsMessage"]</div>
+}
+
+<div class="alert alert-info">
+    Екранът е достъпен за автентикирани потребители. При въвеждане на отделна Admin политика достъпът може да бъде ограничен допълнително.
+</div>
+
+<form asp-controller="WarehouseSettings" asp-action="Index" method="post">
+    <input asp-for="Id" type="hidden" />
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="card mb-3">
+        <div class="card-header">Основни складове</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="DefaultMaterialWarehouseId" class="form-label">Основен склад за материали</label>
+                    <select asp-for="DefaultMaterialWarehouseId" class="form-control">
+                        <option value="">Не е зададено</option>
+                        @foreach (var warehouse in Model.Warehouses)
+                        {
+                            <option value="@warehouse.Id">@warehouse.Code - @warehouse.Name</option>
+                        }
+                    </select>
+                    <span asp-validation-for="DefaultMaterialWarehouseId" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="DefaultWipWarehouseId" class="form-label">Склад производство / НЗП</label>
+                    <select asp-for="DefaultWipWarehouseId" class="form-control">
+                        <option value="">Не е зададено</option>
+                        @foreach (var warehouse in Model.Warehouses)
+                        {
+                            <option value="@warehouse.Id">@warehouse.Code - @warehouse.Name</option>
+                        }
+                    </select>
+                    <span asp-validation-for="DefaultWipWarehouseId" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="DefaultFinishedGoodsWarehouseId" class="form-label">Склад готова продукция</label>
+                    <select asp-for="DefaultFinishedGoodsWarehouseId" class="form-control">
+                        <option value="">Не е зададено</option>
+                        @foreach (var warehouse in Model.Warehouses)
+                        {
+                            <option value="@warehouse.Id">@warehouse.Code - @warehouse.Name</option>
+                        }
+                    </select>
+                    <span asp-validation-for="DefaultFinishedGoodsWarehouseId" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="text-muted small">
+                Последна промяна: @(Model.UpdatedOn.HasValue ? Model.UpdatedOn.Value.ToString("dd.MM.yyyy HH:mm") : "няма")
+            </div>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Запази</button>
+    <a class="btn btn-secondary" asp-controller="Warehouse" asp-action="Index">Отказ</a>
+</form>
