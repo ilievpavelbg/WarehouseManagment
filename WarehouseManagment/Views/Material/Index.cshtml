@@ -147,6 +147,7 @@ else
                     <td>@(material.IsBatchTracked ? "Да" : "Не")</td>
                     <td>@(material.IsActive ? "Да" : "Не")</td>
                     <td>
+                        <a class="btn btn-sm btn-outline-info" asp-controller="MaterialStockCard" asp-action="Index" asp-route-id="@material.Id">Картон</a>
                         <a class="btn btn-sm btn-outline-primary" asp-controller="Material" asp-action="Edit" asp-route-id="@material.Id">Редакция</a>
                         <a class="btn btn-sm btn-primary" asp-controller="Material" asp-action="Receive" asp-route-id="@material.Id">Приемане</a>
                         <a class="btn btn-sm btn-outline-primary" asp-controller="Material" asp-action="Transfer" asp-route-id="@material.Id">Преместване</a>
