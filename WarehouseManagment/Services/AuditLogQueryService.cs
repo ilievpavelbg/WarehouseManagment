@@ -19,12 +19,13 @@ namespace WarehouseManagment.Services
             NormalizeFilter(filter);
             var query = ApplyFilters(_dbContext.AuditLogs.AsNoTracking(), filter);
             var totalItems = await query.CountAsync();
-            var logs = await query
+            var auditLogs = await query
                 .OrderByDescending(x => x.CreatedOn)
                 .ThenByDescending(x => x.Id)
                 .Skip((filter.Page - 1) * filter.PageSize)
                 .Take(filter.PageSize)
-                .Select(x => new AuditLogRowModel
+                .ToListAsync();
+            var logs = auditLogs.Select(x => new AuditLogRowModel
                 {
                     Id = x.Id,
                     CreatedOn = x.CreatedOn,
@@ -37,7 +38,7 @@ namespace WarehouseManagment.Services
                     Description = x.Description,
                     IpAddress = x.IpAddress ?? string.Empty
                 })
-                .ToListAsync();
+                .ToList();
 
             return new AuditLogIndexModel
             {
