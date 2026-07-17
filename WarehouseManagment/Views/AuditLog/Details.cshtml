@@ -1,0 +1,53 @@
+@model AuditLogDetailsModel
+
+@{
+    ViewData["Title"] = "Детайли одит лог";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<div class="alert alert-info">
+    Достъпът до този екран ще бъде ограничен до Admin / Warehouse Manager при предстоящата задача за роли.
+</div>
+
+<dl class="row">
+    <dt class="col-sm-3">Дата</dt>
+    <dd class="col-sm-9">@Model.CreatedOn.ToString("dd.MM.yyyy HH:mm:ss")</dd>
+
+    <dt class="col-sm-3">Потребител</dt>
+    <dd class="col-sm-9">@Model.UserName</dd>
+
+    <dt class="col-sm-3">Действие</dt>
+    <dd class="col-sm-9">@Model.ActionTypeName</dd>
+
+    <dt class="col-sm-3">Тип обект</dt>
+    <dd class="col-sm-9">@Model.EntityType</dd>
+
+    <dt class="col-sm-3">Документ</dt>
+    <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.DocumentNumber) ? "-" : Model.DocumentNumber)</dd>
+
+    <dt class="col-sm-3">Описание</dt>
+    <dd class="col-sm-9">@Model.Description</dd>
+
+    <dt class="col-sm-3">IP адрес</dt>
+    <dd class="col-sm-9">@Model.IpAddress</dd>
+
+    <dt class="col-sm-3">EntityId</dt>
+    <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.EntityId) ? "-" : Model.EntityId)</dd>
+
+    <dt class="col-sm-3">UserId</dt>
+    <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.UserId) ? "-" : Model.UserId)</dd>
+</dl>
+
+<div class="row">
+    <div class="col-md-6">
+        <h4>Стари стойности</h4>
+        <pre class="bg-light border p-3">@(string.IsNullOrWhiteSpace(Model.OldValues) ? "-" : Model.OldValues)</pre>
+    </div>
+    <div class="col-md-6">
+        <h4>Нови стойности</h4>
+        <pre class="bg-light border p-3">@(string.IsNullOrWhiteSpace(Model.NewValues) ? "-" : Model.NewValues)</pre>
+    </div>
+</div>
+
+<a class="btn btn-secondary" asp-action="Index">Назад</a>
