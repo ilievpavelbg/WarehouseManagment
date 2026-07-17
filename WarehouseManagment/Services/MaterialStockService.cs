@@ -1,4 +1,4 @@
-using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
@@ -9,17 +9,20 @@ namespace WarehouseManagment.Services
     public class MaterialStockService : IMaterialStockService
     {
         private readonly ApplicationDbContext _dbContext;
-        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IDocumentNumberService _documentNumberService;
+        private readonly IAuditLogService _auditLogService;
+        private readonly ICurrentUserService _currentUserService;
 
         public MaterialStockService(
             ApplicationDbContext dbContext,
-            IHttpContextAccessor httpContextAccessor,
-            IDocumentNumberService documentNumberService)
+            IDocumentNumberService documentNumberService,
+            IAuditLogService auditLogService,
+            ICurrentUserService currentUserService)
         {
             _dbContext = dbContext;
-            _httpContextAccessor = httpContextAccessor;
             _documentNumberService = documentNumberService;
+            _auditLogService = auditLogService;
+            _currentUserService = currentUserService;
         }
 
         public async Task<Warehouse?> GetDefaultActiveWarehouseAsync()
@@ -173,10 +176,21 @@ namespace WarehouseManagment.Services
                 await ValidateReferencesAsync(changeModel);
 
                 var stock = await GetOrCreateStockAsync(changeModel);
+                var oldQuantity = stock.Quantity;
                 stock.Quantity += changeModel.Quantity;
                 stock.LastUpdatedOn = DateTime.Now;
 
                 await CreateMovementAsync(changeModel, changeModel.Quantity);
+                await _auditLogService.AddAsync(new AuditLogEntryModel
+                {
+                    ActionType = AuditActionType.Receive,
+                    EntityType = "Material",
+                    EntityId = preparedModel.MaterialId,
+                    DocumentNumber = documentNumber,
+                    Description = $"Приет материал {preparedModel.MaterialCode} - {preparedModel.MaterialName}, количество {preparedModel.ReceivedQuantity:N4} {preparedModel.UnitOfMeasureName}.",
+                    OldValues = ToJson(new { Quantity = oldQuantity }),
+                    NewValues = ToJson(new { Quantity = stock.Quantity, preparedModel.WarehouseId, preparedModel.WarehouseLocationId, MaterialBatchId = materialBatch?.Id })
+                });
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
@@ -294,6 +308,7 @@ namespace WarehouseManagment.Services
                     throw new InvalidOperationException("Недостатъчна наличност в избраната складова позиция.");
                 }
 
+                var sourceOldQuantity = sourceStock.Quantity;
                 var destinationModel = new MaterialStockChangeModel
                 {
                     MaterialId = preparedModel.MaterialId,
@@ -310,6 +325,7 @@ namespace WarehouseManagment.Services
 
                 ValidateChangeModel(destinationModel, requirePositiveQuantity: true);
                 var destinationStock = await GetOrCreateStockAsync(destinationModel);
+                var destinationOldQuantity = destinationStock.Quantity;
 
                 sourceStock.Quantity -= preparedModel.Quantity;
                 sourceStock.LastUpdatedOn = DateTime.Now;
@@ -335,6 +351,30 @@ namespace WarehouseManagment.Services
                 };
 
                 await CreateMovementAsync(movementModel, preparedModel.Quantity);
+                await _auditLogService.AddAsync(new AuditLogEntryModel
+                {
+                    ActionType = AuditActionType.Transfer,
+                    EntityType = "Material",
+                    EntityId = preparedModel.MaterialId,
+                    DocumentNumber = documentNumber,
+                    Description = $"Преместен материал {preparedModel.MaterialCode} - {preparedModel.MaterialName}, количество {preparedModel.Quantity:N4} {preparedModel.UnitOfMeasureName}.",
+                    OldValues = ToJson(new
+                    {
+                        SourceQuantity = sourceOldQuantity,
+                        DestinationQuantity = destinationOldQuantity,
+                        SourceWarehouseId = sourceStock.WarehouseId,
+                        SourceWarehouseLocationId = sourceStock.WarehouseLocationId,
+                        sourceStock.MaterialBatchId
+                    }),
+                    NewValues = ToJson(new
+                    {
+                        SourceQuantity = sourceStock.Quantity,
+                        DestinationQuantity = destinationStock.Quantity,
+                        DestinationWarehouseId = preparedModel.DestinationWarehouseId,
+                        DestinationWarehouseLocationId = preparedModel.DestinationWarehouseLocationId,
+                        sourceStock.MaterialBatchId
+                    })
+                });
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
@@ -448,10 +488,12 @@ namespace WarehouseManagment.Services
             {
                 await ValidateReferencesAsync(model);
                 var stock = await GetOrCreateStockAsync(model);
+                var oldQuantity = stock.Quantity;
                 stock.Quantity += model.Quantity;
                 stock.LastUpdatedOn = DateTime.Now;
 
                 await CreateMovementAsync(model, model.Quantity);
+                await AddAdjustmentAuditAsync(model, oldQuantity, stock.Quantity);
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
@@ -471,6 +513,7 @@ namespace WarehouseManagment.Services
             {
                 await ValidateReferencesAsync(model);
                 var stock = await GetExistingStockAsync(model);
+                var oldQuantity = stock.Quantity;
                 var newQuantity = stock.Quantity - model.Quantity;
 
                 if (newQuantity < 0)
@@ -482,6 +525,7 @@ namespace WarehouseManagment.Services
                 stock.LastUpdatedOn = DateTime.Now;
 
                 await CreateMovementAsync(model, -model.Quantity);
+                await AddAdjustmentAuditAsync(model, oldQuantity, stock.Quantity);
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
@@ -512,6 +556,7 @@ namespace WarehouseManagment.Services
             {
                 await ValidateReferencesAsync(model);
                 var stock = await GetOrCreateStockAsync(model);
+                var oldQuantity = stock.Quantity;
                 var difference = model.Quantity - stock.Quantity;
 
                 if (difference == 0)
@@ -524,6 +569,7 @@ namespace WarehouseManagment.Services
                 stock.LastUpdatedOn = DateTime.Now;
 
                 await CreateMovementAsync(model, difference);
+                await AddAdjustmentAuditAsync(model, oldQuantity, stock.Quantity);
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
@@ -532,6 +578,25 @@ namespace WarehouseManagment.Services
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        private async Task AddAdjustmentAuditAsync(MaterialStockChangeModel model, decimal oldQuantity, decimal newQuantity)
+        {
+            if (model.MovementType != MovementType.Adjustment)
+            {
+                return;
+            }
+
+            await _auditLogService.AddAsync(new AuditLogEntryModel
+            {
+                ActionType = AuditActionType.Adjustment,
+                EntityType = "Material",
+                EntityId = model.MaterialId,
+                DocumentNumber = model.ReferenceNumber,
+                Description = $"Коригирана наличност на материал. Документ {model.ReferenceNumber}.",
+                OldValues = ToJson(new { Quantity = oldQuantity }),
+                NewValues = ToJson(new { Quantity = newQuantity, model.WarehouseId, model.WarehouseLocationId, model.MaterialBatchId })
+            });
         }
 
         private static MaterialStockChangeModel CreateAdjustmentChangeModel(MaterialStockAdjustmentModel model, decimal quantity, string documentNumber)
@@ -869,7 +934,7 @@ namespace WarehouseManagment.Services
                 ReferenceNumber = model.ReferenceNumber,
                 BatchNumber = model.BatchNumber,
                 LotNumber = model.LotNumber,
-                UserId = model.UserId ?? GetCurrentUserId(),
+                UserId = model.UserId ?? _currentUserService.UserId,
                 Notes = model.Notes
             };
 
@@ -909,9 +974,9 @@ namespace WarehouseManagment.Services
             }
         }
 
-        private string? GetCurrentUserId()
+        private static string ToJson(object value)
         {
-            return _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return JsonSerializer.Serialize(value);
         }
     }
 }
