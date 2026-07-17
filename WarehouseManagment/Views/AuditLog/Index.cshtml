@@ -94,9 +94,9 @@
 
 <nav aria-label="Audit log pagination">
     <ul class="pagination">
-        @for (var page = 1; page <= Model.TotalPages; page++)
+        @for (var pageNumber = 1; pageNumber <= Model.TotalPages; pageNumber++)
         {
-            <li class="page-item @(page == Model.Filter.Page ? "active" : string.Empty)">
+            <li class="page-item @(pageNumber == Model.Filter.Page ? "active" : string.Empty)">
                 <a class="page-link"
                    asp-action="Index"
                    asp-route-DateFrom="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")"
@@ -105,8 +105,8 @@
                    asp-route-ActionType="@Model.Filter.ActionType"
                    asp-route-EntityType="@Model.Filter.EntityType"
                    asp-route-DocumentNumber="@Model.Filter.DocumentNumber"
-                   asp-route-Page="@page"
-                   asp-route-PageSize="@Model.Filter.PageSize">@page</a>
+                   asp-route-Page="@pageNumber"
+                   asp-route-PageSize="@Model.Filter.PageSize">@pageNumber</a>
             </li>
         }
     </ul>
