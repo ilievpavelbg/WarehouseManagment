@@ -20,6 +20,7 @@ namespace WarehouseManagment.Data
         public DbSet<WarehouseLocation> WarehouseLocations { get; set; }
         public DbSet<WarehouseSettings> WarehouseSettings { get; set; }
         public DbSet<DocumentSequence> DocumentSequences { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<InventoryMovement> InventoryMovements { get; set; }
         public DbSet<Material> Materials { get; set; }
         public DbSet<MaterialCategory> MaterialCategories { get; set; }
@@ -43,6 +44,21 @@ namespace WarehouseManagment.Data
             builder.Entity<DocumentSequence>()
                 .HasIndex(x => new { x.DocumentType, x.Year })
                 .IsUnique();
+
+            builder.Entity<AuditLog>()
+                .HasIndex(x => x.CreatedOn);
+
+            builder.Entity<AuditLog>()
+                .HasIndex(x => x.UserId);
+
+            builder.Entity<AuditLog>()
+                .HasIndex(x => x.ActionType);
+
+            builder.Entity<AuditLog>()
+                .HasIndex(x => x.EntityType);
+
+            builder.Entity<AuditLog>()
+                .HasIndex(x => x.DocumentNumber);
 
             builder.Entity<WarehouseSettings>()
                 .HasOne(x => x.DefaultMaterialWarehouse)
