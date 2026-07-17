@@ -18,7 +18,7 @@
         var masterDataControllers = new[] { "MaterialCategory", "UnitOfMeasure", "Supplier" };
         var isHomeActive = string.Equals(currentController, "Home", StringComparison.OrdinalIgnoreCase);
         var isSalesActive = salesControllers.Contains(currentController);
-        var isWmsActive = wmsControllers.Contains(currentController) || isHomeActive;
+        var isWmsActive = wmsControllers.Contains(currentController);
         var isMasterDataActive = masterDataControllers.Contains(currentController);
     }
     <header>
