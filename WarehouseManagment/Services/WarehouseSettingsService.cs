@@ -1,4 +1,4 @@
-using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
@@ -9,12 +9,17 @@ namespace WarehouseManagment.Services
     public class WarehouseSettingsService : IWarehouseSettingsService
     {
         private readonly ApplicationDbContext _dbContext;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ICurrentUserService _currentUserService;
+        private readonly IAuditLogService _auditLogService;
 
-        public WarehouseSettingsService(ApplicationDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+        public WarehouseSettingsService(
+            ApplicationDbContext dbContext,
+            ICurrentUserService currentUserService,
+            IAuditLogService auditLogService)
         {
             _dbContext = dbContext;
-            _httpContextAccessor = httpContextAccessor;
+            _currentUserService = currentUserService;
+            _auditLogService = auditLogService;
         }
 
         public async Task<WarehouseSettingsModel> GetSettingsAsync()
@@ -51,12 +56,30 @@ namespace WarehouseManagment.Services
             await ValidateWarehouseAsync(model.DefaultFinishedGoodsWarehouseId, "Избраният склад готова продукция не съществува или не е активен.");
 
             var settings = await GetOrCreateSettingsAsync();
+            var oldValues = await BuildSettingsAuditValuesAsync(
+                settings.DefaultMaterialWarehouseId,
+                settings.DefaultWipWarehouseId,
+                settings.DefaultFinishedGoodsWarehouseId);
+            var newValues = await BuildSettingsAuditValuesAsync(
+                model.DefaultMaterialWarehouseId,
+                model.DefaultWipWarehouseId,
+                model.DefaultFinishedGoodsWarehouseId);
+
             settings.DefaultMaterialWarehouseId = model.DefaultMaterialWarehouseId;
             settings.DefaultWipWarehouseId = model.DefaultWipWarehouseId;
             settings.DefaultFinishedGoodsWarehouseId = model.DefaultFinishedGoodsWarehouseId;
             settings.UpdatedOn = DateTime.Now;
-            settings.UpdatedByUserId = GetCurrentUserId();
+            settings.UpdatedByUserId = _currentUserService.UserId;
 
+            await _auditLogService.AddAsync(new AuditLogEntryModel
+            {
+                ActionType = AuditActionType.SettingsChange,
+                EntityType = "WarehouseSettings",
+                EntityId = settings.Id,
+                Description = "Променени настройки за основни складове.",
+                OldValues = JsonSerializer.Serialize(oldValues),
+                NewValues = JsonSerializer.Serialize(newValues)
+            });
             await _dbContext.SaveChangesAsync();
         }
 
@@ -109,7 +132,7 @@ namespace WarehouseManagment.Services
             settings = new WarehouseSettings
             {
                 UpdatedOn = DateTime.Now,
-                UpdatedByUserId = GetCurrentUserId()
+                UpdatedByUserId = _currentUserService.UserId
             };
 
             await _dbContext.Set<WarehouseSettings>().AddAsync(settings);
@@ -135,9 +158,34 @@ namespace WarehouseManagment.Services
             }
         }
 
-        private string? GetCurrentUserId()
+        private async Task<object> BuildSettingsAuditValuesAsync(int? materialWarehouseId, int? wipWarehouseId, int? finishedGoodsWarehouseId)
         {
-            return _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var ids = new[] { materialWarehouseId, wipWarehouseId, finishedGoodsWarehouseId }
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
+                .Distinct()
+                .ToList();
+            var warehouses = await _dbContext.Warehouses
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => $"{x.Code} - {x.Name}");
+
+            return new
+            {
+                DefaultMaterialWarehouseId = materialWarehouseId,
+                DefaultMaterialWarehouse = GetWarehouseName(warehouses, materialWarehouseId),
+                DefaultWipWarehouseId = wipWarehouseId,
+                DefaultWipWarehouse = GetWarehouseName(warehouses, wipWarehouseId),
+                DefaultFinishedGoodsWarehouseId = finishedGoodsWarehouseId,
+                DefaultFinishedGoodsWarehouse = GetWarehouseName(warehouses, finishedGoodsWarehouseId)
+            };
+        }
+
+        private static string? GetWarehouseName(Dictionary<int, string> warehouses, int? warehouseId)
+        {
+            return warehouseId.HasValue && warehouses.TryGetValue(warehouseId.Value, out var name)
+                ? name
+                : null;
         }
     }
 }
