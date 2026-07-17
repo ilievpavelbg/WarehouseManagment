@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
 using System.Globalization;
+using System.Text.Json;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
@@ -12,11 +13,16 @@ namespace WarehouseManagment.Services
     {
         private readonly IRepository _repository;
         private readonly IMaterialStockService _materialStockService;
+        private readonly IAuditLogService _auditLogService;
 
-        public MaterialMasterService(IRepository repository, IMaterialStockService materialStockService)
+        public MaterialMasterService(
+            IRepository repository,
+            IMaterialStockService materialStockService,
+            IAuditLogService auditLogService)
         {
             _repository = repository;
             _materialStockService = materialStockService;
+            _auditLogService = auditLogService;
         }
 
         public async Task<List<Material>> GetMaterialsAsync()
@@ -148,6 +154,13 @@ namespace WarehouseManagment.Services
             };
 
             await _repository.AddAsync(material);
+            await _auditLogService.AddAsync(new AuditLogEntryModel
+            {
+                ActionType = AuditActionType.Create,
+                EntityType = "Material",
+                Description = $"Създаден материал {material.Code} - {material.Name}.",
+                NewValues = ToJson(BuildMaterialAuditValues(material))
+            });
             await _repository.SaveChangesAsync();
         }
 
@@ -163,6 +176,7 @@ namespace WarehouseManagment.Services
             await ValidateMaterialReferencesAsync(model);
             var code = NormalizeCode(model.Code);
             await EnsureMaterialCodeIsUniqueAsync(code, model.Id);
+            var oldValues = BuildMaterialAuditValues(material);
 
             material.Code = code;
             material.Name = model.Name.Trim();
@@ -178,6 +192,15 @@ namespace WarehouseManagment.Services
             material.IsActive = model.IsActive;
             material.UpdatedOn = DateTime.Now;
 
+            await _auditLogService.AddAsync(new AuditLogEntryModel
+            {
+                ActionType = AuditActionType.Update,
+                EntityType = "Material",
+                EntityId = material.Id,
+                Description = $"Редактиран материал {material.Code} - {material.Name}.",
+                OldValues = ToJson(oldValues),
+                NewValues = ToJson(BuildMaterialAuditValues(material))
+            });
             await _repository.SaveChangesAsync();
         }
 
@@ -335,6 +358,23 @@ namespace WarehouseManagment.Services
                     summary.Errors.Add($"Row {row}: {ex.Message}");
                 }
             }
+
+            await _auditLogService.SaveStandaloneAsync(new AuditLogEntryModel
+            {
+                ActionType = AuditActionType.Import,
+                EntityType = "Material",
+                Description = $"Импорт на материали от Excel. Създадени: {summary.Created}, обновени: {summary.Updated}, пропуснати: {summary.Skipped}, грешки: {summary.Errors.Count}.",
+                NewValues = ToJson(new
+                {
+                    summary.Created,
+                    summary.Updated,
+                    summary.Skipped,
+                    ErrorCount = summary.Errors.Count,
+                    WarningCount = summary.Warnings.Count,
+                    Errors = summary.Errors.Take(20).ToList(),
+                    Warnings = summary.Warnings
+                })
+            });
 
             return summary;
         }
@@ -919,6 +959,31 @@ namespace WarehouseManagment.Services
         private static string? NormalizeOptional(string? value)
         {
             return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+
+        private static object BuildMaterialAuditValues(Material material)
+        {
+            return new
+            {
+                material.Id,
+                material.Code,
+                material.Name,
+                material.Description,
+                material.MaterialCategoryId,
+                material.UnitOfMeasureId,
+                material.SupplierId,
+                material.StandardCost,
+                material.Barcode,
+                material.MinimumStock,
+                material.IsBatchTracked,
+                material.IsLotTracked,
+                material.IsActive
+            };
+        }
+
+        private static string ToJson(object value)
+        {
+            return JsonSerializer.Serialize(value);
         }
     }
 }
