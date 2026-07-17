@@ -30,7 +30,7 @@
                 <option value="">Всички</option>
                 @foreach (var actionType in Model.ActionTypes)
                 {
-                    <option value="@actionType">@actionType</option>
+                    <option value="@actionType">@GetActionLabel(actionType)</option>
                 }
             </select>
         </div>
@@ -111,3 +111,23 @@
         }
     </ul>
 </nav>
+
+@functions {
+    private static string GetActionLabel(AuditActionType actionType)
+    {
+        return actionType switch
+        {
+            AuditActionType.Create => "Създаване",
+            AuditActionType.Update => "Редакция",
+            AuditActionType.Delete => "Изтриване",
+            AuditActionType.Receive => "Приемане",
+            AuditActionType.Transfer => "Преместване",
+            AuditActionType.Adjustment => "Корекция",
+            AuditActionType.SettingsChange => "Промяна настройки",
+            AuditActionType.Import => "Импорт",
+            AuditActionType.Login => "Вход",
+            AuditActionType.Logout => "Изход",
+            _ => actionType.ToString()
+        };
+    }
+}
