@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using WarehouseManagment.Constants;
 using WarehouseManagment.Interfaces;
 
 namespace WarehouseManagment.Controllers
 {
-
+    [Authorize(Policy = ApplicationPolicies.RequireWarehouseReadOnly)]
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
@@ -21,15 +23,10 @@ namespace WarehouseManagment.Controllers
             return View(model);
         }
 
+        [AllowAnonymous]
         public IActionResult Privacy()
         {
             return View();
         }
-
-        //[ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        //public IActionResult Error()
-        //{
-        //    return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        //}
     }
 }

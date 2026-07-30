@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WarehouseManagment.Constants;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
 
 namespace WarehouseManagment.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = ApplicationPolicies.RequireWarehouseReadOnly)]
     public class MaterialStockCardController : Controller
     {
         private readonly IMaterialStockCardQueryService _materialStockCardQueryService;

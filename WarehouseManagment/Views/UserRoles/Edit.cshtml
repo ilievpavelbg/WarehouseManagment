@@ -1,0 +1,45 @@
+@model UserRoleEditModel
+
+@{
+    ViewData["Title"] = "Редакция на роли";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<form asp-controller="UserRoles" asp-action="Edit" method="post">
+    <input type="hidden" asp-for="UserId" />
+    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+    <div class="mb-3">
+        <label class="form-label">Потребител</label>
+        <input class="form-control" value="@Model.UserName" readonly />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input class="form-control" value="@Model.Email" readonly />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Роли</label>
+        @foreach (var role in Model.AllRoles)
+        {
+            <div class="form-check">
+                <input class="form-check-input"
+                       type="checkbox"
+                       name="SelectedRoles"
+                       value="@role"
+                       id="role_@role"
+                       checked="@Model.SelectedRoles.Contains(role)" />
+                <label class="form-check-label" for="role_@role">@role</label>
+            </div>
+        }
+    </div>
+
+    <button type="submit" class="btn btn-primary">Запази</button>
+    <a class="btn btn-outline-secondary" asp-controller="UserRoles" asp-action="Index">Назад</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

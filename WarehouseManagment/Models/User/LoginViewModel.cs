@@ -12,6 +12,7 @@ namespace WarehouseManagment.Models.User
         [Required]
         [DataType(DataType.Password)]
         public string Password { get; set; } = null!;
+        public bool RememberMe { get; set; }
         public string? Response { get; set; } = null!;
         public bool Success { get; set; }
         public ReCaptchaSettings? captchaSettings { get; set; }

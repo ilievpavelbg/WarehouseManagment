@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WarehouseManagment.Constants;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
 
 namespace WarehouseManagment.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = ApplicationPolicies.RequireAuditLogAccess)]
     public class AuditLogController : Controller
     {
         private readonly IAuditLogQueryService _auditLogQueryService;

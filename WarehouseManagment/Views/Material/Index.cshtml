@@ -4,6 +4,11 @@
     ViewData["Title"] = "Материали";
     var importWarnings = TempData["MaterialImportWarnings"]?.ToString()?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
     var importErrors = TempData["MaterialImportErrors"]?.ToString()?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+    var isAdministrator = User.IsInRole(ApplicationRoles.Administrator);
+    var isWarehouseManager = User.IsInRole(ApplicationRoles.WarehouseManager);
+    var isWarehouseOperator = User.IsInRole(ApplicationRoles.WarehouseOperator);
+    var canManageWarehouse = isAdministrator || isWarehouseManager;
+    var canChangeStock = canManageWarehouse || isWarehouseOperator;
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
@@ -23,21 +28,24 @@
     <div class="alert alert-success">@TempData["MaterialStockAdjustmentMessage"]</div>
 }
 
-<div class="mb-3">
-    <a class="btn btn-primary" asp-controller="Material" asp-action="Create">Нов материал</a>
-</div>
-
-<form asp-controller="Material" asp-action="Import" method="post" enctype="multipart/form-data" class="mb-3">
-    <div class="row align-items-end">
-        <div class="col-md-6">
-            <label for="excelFile" class="form-label">Импорт от Excel</label>
-            <input id="excelFile" name="excelFile" type="file" accept=".xlsx" class="form-control" />
-        </div>
-        <div class="col-md-3">
-            <button type="submit" class="btn btn-outline-primary">Импортирай</button>
-        </div>
+@if (canManageWarehouse)
+{
+    <div class="mb-3">
+        <a class="btn btn-primary" asp-controller="Material" asp-action="Create">Нов материал</a>
     </div>
-</form>
+
+    <form asp-controller="Material" asp-action="Import" method="post" enctype="multipart/form-data" class="mb-3">
+        <div class="row align-items-end">
+            <div class="col-md-6">
+                <label for="excelFile" class="form-label">Импорт от Excel</label>
+                <input id="excelFile" name="excelFile" type="file" accept=".xlsx" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-outline-primary">Импортирай</button>
+            </div>
+        </div>
+    </form>
+}
 
 <form asp-controller="Material" asp-action="Index" method="get" class="mb-3">
     <div class="row align-items-end">
@@ -148,10 +156,19 @@ else
                     <td>@(material.IsActive ? "Да" : "Не")</td>
                     <td>
                         <a class="btn btn-sm btn-outline-info" asp-controller="MaterialStockCard" asp-action="Index" asp-route-id="@material.Id">Картон</a>
-                        <a class="btn btn-sm btn-outline-primary" asp-controller="Material" asp-action="Edit" asp-route-id="@material.Id">Редакция</a>
-                        <a class="btn btn-sm btn-primary" asp-controller="Material" asp-action="Receive" asp-route-id="@material.Id">Приемане</a>
-                        <a class="btn btn-sm btn-outline-primary" asp-controller="Material" asp-action="Transfer" asp-route-id="@material.Id">Преместване</a>
-                        <a class="btn btn-sm btn-outline-secondary" asp-controller="Material" asp-action="AdjustStock" asp-route-id="@material.Id">Корекция наличност</a>
+                        @if (canManageWarehouse)
+                        {
+                            <a class="btn btn-sm btn-outline-primary" asp-controller="Material" asp-action="Edit" asp-route-id="@material.Id">Редакция</a>
+                        }
+                        @if (canChangeStock)
+                        {
+                            <a class="btn btn-sm btn-primary" asp-controller="Material" asp-action="Receive" asp-route-id="@material.Id">Приемане</a>
+                            <a class="btn btn-sm btn-outline-primary" asp-controller="Material" asp-action="Transfer" asp-route-id="@material.Id">Преместване</a>
+                        }
+                        @if (canManageWarehouse)
+                        {
+                            <a class="btn btn-sm btn-outline-secondary" asp-controller="Material" asp-action="AdjustStock" asp-route-id="@material.Id">Корекция наличност</a>
+                        }
                     </td>
                 </tr>
             }

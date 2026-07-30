@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using WarehouseManagment.Constants;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
 
@@ -19,6 +20,7 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = ApplicationPolicies.RequireWarehouseReadOnly)]
         public async Task<IActionResult> Index(int? categoryId, int? supplierId, bool lowStockOnly = false, bool activeOnly = true)
         {
             var model = await _materialMasterService.GetMaterialIndexAsync(categoryId, supplierId, lowStockOnly, activeOnly);
@@ -27,6 +29,7 @@ namespace WarehouseManagment.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = ApplicationPolicies.RequireMasterDataWrite)]
         public async Task<IActionResult> Import(IFormFile? excelFile)
         {
             var summary = await _materialMasterService.ImportMaterialsFromExcelAsync(excelFile);
@@ -40,6 +43,7 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = ApplicationPolicies.RequireWarehouseStockChange)]
         public async Task<IActionResult> Receive(int id)
         {
             try
@@ -55,6 +59,7 @@ namespace WarehouseManagment.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = ApplicationPolicies.RequireWarehouseStockChange)]
         public async Task<IActionResult> Receive(GoodsReceiptModel model)
         {
             if (!ModelState.IsValid)
@@ -78,6 +83,7 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = ApplicationPolicies.RequireWarehouseStockChange)]
         public async Task<IActionResult> Transfer(int id)
         {
             try
@@ -93,6 +99,7 @@ namespace WarehouseManagment.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = ApplicationPolicies.RequireWarehouseStockChange)]
         public async Task<IActionResult> Transfer(MaterialTransferModel model)
         {
             if (!ModelState.IsValid)
@@ -116,6 +123,7 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = ApplicationPolicies.RequireWarehouseConfiguration)]
         public async Task<IActionResult> AdjustStock(int id)
         {
             try
@@ -131,6 +139,7 @@ namespace WarehouseManagment.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = ApplicationPolicies.RequireWarehouseConfiguration)]
         public async Task<IActionResult> AdjustStock(MaterialStockAdjustmentModel model)
         {
             if (!ModelState.IsValid)
@@ -154,6 +163,7 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = ApplicationPolicies.RequireMasterDataWrite)]
         public async Task<IActionResult> Create()
         {
             await PrepareSelectListsAsync(null, null, null);
@@ -162,6 +172,7 @@ namespace WarehouseManagment.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = ApplicationPolicies.RequireMasterDataWrite)]
         public async Task<IActionResult> Create(MaterialModel model)
         {
             if (!ModelState.IsValid)
@@ -184,6 +195,7 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = ApplicationPolicies.RequireMasterDataWrite)]
         public async Task<IActionResult> Edit(int id)
         {
             try
@@ -201,6 +213,7 @@ namespace WarehouseManagment.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = ApplicationPolicies.RequireMasterDataWrite)]
         public async Task<IActionResult> Edit(MaterialModel model)
         {
             if (!ModelState.IsValid)

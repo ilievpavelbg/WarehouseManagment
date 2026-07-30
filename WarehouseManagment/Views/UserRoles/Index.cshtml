@@ -1,0 +1,52 @@
+@model IList<UserRoleListModel>
+
+@{
+    ViewData["Title"] = "Потребители и роли";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+@if (TempData["UserRolesMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["UserRolesMessage"]</div>
+}
+
+<div class="alert alert-info">
+    Достъпът до тази страница е ограничен до Administrator. Промените в ролите се записват в одит лога.
+</div>
+
+<table class="table table-striped table-bordered">
+    <thead>
+        <tr>
+            <th>Потребител</th>
+            <th>Email</th>
+            <th>Роли</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in Model)
+        {
+            <tr>
+                <td>@user.UserName</td>
+                <td>@user.Email</td>
+                <td>
+                    @if (user.Roles.Any())
+                    {
+                        foreach (var role in user.Roles.OrderBy(x => x))
+                        {
+                            <span class="badge bg-secondary me-1">@role</span>
+                        }
+                    }
+                    else
+                    {
+                        <span class="text-muted">Няма зададени роли</span>
+                    }
+                </td>
+                <td class="text-end">
+                    <a class="btn btn-sm btn-outline-primary" asp-controller="UserRoles" asp-action="Edit" asp-route-id="@user.UserId">Редакция</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

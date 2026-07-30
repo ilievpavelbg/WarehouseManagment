@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System.Security.Claims;
 using WarehouseManagment.Data;
+using WarehouseManagment.Constants;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
 using WarehouseManagment.Models.User;
@@ -18,19 +19,22 @@ namespace WarehouseManagment.Controllers
         private readonly ILoginHistoryService _loginHistoryService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ReCaptchaSettings _reCaptchaSettings;
+        private readonly ILogger<UserController> _logger;
 
         public UserController(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             ILoginHistoryService loginHistoryService,
             IHttpContextAccessor httpContextAccessor,
-            ReCaptchaSettings reCaptchaSettings)
+            ReCaptchaSettings reCaptchaSettings,
+            ILogger<UserController> logger)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _loginHistoryService = loginHistoryService;
             _httpContextAccessor = httpContextAccessor;
             _reCaptchaSettings = reCaptchaSettings;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -90,8 +94,11 @@ namespace WarehouseManagment.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult Login()
+        public IActionResult Login(string? returnUrl)
         {
+            ViewData["ReturnUrl"] = returnUrl;
+            ViewData["ProtectedPageMessage"] = !string.IsNullOrWhiteSpace(returnUrl);
+
             var model = new LoginViewModel
             {
                 captchaSettings = _reCaptchaSettings
@@ -105,6 +112,8 @@ namespace WarehouseManagment.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl, [Bind(Prefix = "g-recaptcha-response")] string? recaptchaResponse)
         {
+            ViewData["ReturnUrl"] = returnUrl;
+            ViewData["ProtectedPageMessage"] = !string.IsNullOrWhiteSpace(returnUrl);
 
             model.Response = recaptchaResponse;
             model.captchaSettings = _reCaptchaSettings;
@@ -114,21 +123,25 @@ namespace WarehouseManagment.Controllers
                 return View(model);
             }
 
-            if (!await VerifyRecaptcha(model.Response, model.captchaSettings.Secret))
+            if (!await VerifyRecaptcha(model.Response ?? string.Empty, model.captchaSettings.Secret))
             {
                 ModelState.AddModelError("", "Трябва да потвърдите, че не сте робот.");
                 return View(model);
             }
 
-            var user = await _userManager.FindByNameAsync(model.UserName);
+            var user = await FindUserForLoginAsync(model.UserName);
 
             if (user != null)
             {
-                var result = await _signInManager.PasswordSignInAsync(user, model.Password, false, false);
+                var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, false);
 
                 if (result.Succeeded)
                 {
                     await _loginHistoryService.UserLoginTime(user.Id);
+                    _logger.LogInformation(
+                        "User {UserName} logged in. Administrator role: {IsAdministrator}.",
+                        user.UserName,
+                        await _userManager.IsInRoleAsync(user, ApplicationRoles.Administrator));
 
                     if (!string.IsNullOrEmpty(returnUrl))
                     {
@@ -144,15 +157,50 @@ namespace WarehouseManagment.Controllers
             return View(model);
         }
 
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult AccessDenied()
+        {
+            return View();
+        }
+
         public async Task<IActionResult> Logout()
         {
-            var userId = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            var userId = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            await _loginHistoryService.UserLogoutTime(userId);
+            if (!string.IsNullOrWhiteSpace(userId))
+            {
+                await _loginHistoryService.UserLogoutTime(userId);
+            }
 
             await _signInManager.SignOutAsync();
 
             return RedirectToAction("Index", "Home", new { area = "default" });
+        }
+
+        private async Task<ApplicationUser?> FindUserForLoginAsync(string userNameOrEmail)
+        {
+            var user = await _userManager.FindByNameAsync(userNameOrEmail);
+
+            if (user != null)
+            {
+                return user;
+            }
+
+            user = await _userManager.FindByEmailAsync(userNameOrEmail);
+
+            if (user != null)
+            {
+                return user;
+            }
+
+            var normalizedValue = userNameOrEmail.ToUpperInvariant();
+
+            return _userManager.Users.FirstOrDefault(x =>
+                x.UserName != null && x.UserName.ToUpper() == normalizedValue ||
+                x.Email != null && x.Email.ToUpper() == normalizedValue ||
+                x.NormalizedUserName != null && x.NormalizedUserName == normalizedValue ||
+                x.NormalizedEmail != null && x.NormalizedEmail == normalizedValue);
         }
 
         private async Task<bool> VerifyRecaptcha(string recaptchaResponse, string secret)

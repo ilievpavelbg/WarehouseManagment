@@ -1,29 +1,53 @@
 ﻿@model LoginViewModel
 
 @{
-    ViewData["Title"] = "Вход за регистрирани потребители";
+    ViewData["Title"] = "Вход";
+    var returnUrl = ViewData["ReturnUrl"] as string;
+    var showProtectedPageMessage = ViewData["ProtectedPageMessage"] as bool? == true;
 }
 
 <h2 class="text-center">@ViewData["Title"]</h2>
+<p class="text-center text-muted">Влезте в своя профил</p>
 
 <div class="row mt-5">
     <div class="col-md-4 offset-md-4">
         <section>
-            <form id="account" method="post">
+            @if (showProtectedPageMessage)
+            {
+                <div class="alert alert-info">
+                    За достъп до тази страница е необходимо да влезете в профила си. Ако нямате профил, можете да се регистрирате.
+                </div>
+                <div class="mb-3 d-flex gap-2 justify-content-center">
+                    <a class="btn btn-primary" asp-controller="User" asp-action="Login" asp-route-returnUrl="@returnUrl">Вход</a>
+                    <a class="btn btn-outline-primary" asp-controller="User" asp-action="Register">Регистрация</a>
+                </div>
+            }
+
+            <form id="account" asp-controller="User" asp-action="Login" asp-route-returnUrl="@returnUrl" method="post">
                 @Html.AntiForgeryToken()
                 <div asp-validation-summary="ModelOnly" class="text-danger"></div>
                 <div class="text-center mb-3">
-                    <input asp-for="@Model.UserName" class="form-control" autocomplete="username" aria-required="true" placeholder="Потребителско име" />
+                    <input asp-for="@Model.UserName" class="form-control" autocomplete="username" aria-required="true" placeholder="Потребителско име или имейл" />
                     <span asp-validation-for="@Model.UserName" class="text-danger"></span>
                 </div>
                 <div class="text-center mb-3">
                     <input asp-for="@Model.Password" type="password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="Парола" />
                     <span asp-validation-for="@Model.Password" class="text-danger"></span>
                 </div>
+                <div class="form-check mb-3">
+                    <input asp-for="@Model.RememberMe" class="form-check-input" />
+                    <label asp-for="@Model.RememberMe" class="form-check-label">Запомни ме</label>
+                </div>
                 <div class="g-recaptcha" data-sitekey="@Model.captchaSettings?.Key"></div>
                 
                 <div class="text-center mt-5">
-                    <button type="submit" class="btn btn-primary">ВХОД</button>
+                    <button type="submit" class="btn btn-primary">Вход</button>
+                </div>
+                <div class="text-center mt-3">
+                    <a asp-controller="User" asp-action="Register">Регистрация на нов потребител</a>
+                </div>
+                <div class="text-center mt-2">
+                    <span class="text-muted">Забравена парола?</span>
                 </div>
             </form>
         </section>

@@ -16,10 +16,19 @@
         var salesControllers = new[] { "Product", "Sale", "Courier" };
         var wmsControllers = new[] { "Warehouse", "WarehouseSettings", "Material", "StockInquiry", "LowStock", "InventoryMovement", "AuditLog" };
         var masterDataControllers = new[] { "MaterialCategory", "UnitOfMeasure", "Supplier" };
+        var adminControllers = new[] { "UserRoles" };
         var isHomeActive = string.Equals(currentController, "Home", StringComparison.OrdinalIgnoreCase);
         var isSalesActive = salesControllers.Contains(currentController);
         var isWmsActive = wmsControllers.Contains(currentController);
         var isMasterDataActive = masterDataControllers.Contains(currentController);
+        var isAdminActive = adminControllers.Contains(currentController);
+        var isAdministrator = User.IsInRole(ApplicationRoles.Administrator);
+        var isWarehouseManager = User.IsInRole(ApplicationRoles.WarehouseManager);
+        var isWarehouseOperator = User.IsInRole(ApplicationRoles.WarehouseOperator);
+        var isReadOnly = User.IsInRole(ApplicationRoles.ReadOnly);
+        var canManageWarehouse = isAdministrator || isWarehouseManager;
+        var canReadWarehouse = canManageWarehouse || isWarehouseOperator || isReadOnly;
+        var canViewLowStock = canManageWarehouse || isReadOnly;
     }
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
@@ -30,12 +39,15 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between" id="navbarColor01">
-                    @if (User.Identity.IsAuthenticated)
+                    @if (User.Identity?.IsAuthenticated == true)
                     {
                         <ul class="navbar-nav me-auto mb-2 mb-lg-0 flex-nowrap">
-                            <li class="nav-item">
-                                <a class="nav-link @(isHomeActive ? "active" : string.Empty)" asp-area="" asp-controller="Home" asp-action="Index">Начало</a>
-                            </li>
+                            @if (canReadWarehouse)
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link @(isHomeActive ? "active" : string.Empty)" asp-area="" asp-controller="Home" asp-action="Index">Начало</a>
+                                </li>
+                            }
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle @(isSalesActive ? "active" : string.Empty)" href="#" id="salesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     Продажби
@@ -48,31 +60,57 @@
                                     <li><a class="dropdown-item" asp-area="" asp-controller="Courier" asp-action="AllCouriers">Отчет куриери</a></li>
                                 </ul>
                             </li>
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(isWmsActive ? "active" : string.Empty)" href="#" id="wmsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Склад
-                                </a>
-                                <ul class="dropdown-menu" aria-labelledby="wmsDropdown">
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="Home" asp-action="Index">WMS табло</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="Warehouse" asp-action="Index">Складове</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="WarehouseSettings" asp-action="Index">Настройки складове</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="Material" asp-action="Index">Материали</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="StockInquiry" asp-action="Index">Наличности</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="LowStock" asp-action="Index">Под минимум</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="InventoryMovement" asp-action="Index">Движения склад</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="AuditLog" asp-action="Index">Одит лог</a></li>
-                                </ul>
-                            </li>
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(isMasterDataActive ? "active" : string.Empty)" href="#" id="masterDataDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Номенклатури
-                                </a>
-                                <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="MaterialCategory" asp-action="Index">Категории материали</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="UnitOfMeasure" asp-action="Index">Мерни единици</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="Supplier" asp-action="Index">Доставчици</a></li>
-                                </ul>
-                            </li>
+                            @if (canReadWarehouse)
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle @(isWmsActive ? "active" : string.Empty)" href="#" id="wmsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Склад
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="wmsDropdown">
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Home" asp-action="Index">WMS табло</a></li>
+                                        @if (canManageWarehouse)
+                                        {
+                                            <li><a class="dropdown-item" asp-area="" asp-controller="Warehouse" asp-action="Index">Складове</a></li>
+                                            <li><a class="dropdown-item" asp-area="" asp-controller="WarehouseSettings" asp-action="Index">Настройки складове</a></li>
+                                        }
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Material" asp-action="Index">Материали</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="StockInquiry" asp-action="Index">Наличности</a></li>
+                                        @if (canViewLowStock)
+                                        {
+                                            <li><a class="dropdown-item" asp-area="" asp-controller="LowStock" asp-action="Index">Под минимум</a></li>
+                                        }
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="InventoryMovement" asp-action="Index">Движения склад</a></li>
+                                        @if (canManageWarehouse)
+                                        {
+                                            <li><a class="dropdown-item" asp-area="" asp-controller="AuditLog" asp-action="Index">Одит лог</a></li>
+                                        }
+                                    </ul>
+                                </li>
+                            }
+                            @if (canManageWarehouse)
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle @(isMasterDataActive ? "active" : string.Empty)" href="#" id="masterDataDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Номенклатури
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="MaterialCategory" asp-action="Index">Категории материали</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="UnitOfMeasure" asp-action="Index">Мерни единици</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Supplier" asp-action="Index">Доставчици</a></li>
+                                    </ul>
+                                </li>
+                            }
+                            @if (isAdministrator)
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle @(isAdminActive ? "active" : string.Empty)" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Администрация
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="UserRoles" asp-action="Index">Потребители и роли</a></li>
+                                    </ul>
+                                </li>
+                            }
                         </ul>
                     }
                     <div class="ms-auto">

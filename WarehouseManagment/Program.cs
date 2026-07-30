@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using WarehouseManagment.Constants;
 using WarehouseManagment.Data;
 using WarehouseManagment.Factory;
 using WarehouseManagment.Interfaces;
@@ -35,6 +36,39 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/User/Login";
+    options.AccessDeniedPath = "/User/AccessDenied";
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(ApplicationPolicies.RequireAdministrator, policy =>
+        policy.RequireRole(ApplicationRoles.Administrator));
+
+    options.AddPolicy(ApplicationPolicies.RequireWarehouseManager, policy =>
+        policy.RequireRole(ApplicationRoles.Administrator, ApplicationRoles.WarehouseManager));
+
+    options.AddPolicy(ApplicationPolicies.RequireWarehouseReadOnly, policy =>
+        policy.RequireRole(ApplicationRoles.Administrator, ApplicationRoles.WarehouseManager, ApplicationRoles.WarehouseOperator, ApplicationRoles.ReadOnly));
+
+    options.AddPolicy(ApplicationPolicies.RequireWarehouseStockChange, policy =>
+        policy.RequireRole(ApplicationRoles.Administrator, ApplicationRoles.WarehouseManager, ApplicationRoles.WarehouseOperator));
+
+    options.AddPolicy(ApplicationPolicies.RequireWarehouseConfiguration, policy =>
+        policy.RequireRole(ApplicationRoles.Administrator, ApplicationRoles.WarehouseManager));
+
+    options.AddPolicy(ApplicationPolicies.RequireAuditLogAccess, policy =>
+        policy.RequireRole(ApplicationRoles.Administrator, ApplicationRoles.WarehouseManager));
+
+    options.AddPolicy(ApplicationPolicies.RequireMasterDataWrite, policy =>
+        policy.RequireRole(ApplicationRoles.Administrator, ApplicationRoles.WarehouseManager));
+
+    options.AddPolicy(ApplicationPolicies.RequireLowStockReportAccess, policy =>
+        policy.RequireRole(ApplicationRoles.Administrator, ApplicationRoles.WarehouseManager, ApplicationRoles.ReadOnly));
+});
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IRepository, Repository>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -58,9 +92,16 @@ builder.Services.AddScoped<IMaterialStockCardQueryService, MaterialStockCardQuer
 builder.Services.AddScoped<IWmsDashboardService, WmsDashboardService>();
 builder.Services.AddScoped<IMaterialMasterService, MaterialMasterService>();
 builder.Services.AddScoped<IMaterialStockService, MaterialStockService>();
+builder.Services.AddScoped<IRoleSeeder, RoleSeeder>();
 builder.Services.AddSingleton<IHttpContextAccessor,  HttpContextAccessor>();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var roleSeeder = scope.ServiceProvider.GetRequiredService<IRoleSeeder>();
+    await roleSeeder.SeedAsync();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
