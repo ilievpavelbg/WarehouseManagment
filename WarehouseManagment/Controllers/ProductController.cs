@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WarehouseManagment.Constants;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
@@ -33,7 +34,7 @@ namespace WarehouseManagment.Controllers
             return View(productsModel);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = ApplicationPolicies.RequireAdministrator)]
         [HttpGet]
         public async Task<IActionResult> Create()
         {
@@ -42,7 +43,7 @@ namespace WarehouseManagment.Controllers
             return View(model);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = ApplicationPolicies.RequireAdministrator)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ProductModel model)

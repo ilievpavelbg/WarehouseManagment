@@ -14,16 +14,13 @@ namespace WarehouseManagment.Controllers
     public class UserRolesController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IAuditLogService _auditLogService;
 
         public UserRolesController(
             UserManager<ApplicationUser> userManager,
-            RoleManager<IdentityRole> roleManager,
             IAuditLogService auditLogService)
         {
             _userManager = userManager;
-            _roleManager = roleManager;
             _auditLogService = auditLogService;
         }
 
@@ -43,7 +40,9 @@ namespace WarehouseManagment.Controllers
                     UserId = user.Id,
                     UserName = user.UserName,
                     Email = user.Email,
-                    Roles = await _userManager.GetRolesAsync(user)
+                    Roles = (await _userManager.GetRolesAsync(user))
+                        .Where(x => ApplicationRoles.All.Contains(x))
+                        .ToList()
                 });
             }
 
@@ -74,10 +73,9 @@ namespace WarehouseManagment.Controllers
                 return NotFound();
             }
 
-            var allRoles = await _roleManager.Roles
-                .Select(x => x.Name!)
+            var allRoles = ApplicationRoles.All
                 .OrderBy(x => x)
-                .ToListAsync();
+                .ToList();
 
             model.SelectedRoles = model.SelectedRoles
                 .Where(x => allRoles.Contains(x))
@@ -153,10 +151,9 @@ namespace WarehouseManagment.Controllers
             }
 
             var assignedRoles = await _userManager.GetRolesAsync(user);
-            var allRoles = await _roleManager.Roles
-                .Select(x => x.Name!)
+            var allRoles = ApplicationRoles.All
                 .OrderBy(x => x)
-                .ToListAsync();
+                .ToList();
 
             return new UserRoleEditModel
             {

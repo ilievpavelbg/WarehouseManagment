@@ -1,10 +1,14 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+@inject IWebHostEnvironment WebHostEnvironment
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - V E T E I D A -</title>
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    @if (!WebHostEnvironment.IsDevelopment())
+    {
+        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    }
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/WarehouseManagment.styles.css" asp-append-version="true" />
@@ -130,9 +134,12 @@
             &copy; 2023 - Warehouse Managment VETEIDA - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>
     </footer>
-    <script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit"
-            async defer>
-    </script>
+    @if (!WebHostEnvironment.IsDevelopment())
+    {
+        <script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit"
+                async defer>
+        </script>
+    }
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script>
         $.ajaxSetup({

@@ -34,5 +34,9 @@ namespace WarehouseManagment.Models.User
         [Required]
         [Compare(nameof(Password))]
         public string ConfirmPassword { get; set; } = null!;
+
+        public string? Response { get; set; }
+
+        public ReCaptchaSettings? captchaSettings { get; set; }
     }
 }

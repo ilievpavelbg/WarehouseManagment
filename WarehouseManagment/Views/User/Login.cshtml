@@ -4,6 +4,7 @@
     ViewData["Title"] = "Вход";
     var returnUrl = ViewData["ReturnUrl"] as string;
     var showProtectedPageMessage = ViewData["ProtectedPageMessage"] as bool? == true;
+    var renderCaptcha = ViewData["RenderCaptcha"] as bool? == true;
 }
 
 <h2 class="text-center">@ViewData["Title"]</h2>
@@ -38,7 +39,10 @@
                     <input asp-for="@Model.RememberMe" class="form-check-input" />
                     <label asp-for="@Model.RememberMe" class="form-check-label">Запомни ме</label>
                 </div>
-                <div class="g-recaptcha" data-sitekey="@Model.captchaSettings?.Key"></div>
+                @if (renderCaptcha)
+                {
+                    <div class="g-recaptcha" data-sitekey="@Model.captchaSettings?.Key"></div>
+                }
                 
                 <div class="text-center mt-5">
                     <button type="submit" class="btn btn-primary">Вход</button>

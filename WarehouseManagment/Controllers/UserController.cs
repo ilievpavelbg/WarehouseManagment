@@ -20,6 +20,7 @@ namespace WarehouseManagment.Controllers
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ReCaptchaSettings _reCaptchaSettings;
         private readonly ILogger<UserController> _logger;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
         public UserController(
             UserManager<ApplicationUser> userManager,
@@ -27,7 +28,8 @@ namespace WarehouseManagment.Controllers
             ILoginHistoryService loginHistoryService,
             IHttpContextAccessor httpContextAccessor,
             ReCaptchaSettings reCaptchaSettings,
-            ILogger<UserController> logger)
+            ILogger<UserController> logger,
+            IWebHostEnvironment webHostEnvironment)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -35,24 +37,39 @@ namespace WarehouseManagment.Controllers
             _httpContextAccessor = httpContextAccessor;
             _reCaptchaSettings = reCaptchaSettings;
             _logger = logger;
+            _webHostEnvironment = webHostEnvironment;
         }
 
         [HttpGet]
         [AllowAnonymous]
         public IActionResult Register()
         {
+            ViewData["RenderCaptcha"] = ShouldValidateCaptcha();
 
-            var model = new RegisterViewModel();
+            var model = new RegisterViewModel
+            {
+                captchaSettings = _reCaptchaSettings
+            };
 
             return View(model);
         }
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = ApplicationPolicies.RequireAdministrator)]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(RegisterViewModel model)
+        public async Task<IActionResult> Register(RegisterViewModel model, [Bind(Prefix = "g-recaptcha-response")] string? recaptchaResponse)
         {
+            ViewData["RenderCaptcha"] = ShouldValidateCaptcha();
+            model.Response = recaptchaResponse;
+            model.captchaSettings = _reCaptchaSettings;
+
             if (!ModelState.IsValid)
             {
+                return View(model);
+            }
+
+            if (ShouldValidateCaptcha() && !await VerifyRecaptcha(model.Response ?? string.Empty, model.captchaSettings.Secret))
+            {
+                ModelState.AddModelError("", "Трябва да потвърдите, че не сте робот.");
                 return View(model);
             }
 
@@ -98,6 +115,7 @@ namespace WarehouseManagment.Controllers
         {
             ViewData["ReturnUrl"] = returnUrl;
             ViewData["ProtectedPageMessage"] = !string.IsNullOrWhiteSpace(returnUrl);
+            ViewData["RenderCaptcha"] = ShouldValidateCaptcha();
 
             var model = new LoginViewModel
             {
@@ -114,6 +132,7 @@ namespace WarehouseManagment.Controllers
         {
             ViewData["ReturnUrl"] = returnUrl;
             ViewData["ProtectedPageMessage"] = !string.IsNullOrWhiteSpace(returnUrl);
+            ViewData["RenderCaptcha"] = ShouldValidateCaptcha();
 
             model.Response = recaptchaResponse;
             model.captchaSettings = _reCaptchaSettings;
@@ -123,7 +142,7 @@ namespace WarehouseManagment.Controllers
                 return View(model);
             }
 
-            if (!await VerifyRecaptcha(model.Response ?? string.Empty, model.captchaSettings.Secret))
+            if (ShouldValidateCaptcha() && !await VerifyRecaptcha(model.Response ?? string.Empty, model.captchaSettings.Secret))
             {
                 ModelState.AddModelError("", "Трябва да потвърдите, че не сте робот.");
                 return View(model);
@@ -201,6 +220,11 @@ namespace WarehouseManagment.Controllers
                 x.Email != null && x.Email.ToUpper() == normalizedValue ||
                 x.NormalizedUserName != null && x.NormalizedUserName == normalizedValue ||
                 x.NormalizedEmail != null && x.NormalizedEmail == normalizedValue);
+        }
+
+        private bool ShouldValidateCaptcha()
+        {
+            return !_webHostEnvironment.IsDevelopment();
         }
 
         private async Task<bool> VerifyRecaptcha(string recaptchaResponse, string secret)

@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Регистрация на нов потребител";
+    var renderCaptcha = ViewData["RenderCaptcha"] as bool? == true;
 }
 
 <h2 class="text-center">@ViewData["Title"]</h2>
@@ -40,6 +41,10 @@
                 <input class="form-control" type="password" autocomplete="new-password" aria-required="true" asp-for="@Model.ConfirmPassword" placeholder="Потвърдете паролата" />
                 <span asp-validation-for="@Model.ConfirmPassword" class="text-danger"></span>
             </div>
+            @if (renderCaptcha)
+            {
+                <div class="g-recaptcha mb-3" data-sitekey="@Model.captchaSettings?.Key"></div>
+            }
             <div class="text-center">
                 <button id="registerSubmit" type="submit" class="btn btn-primary">РЕГИСТРАЦИЯ</button>
             </div>
