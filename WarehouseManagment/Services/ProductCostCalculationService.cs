@@ -32,6 +32,16 @@ namespace WarehouseManagment.Services
                 .ToListAsync();
         }
 
+        public async Task<List<ProductCostCalculation>> GetByProductAsync(int productId)
+        {
+            return await _dbContext.ProductCostCalculations
+                .AsNoTracking()
+                .Include(x => x.Product)
+                .Where(x => x.ProductId == productId)
+                .OrderByDescending(x => x.Version)
+                .ToListAsync();
+        }
+
         public async Task<ProductCostCalculationModel> GetCreateModelAsync(int? productId = null)
         {
             var model = new ProductCostCalculationModel
@@ -65,12 +75,11 @@ namespace WarehouseManagment.Services
         public async Task CreateDraftAsync(ProductCostCalculationModel model)
         {
             await ValidateProductAsync(model.ProductId);
-            await EnsureVersionIsUniqueAsync(model.ProductId, model.Version, null);
 
             var calculation = new ProductCostCalculation
             {
                 ProductId = model.ProductId,
-                Version = model.Version,
+                Version = await GetNextVersionAsync(model.ProductId),
                 EffectiveDate = model.EffectiveDate,
                 IsActive = false,
                 HasBeenActivated = false,
@@ -106,12 +115,8 @@ namespace WarehouseManagment.Services
             }
 
             EnsureDraft(calculation);
-            await ValidateProductAsync(model.ProductId);
-            await EnsureVersionIsUniqueAsync(model.ProductId, model.Version, calculation.Id);
             var oldValues = ToJson(BuildAuditValues(calculation));
 
-            calculation.ProductId = model.ProductId;
-            calculation.Version = model.Version;
             calculation.EffectiveDate = model.EffectiveDate;
             calculation.Notes = NormalizeOptional(model.Notes);
             calculation.UpdatedOn = DateTime.Now;
@@ -134,6 +139,56 @@ namespace WarehouseManagment.Services
             await _dbContext.SaveChangesAsync();
         }
 
+        public async Task<int> CreateNewVersionFromActiveAsync(int activeCalculationId)
+        {
+            var activeCalculation = await _dbContext.ProductCostCalculations
+                .AsNoTracking()
+                .Include(x => x.Lines)
+                .FirstOrDefaultAsync(x => x.Id == activeCalculationId);
+
+            if (activeCalculation == null)
+            {
+                throw new ArgumentNullException(nameof(activeCalculation));
+            }
+
+            if (!activeCalculation.IsActive)
+            {
+                throw new InvalidOperationException("Нова версия може да се създаде само от активна калкулация.");
+            }
+
+            var draft = new ProductCostCalculation
+            {
+                ProductId = activeCalculation.ProductId,
+                Version = await GetNextVersionAsync(activeCalculation.ProductId),
+                EffectiveDate = DateTime.Today,
+                IsActive = false,
+                HasBeenActivated = false,
+                Notes = activeCalculation.Notes,
+                CreatedOn = DateTime.Now,
+                CreatedByUserId = _currentUserService.UserId,
+                Currency = "EUR",
+                Lines = activeCalculation.Lines.Select(x => new ProductCostCalculationLine
+                {
+                    CostComponentId = x.CostComponentId,
+                    Amount = x.Amount,
+                    Notes = x.Notes
+                }).ToList()
+            };
+
+            draft.TotalCost = draft.Lines.Sum(x => x.Amount);
+            await _dbContext.ProductCostCalculations.AddAsync(draft);
+            await _auditLogService.AddAsync(new AuditLogEntryModel
+            {
+                ActionType = AuditActionType.Create,
+                EntityType = "ProductCostCalculation",
+                Description = $"Създадена нова чернова версия {draft.Version} от активна калкулация версия {activeCalculation.Version}.",
+                NewValues = ToJson(BuildAuditValues(draft))
+            });
+            await _dbContext.SaveChangesAsync();
+
+            return draft.Id;
+        }
+
         public async Task ActivateAsync(int id)
         {
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
@@ -147,6 +202,16 @@ namespace WarehouseManagment.Services
                 if (calculation == null)
                 {
                     throw new ArgumentNullException(nameof(calculation));
+                }
+
+                if (calculation.IsActive)
+                {
+                    throw new InvalidOperationException("Калкулацията вече е активна.");
+                }
+
+                if (calculation.HasBeenActivated)
+                {
+                    throw new InvalidOperationException("Историческа версия не може да бъде активирана повторно.");
                 }
 
                 if (!calculation.Lines.Any())
@@ -266,16 +331,6 @@ namespace WarehouseManagment.Services
             }
         }
 
-        private async Task EnsureVersionIsUniqueAsync(int productId, int version, int? currentId)
-        {
-            var exists = await _dbContext.ProductCostCalculations
-                .AnyAsync(x => x.ProductId == productId && x.Version == version && (!currentId.HasValue || x.Id != currentId.Value));
-            if (exists)
-            {
-                throw new InvalidOperationException("За този артикул вече има калкулация с тази версия.");
-            }
-        }
-
         private async Task<int> GetNextVersionAsync(int productId)
         {
             var lastVersion = await _dbContext.ProductCostCalculations
@@ -297,7 +352,7 @@ namespace WarehouseManagment.Services
 
         private static void EnsureDraft(ProductCostCalculation calculation)
         {
-            if (calculation.HasBeenActivated)
+            if (calculation.IsActive || calculation.HasBeenActivated)
             {
                 throw new InvalidOperationException("Версията вече е била активна и е заключена за редакция.");
             }

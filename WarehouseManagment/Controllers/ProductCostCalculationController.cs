@@ -24,6 +24,13 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> History(int productId)
+        {
+            var calculations = await _productCostCalculationService.GetByProductAsync(productId);
+            return View(nameof(Index), calculations);
+        }
+
+        [HttpGet]
         public async Task<IActionResult> Create(int? productId)
         {
             var model = await _productCostCalculationService.GetCreateModelAsync(productId);
@@ -98,6 +105,23 @@ namespace WarehouseManagment.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateNewVersion(int id)
+        {
+            try
+            {
+                var draftId = await _productCostCalculationService.CreateNewVersionFromActiveAsync(id);
+                TempData["SuccessMessage"] = "Създадена е нова чернова версия от активната калкулация.";
+                return RedirectToAction(nameof(Edit), new { id = draftId });
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = ex.Message;
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Activate(int id)
         {
             try
@@ -117,7 +141,6 @@ namespace WarehouseManagment.Controllers
         {
             target.Id = source.Id;
             target.ProductId = source.ProductId;
-            target.Version = source.Version;
             target.EffectiveDate = source.EffectiveDate;
             target.Notes = source.Notes;
             target.Lines = source.Lines;

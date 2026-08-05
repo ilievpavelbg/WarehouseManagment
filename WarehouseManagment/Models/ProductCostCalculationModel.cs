@@ -23,7 +23,7 @@ namespace WarehouseManagment.Models
 
         public DateTime? ActivatedOn { get; set; }
 
-        public bool IsEditable => !HasBeenActivated;
+        public bool IsEditable => !IsActive && !HasBeenActivated;
 
         [StringLength(500)]
         public string? Notes { get; set; }
