@@ -1,0 +1,62 @@
+@model ProductRoutingModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    var disabled = Model.IsEditable ? null : "disabled";
+}
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label asp-for="ProductId" class="form-label">Артикул</label>
+        <select asp-for="ProductId" class="form-select" asp-items="@(new SelectList(Model.Products, "Id", "Text", Model.ProductId))" disabled="@disabled">
+            <option value="">Изберете...</option>
+        </select>
+        @if (!Model.IsEditable)
+        {
+            <input type="hidden" asp-for="ProductId" />
+        }
+    </div>
+    <div class="col-md-2 mb-3">
+        <label asp-for="Version" class="form-label">Версия</label>
+        <input asp-for="Version" class="form-control" disabled="@disabled" />
+        @if (!Model.IsEditable)
+        {
+            <input type="hidden" asp-for="Version" />
+        }
+    </div>
+    <div class="col-md-4 mb-3">
+        <label asp-for="Notes" class="form-label">Бележки</label>
+        <input asp-for="Notes" class="form-control" disabled="@disabled" />
+    </div>
+</div>
+
+<table class="table table-sm table-bordered">
+    <thead>
+        <tr>
+            <th>Операция</th>
+            <th style="width:140px">Последователност</th>
+            <th style="width:170px">Стандартно време мин.</th>
+            <th>Бележки</th>
+        </tr>
+    </thead>
+    <tbody>
+        @for (var i = 0; i < Model.Steps.Count; i++)
+        {
+            <tr>
+                <td>
+                    <input type="hidden" asp-for="Steps[i].Id" />
+                    <select asp-for="Steps[i].ProductionOperationId" class="form-select form-select-sm" asp-items="@(new SelectList(Model.Operations, "Id", "Text", Model.Steps[i].ProductionOperationId))" disabled="@disabled">
+                        <option value="">Изберете...</option>
+                    </select>
+                    @if (!string.IsNullOrWhiteSpace(Model.Steps[i].ProductionOperationCode))
+                    {
+                        <div class="form-text">@Model.Steps[i].ProductionOperationCode - @Model.Steps[i].ProductionOperationName / @Model.Steps[i].RequiredRole</div>
+                    }
+                </td>
+                <td><input asp-for="Steps[i].Sequence" class="form-control form-control-sm" disabled="@disabled" /></td>
+                <td><input asp-for="Steps[i].StandardTimeMinutes" class="form-control form-control-sm" disabled="@disabled" /></td>
+                <td><input asp-for="Steps[i].Notes" class="form-control form-control-sm" disabled="@disabled" /></td>
+            </tr>
+        }
+    </tbody>
+</table>

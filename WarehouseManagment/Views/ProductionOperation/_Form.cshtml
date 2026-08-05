@@ -1,0 +1,33 @@
+@model ProductionOperationModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <label asp-for="Code" class="form-label">Код</label>
+        <input asp-for="Code" class="form-control" />
+        <span asp-validation-for="Code" class="text-danger"></span>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label asp-for="Name" class="form-label">Име</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    <div class="col-md-2 mb-3">
+        <label asp-for="DefaultSequence" class="form-label">Последователност</label>
+        <input asp-for="DefaultSequence" class="form-control" />
+        <span asp-validation-for="DefaultSequence" class="text-danger"></span>
+    </div>
+    <div class="col-md-3 mb-3">
+        <label asp-for="RequiredRole" class="form-label">Изисквана роля</label>
+        <select asp-for="RequiredRole" class="form-select" asp-items="@(new SelectList(Model.SupportedRoles, Model.RequiredRole))">
+            <option value="">Изберете...</option>
+        </select>
+        <span asp-validation-for="RequiredRole" class="text-danger"></span>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="form-check">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label">Активна</label>
+        </div>
+    </div>
+</div>

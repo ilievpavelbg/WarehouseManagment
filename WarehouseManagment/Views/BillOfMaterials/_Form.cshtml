@@ -1,0 +1,71 @@
+@model BillOfMaterialsModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    var disabled = Model.IsEditable ? null : "disabled";
+}
+
+<div class="alert alert-info">
+    Мерната единица на всеки ред се валидира спрямо избрания материал. Конвертиране на мерни единици не се извършва в тази фаза.
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label asp-for="ProductId" class="form-label">Артикул</label>
+        <select asp-for="ProductId" class="form-select" asp-items="@(new SelectList(Model.Products, "Id", "Text", Model.ProductId))" disabled="@disabled">
+            <option value="">Изберете...</option>
+        </select>
+        @if (!Model.IsEditable)
+        {
+            <input type="hidden" asp-for="ProductId" />
+        }
+    </div>
+    <div class="col-md-2 mb-3">
+        <label asp-for="Version" class="form-label">Версия</label>
+        <input asp-for="Version" class="form-control" disabled="@disabled" />
+        @if (!Model.IsEditable)
+        {
+            <input type="hidden" asp-for="Version" />
+        }
+    </div>
+    <div class="col-md-4 mb-3">
+        <label asp-for="EffectiveFrom" class="form-label">В сила от</label>
+        <input asp-for="EffectiveFrom" class="form-control" disabled="@disabled" />
+    </div>
+    <div class="col-12 mb-3">
+        <label asp-for="Notes" class="form-label">Бележки</label>
+        <textarea asp-for="Notes" class="form-control" rows="2" disabled="@disabled"></textarea>
+    </div>
+</div>
+
+<table class="table table-sm table-bordered">
+    <thead>
+        <tr>
+            <th>Материал</th>
+            <th style="width:180px">Количество за единица</th>
+            <th style="width:140px">Фира %</th>
+            <th>Бележки</th>
+        </tr>
+    </thead>
+    <tbody>
+        @for (var i = 0; i < Model.Lines.Count; i++)
+        {
+            <tr>
+                <td>
+                    <input type="hidden" asp-for="Lines[i].Id" />
+                    <input type="hidden" asp-for="Lines[i].UnitOfMeasureId" />
+                    <select asp-for="Lines[i].MaterialId" class="form-select form-select-sm" asp-items="@(new SelectList(Model.Materials, "Id", "Text", Model.Lines[i].MaterialId))" disabled="@disabled">
+                        <option value="">Изберете...</option>
+                    </select>
+                    @if (!string.IsNullOrWhiteSpace(Model.Lines[i].MaterialCode))
+                    {
+                        <div class="form-text">@Model.Lines[i].MaterialCode - @Model.Lines[i].MaterialName (@Model.Lines[i].UnitOfMeasureName)</div>
+                    }
+                </td>
+                <td><input asp-for="Lines[i].QuantityPerUnit" class="form-control form-control-sm" disabled="@disabled" /></td>
+                <td><input asp-for="Lines[i].WastePercent" class="form-control form-control-sm" disabled="@disabled" /></td>
+                <td><input asp-for="Lines[i].Notes" class="form-control form-control-sm" disabled="@disabled" /></td>
+            </tr>
+        }
+    </tbody>
+</table>

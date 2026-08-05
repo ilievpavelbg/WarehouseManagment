@@ -67,6 +67,9 @@ builder.Services.AddAuthorization(options =>
 
     options.AddPolicy(ApplicationPolicies.RequireLowStockReportAccess, policy =>
         policy.RequireRole(ApplicationRoles.Administrator, ApplicationRoles.WarehouseManager, ApplicationRoles.ReadOnly));
+
+    options.AddPolicy(ApplicationPolicies.RequireProductionManager, policy =>
+        policy.RequireRole(ApplicationRoles.Administrator, ApplicationRoles.ProductionManager));
 });
 
 builder.Services.AddControllersWithViews();
@@ -92,6 +95,12 @@ builder.Services.AddScoped<IMaterialStockCardQueryService, MaterialStockCardQuer
 builder.Services.AddScoped<IWmsDashboardService, WmsDashboardService>();
 builder.Services.AddScoped<IMaterialMasterService, MaterialMasterService>();
 builder.Services.AddScoped<IMaterialStockService, MaterialStockService>();
+builder.Services.AddScoped<IProductionProfileService, ProductionProfileService>();
+builder.Services.AddScoped<ICostComponentService, CostComponentService>();
+builder.Services.AddScoped<IProductCostCalculationService, ProductCostCalculationService>();
+builder.Services.AddScoped<IBillOfMaterialsService, BillOfMaterialsService>();
+builder.Services.AddScoped<IProductionRoutingService, ProductionRoutingService>();
+builder.Services.AddScoped<IProductionSetupSeeder, ProductionSetupSeeder>();
 builder.Services.AddScoped<IRoleSeeder, RoleSeeder>();
 builder.Services.AddSingleton<IHttpContextAccessor,  HttpContextAccessor>();
 
@@ -101,6 +110,9 @@ using (var scope = app.Services.CreateScope())
 {
     var roleSeeder = scope.ServiceProvider.GetRequiredService<IRoleSeeder>();
     await roleSeeder.SeedAsync();
+
+    var productionSetupSeeder = scope.ServiceProvider.GetRequiredService<IProductionSetupSeeder>();
+    await productionSetupSeeder.SeedAsync();
 }
 
 // Configure the HTTP request pipeline.

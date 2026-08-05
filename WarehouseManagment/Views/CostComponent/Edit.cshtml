@@ -1,0 +1,19 @@
+@model CostComponentModel
+
+@{
+    ViewData["Title"] = "Редакция компонент себестойност";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="All" class="text-danger"></div>
+    @await Html.PartialAsync("_Form", Model)
+    <button type="submit" class="btn btn-primary">Запази</button>
+    <a class="btn btn-secondary" asp-action="Index">Отказ</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

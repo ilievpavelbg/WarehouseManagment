@@ -28,6 +28,15 @@ namespace WarehouseManagment.Data
         public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<MaterialBatch> MaterialBatches { get; set; }
         public DbSet<MaterialStock> MaterialStocks { get; set; }
+        public DbSet<ProductProductionProfile> ProductProductionProfiles { get; set; }
+        public DbSet<CostComponent> CostComponents { get; set; }
+        public DbSet<ProductCostCalculation> ProductCostCalculations { get; set; }
+        public DbSet<ProductCostCalculationLine> ProductCostCalculationLines { get; set; }
+        public DbSet<BillOfMaterials> BillsOfMaterials { get; set; }
+        public DbSet<BillOfMaterialLine> BillOfMaterialLines { get; set; }
+        public DbSet<ProductionOperation> ProductionOperations { get; set; }
+        public DbSet<ProductRouting> ProductRoutings { get; set; }
+        public DbSet<ProductRoutingStep> ProductRoutingSteps { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -286,6 +295,153 @@ namespace WarehouseManagment.Data
                 .HasOne(m => m.DestinationWarehouseLocation)
                 .WithMany()
                 .HasForeignKey(m => m.DestinationWarehouseLocationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductProductionProfile>()
+                .HasIndex(x => x.ProductId)
+                .IsUnique();
+
+            builder.Entity<ProductProductionProfile>()
+                .Property(x => x.StandardProductionQuantity)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductProductionProfile>()
+                .HasOne(x => x.Product)
+                .WithOne()
+                .HasForeignKey<ProductProductionProfile>(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductProductionProfile>()
+                .HasOne(x => x.ProductionUnitOfMeasure)
+                .WithMany()
+                .HasForeignKey(x => x.ProductionUnitOfMeasureId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<CostComponent>()
+                .HasIndex(x => x.Code)
+                .IsUnique();
+
+            builder.Entity<ProductCostCalculation>()
+                .HasIndex(x => new { x.ProductId, x.Version })
+                .IsUnique();
+
+            builder.Entity<ProductCostCalculation>()
+                .HasIndex(x => x.ProductId)
+                .IsUnique()
+                .HasFilter("[IsActive] = 1");
+
+            builder.Entity<ProductCostCalculation>()
+                .Property(x => x.TotalCost)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductCostCalculation>()
+                .HasOne(x => x.Product)
+                .WithMany()
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductCostCalculationLine>()
+                .HasIndex(x => new { x.ProductCostCalculationId, x.CostComponentId })
+                .IsUnique();
+
+            builder.Entity<ProductCostCalculationLine>()
+                .Property(x => x.Amount)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductCostCalculationLine>()
+                .HasOne(x => x.ProductCostCalculation)
+                .WithMany(x => x.Lines)
+                .HasForeignKey(x => x.ProductCostCalculationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<ProductCostCalculationLine>()
+                .HasOne(x => x.CostComponent)
+                .WithMany(x => x.ProductCostCalculationLines)
+                .HasForeignKey(x => x.CostComponentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<BillOfMaterials>()
+                .HasIndex(x => new { x.ProductId, x.Version })
+                .IsUnique();
+
+            builder.Entity<BillOfMaterials>()
+                .HasIndex(x => x.ProductId)
+                .IsUnique()
+                .HasFilter("[IsActive] = 1");
+
+            builder.Entity<BillOfMaterials>()
+                .HasOne(x => x.Product)
+                .WithMany()
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<BillOfMaterialLine>()
+                .HasIndex(x => new { x.BillOfMaterialsId, x.MaterialId })
+                .IsUnique();
+
+            builder.Entity<BillOfMaterialLine>()
+                .Property(x => x.QuantityPerUnit)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<BillOfMaterialLine>()
+                .Property(x => x.WastePercent)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<BillOfMaterialLine>()
+                .HasOne(x => x.BillOfMaterials)
+                .WithMany(x => x.Lines)
+                .HasForeignKey(x => x.BillOfMaterialsId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<BillOfMaterialLine>()
+                .HasOne(x => x.Material)
+                .WithMany()
+                .HasForeignKey(x => x.MaterialId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<BillOfMaterialLine>()
+                .HasOne(x => x.UnitOfMeasure)
+                .WithMany()
+                .HasForeignKey(x => x.UnitOfMeasureId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOperation>()
+                .HasIndex(x => x.Code)
+                .IsUnique();
+
+            builder.Entity<ProductRouting>()
+                .HasIndex(x => new { x.ProductId, x.Version })
+                .IsUnique();
+
+            builder.Entity<ProductRouting>()
+                .HasIndex(x => x.ProductId)
+                .IsUnique()
+                .HasFilter("[IsActive] = 1");
+
+            builder.Entity<ProductRouting>()
+                .HasOne(x => x.Product)
+                .WithMany()
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductRoutingStep>()
+                .HasIndex(x => new { x.ProductRoutingId, x.Sequence })
+                .IsUnique();
+
+            builder.Entity<ProductRoutingStep>()
+                .HasIndex(x => new { x.ProductRoutingId, x.ProductionOperationId })
+                .IsUnique();
+
+            builder.Entity<ProductRoutingStep>()
+                .HasOne(x => x.ProductRouting)
+                .WithMany(x => x.Steps)
+                .HasForeignKey(x => x.ProductRoutingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<ProductRoutingStep>()
+                .HasOne(x => x.ProductionOperation)
+                .WithMany(x => x.ProductRoutingSteps)
+                .HasForeignKey(x => x.ProductionOperationId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

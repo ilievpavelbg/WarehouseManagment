@@ -1,0 +1,40 @@
+@model ProductProductionProfileModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label asp-for="ProductId" class="form-label">Артикул</label>
+        <select asp-for="ProductId" class="form-select" asp-items="@(new SelectList(Model.Products, "Id", "Text", Model.ProductId))">
+            <option value="">Изберете...</option>
+        </select>
+        <span asp-validation-for="ProductId" class="text-danger"></span>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label asp-for="ProductionName" class="form-label">Производствено име</label>
+        <input asp-for="ProductionName" class="form-control" />
+        <span asp-validation-for="ProductionName" class="text-danger"></span>
+        <div class="form-text">По подразбиране идва от описанието на артикула, но се редактира самостоятелно.</div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label asp-for="ProductionUnitOfMeasureId" class="form-label">Производствена мерна единица</label>
+        <select asp-for="ProductionUnitOfMeasureId" class="form-select" asp-items="@(new SelectList(Model.UnitsOfMeasure, "Id", "Text", Model.ProductionUnitOfMeasureId))">
+            <option value="">Изберете...</option>
+        </select>
+        <span asp-validation-for="ProductionUnitOfMeasureId" class="text-danger"></span>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label asp-for="StandardProductionQuantity" class="form-label">Стандартно производствено количество</label>
+        <input asp-for="StandardProductionQuantity" class="form-control" />
+        <span asp-validation-for="StandardProductionQuantity" class="text-danger"></span>
+    </div>
+    <div class="col-md-4 mb-3 d-flex align-items-end">
+        <div class="form-check">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label">Активен</label>
+        </div>
+    </div>
+    <div class="col-12 mb-3">
+        <label asp-for="Notes" class="form-label">Бележки</label>
+        <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+    </div>
+</div>

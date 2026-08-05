@@ -1,0 +1,36 @@
+@model CostComponentModel
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label asp-for="Code" class="form-label">Код</label>
+        <input asp-for="Code" class="form-control" />
+        <span asp-validation-for="Code" class="text-danger"></span>
+    </div>
+    <div class="col-md-5 mb-3">
+        <label asp-for="Name" class="form-label">Име</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    <div class="col-md-3 mb-3">
+        <label asp-for="DisplayOrder" class="form-label">Ред на показване</label>
+        <input asp-for="DisplayOrder" class="form-control" />
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="form-check">
+            <input asp-for="IsDirectCost" class="form-check-input" />
+            <label asp-for="IsDirectCost" class="form-check-label">Пряк разход</label>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="form-check">
+            <input asp-for="IsSystemCalculated" class="form-check-input" />
+            <label asp-for="IsSystemCalculated" class="form-check-label">Системно изчислен</label>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="form-check">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label">Активен</label>
+        </div>
+    </div>
+</div>

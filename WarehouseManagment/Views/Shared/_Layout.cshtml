@@ -20,19 +20,23 @@
         var salesControllers = new[] { "Product", "Sale", "Courier" };
         var wmsControllers = new[] { "Warehouse", "WarehouseSettings", "Material", "StockInquiry", "LowStock", "InventoryMovement", "AuditLog" };
         var masterDataControllers = new[] { "MaterialCategory", "UnitOfMeasure", "Supplier" };
+        var productionControllers = new[] { "ProductionProfile", "CostComponent", "ProductCostCalculation", "BillOfMaterials", "ProductionOperation", "ProductRouting" };
         var adminControllers = new[] { "UserRoles" };
         var isHomeActive = string.Equals(currentController, "Home", StringComparison.OrdinalIgnoreCase);
         var isSalesActive = salesControllers.Contains(currentController);
         var isWmsActive = wmsControllers.Contains(currentController);
         var isMasterDataActive = masterDataControllers.Contains(currentController);
+        var isProductionActive = productionControllers.Contains(currentController);
         var isAdminActive = adminControllers.Contains(currentController);
         var isAdministrator = User.IsInRole(ApplicationRoles.Administrator);
         var isWarehouseManager = User.IsInRole(ApplicationRoles.WarehouseManager);
         var isWarehouseOperator = User.IsInRole(ApplicationRoles.WarehouseOperator);
         var isReadOnly = User.IsInRole(ApplicationRoles.ReadOnly);
+        var isProductionManager = User.IsInRole(ApplicationRoles.ProductionManager);
         var canManageWarehouse = isAdministrator || isWarehouseManager;
         var canReadWarehouse = canManageWarehouse || isWarehouseOperator || isReadOnly;
         var canViewLowStock = canManageWarehouse || isReadOnly;
+        var canManageProduction = isAdministrator || isProductionManager;
     }
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
@@ -101,6 +105,22 @@
                                         <li><a class="dropdown-item" asp-area="" asp-controller="MaterialCategory" asp-action="Index">Категории материали</a></li>
                                         <li><a class="dropdown-item" asp-area="" asp-controller="UnitOfMeasure" asp-action="Index">Мерни единици</a></li>
                                         <li><a class="dropdown-item" asp-area="" asp-controller="Supplier" asp-action="Index">Доставчици</a></li>
+                                    </ul>
+                                </li>
+                            }
+                            @if (canManageProduction)
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle @(isProductionActive ? "active" : string.Empty)" href="#" id="productionDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Производство
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="productionDropdown">
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="ProductionProfile" asp-action="Index">Производствени изделия</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="CostComponent" asp-action="Index">Компоненти себестойност</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="ProductCostCalculation" asp-action="Index">Калкулации</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="BillOfMaterials" asp-action="Index">Разходни норми</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="ProductionOperation" asp-action="Index">Производствени операции</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="ProductRouting" asp-action="Index">Технологични маршрути</a></li>
                                     </ul>
                                 </li>
                             }

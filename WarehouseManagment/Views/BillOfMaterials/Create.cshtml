@@ -1,0 +1,18 @@
+@model BillOfMaterialsModel
+
+@{
+    ViewData["Title"] = "Нова чернова разходна норма";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="All" class="text-danger"></div>
+    @await Html.PartialAsync("_Form", Model)
+    <button type="submit" class="btn btn-primary">Запази чернова</button>
+    <a class="btn btn-secondary" asp-action="Index">Отказ</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

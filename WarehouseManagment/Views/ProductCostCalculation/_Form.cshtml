@@ -1,0 +1,73 @@
+@model ProductCostCalculationModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    var disabled = Model.IsEditable ? null : "disabled";
+}
+
+<div class="alert alert-warning">
+    Всички въведени редове се включват в общата себестойност. Ако въведете едновременно детайлните преки разходи и "Общ пряк разход", системата ще преброи и двете стойности. Общата сума се изчислява от сървъра и не се взема от браузъра.
+</div>
+
+<div class="row">
+    <div class="col-md-5 mb-3">
+        <label asp-for="ProductId" class="form-label">Артикул</label>
+        <select asp-for="ProductId" class="form-select" asp-items="@(new SelectList(Model.Products, "Id", "Text", Model.ProductId))" disabled="@disabled">
+            <option value="">Изберете...</option>
+        </select>
+        @if (!Model.IsEditable)
+        {
+            <input type="hidden" asp-for="ProductId" />
+        }
+    </div>
+    <div class="col-md-2 mb-3">
+        <label asp-for="Version" class="form-label">Версия</label>
+        <input asp-for="Version" class="form-control" disabled="@disabled" />
+        @if (!Model.IsEditable)
+        {
+            <input type="hidden" asp-for="Version" />
+        }
+    </div>
+    <div class="col-md-3 mb-3">
+        <label asp-for="EffectiveDate" class="form-label">В сила от</label>
+        <input asp-for="EffectiveDate" class="form-control" disabled="@disabled" />
+    </div>
+    <div class="col-md-2 mb-3">
+        <label class="form-label">Общо</label>
+        <div class="form-control-plaintext fw-bold">@Model.TotalCost.ToString("N4") EUR</div>
+    </div>
+    <div class="col-12 mb-3">
+        <label asp-for="Notes" class="form-label">Бележки</label>
+        <textarea asp-for="Notes" class="form-control" rows="2" disabled="@disabled"></textarea>
+    </div>
+</div>
+
+<table class="table table-sm table-bordered">
+    <thead>
+        <tr>
+            <th>Компонент</th>
+            <th style="width:180px">Сума EUR</th>
+            <th>Бележки</th>
+        </tr>
+    </thead>
+    <tbody>
+        @for (var i = 0; i < Model.Lines.Count; i++)
+        {
+            <tr>
+                <td>
+                    <input type="hidden" asp-for="Lines[i].Id" />
+                    <input type="hidden" asp-for="Lines[i].CostComponentId" />
+                    <input type="hidden" asp-for="Lines[i].CostComponentCode" />
+                    <input type="hidden" asp-for="Lines[i].CostComponentName" />
+                    <strong>@Model.Lines[i].CostComponentCode</strong> - @Model.Lines[i].CostComponentName
+                </td>
+                <td>
+                    <input asp-for="Lines[i].Amount" class="form-control form-control-sm" disabled="@disabled" />
+                </td>
+                <td>
+                    <input asp-for="Lines[i].Notes" class="form-control form-control-sm" disabled="@disabled" />
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
