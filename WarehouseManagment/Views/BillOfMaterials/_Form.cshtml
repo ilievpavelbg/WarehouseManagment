@@ -3,30 +3,28 @@
 
 @{
     var disabled = Model.IsEditable ? null : "disabled";
+    var productDisabled = Model.Id > 0 || !Model.IsEditable ? "disabled" : null;
 }
 
 <div class="alert alert-info">
-    Мерната единица на всеки ред се валидира спрямо избрания материал. Конвертиране на мерни единици не се извършва в тази фаза.
+    Попълвайте само реалните материали. Празните редове се игнорират. Мерната единица се валидира спрямо избрания материал; конвертиране на мерни единици не се извършва в тази фаза.
 </div>
 
 <div class="row">
     <div class="col-md-6 mb-3">
-        <label asp-for="ProductId" class="form-label">Артикул</label>
-        <select asp-for="ProductId" class="form-select" asp-items="@(new SelectList(Model.Products, "Id", "Text", Model.ProductId))" disabled="@disabled">
+        <label asp-for="ProductId" class="form-label">Продукт</label>
+        <select asp-for="ProductId" class="form-select" asp-items="@(new SelectList(Model.Products, "Id", "Text", Model.ProductId))" disabled="@productDisabled">
             <option value="">Изберете...</option>
         </select>
-        @if (!Model.IsEditable)
+        @if (productDisabled != null)
         {
             <input type="hidden" asp-for="ProductId" />
         }
     </div>
     <div class="col-md-2 mb-3">
         <label asp-for="Version" class="form-label">Версия</label>
-        <input asp-for="Version" class="form-control" disabled="@disabled" />
-        @if (!Model.IsEditable)
-        {
-            <input type="hidden" asp-for="Version" />
-        }
+        <input asp-for="Version" class="form-control" readonly />
+        <div class="form-text">Версията се определя автоматично.</div>
     </div>
     <div class="col-md-4 mb-3">
         <label asp-for="EffectiveFrom" class="form-label">В сила от</label>
@@ -38,13 +36,25 @@
     </div>
 </div>
 
-<table class="table table-sm table-bordered">
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0">Материали</h5>
+    @if (Model.IsEditable)
+    {
+        <button type="button" class="btn btn-sm btn-outline-primary" id="addBomLine">Add Material</button>
+    }
+</div>
+
+<table class="table table-sm table-bordered" id="bomLinesTable">
     <thead>
         <tr>
             <th>Материал</th>
             <th style="width:180px">Количество за единица</th>
             <th style="width:140px">Фира %</th>
             <th>Бележки</th>
+            @if (Model.IsEditable)
+            {
+                <th style="width:100px"></th>
+            }
         </tr>
     </thead>
     <tbody>
@@ -65,7 +75,69 @@
                 <td><input asp-for="Lines[i].QuantityPerUnit" class="form-control form-control-sm" disabled="@disabled" /></td>
                 <td><input asp-for="Lines[i].WastePercent" class="form-control form-control-sm" disabled="@disabled" /></td>
                 <td><input asp-for="Lines[i].Notes" class="form-control form-control-sm" disabled="@disabled" /></td>
+                @if (Model.IsEditable)
+                {
+                    <td><button type="button" class="btn btn-sm btn-outline-danger remove-bom-line">Remove</button></td>
+                }
             </tr>
         }
     </tbody>
 </table>
+
+@if (Model.IsEditable)
+{
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tableBody = document.querySelector('#bomLinesTable tbody');
+            const addButton = document.getElementById('addBomLine');
+
+            function reindexRows() {
+                Array.from(tableBody.rows).forEach(function (row, index) {
+                    row.querySelectorAll('input, select').forEach(function (field) {
+                        if (field.name) {
+                            field.name = field.name.replace(/Lines\[\d+\]/, 'Lines[' + index + ']');
+                        }
+                        if (field.id) {
+                            field.id = field.id.replace(/Lines_\d+__/, 'Lines_' + index + '__');
+                        }
+                    });
+                });
+            }
+
+            function clearRow(row) {
+                row.querySelectorAll('input').forEach(function (input) {
+                    input.value = '';
+                });
+                row.querySelectorAll('select').forEach(function (select) {
+                    select.selectedIndex = 0;
+                });
+                row.querySelectorAll('.form-text').forEach(function (hint) {
+                    hint.remove();
+                });
+            }
+
+            addButton.addEventListener('click', function () {
+                const sourceRow = tableBody.rows[tableBody.rows.length - 1];
+                const newRow = sourceRow.cloneNode(true);
+                clearRow(newRow);
+                tableBody.appendChild(newRow);
+                reindexRows();
+            });
+
+            tableBody.addEventListener('click', function (event) {
+                if (!event.target.classList.contains('remove-bom-line')) {
+                    return;
+                }
+
+                if (tableBody.rows.length === 1) {
+                    clearRow(tableBody.rows[0]);
+                    reindexRows();
+                    return;
+                }
+
+                event.target.closest('tr').remove();
+                reindexRows();
+            });
+        });
+    </script>
+}

@@ -11,9 +11,13 @@ namespace WarehouseManagment.Interfaces
 
         Task<BillOfMaterialsModel> GetEditModelAsync(int id);
 
+        Task<List<BillOfMaterials>> GetByProductAsync(int productId);
+
         Task CreateDraftAsync(BillOfMaterialsModel model);
 
         Task UpdateDraftAsync(BillOfMaterialsModel model);
+
+        Task<int> CreateNewVersionFromActiveAsync(int activeBomId);
 
         Task ActivateAsync(int id);
     }

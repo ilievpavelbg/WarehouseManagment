@@ -20,7 +20,7 @@ namespace WarehouseManagment.Models
 
         public DateTime? ActivatedOn { get; set; }
 
-        public bool IsEditable => !HasBeenActivated;
+        public bool IsEditable => !IsActive && !HasBeenActivated;
 
         [DataType(DataType.Date)]
         public DateTime EffectiveFrom { get; set; } = DateTime.Today;

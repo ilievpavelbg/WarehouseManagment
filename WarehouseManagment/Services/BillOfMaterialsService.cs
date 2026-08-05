@@ -27,6 +27,16 @@ namespace WarehouseManagment.Services
                 .ToListAsync();
         }
 
+        public async Task<List<BillOfMaterials>> GetByProductAsync(int productId)
+        {
+            return await _dbContext.BillsOfMaterials
+                .AsNoTracking()
+                .Include(x => x.Product)
+                .Where(x => x.ProductId == productId)
+                .OrderByDescending(x => x.Version)
+                .ToListAsync();
+        }
+
         public async Task<BillOfMaterialsModel> GetCreateModelAsync(int? productId = null)
         {
             var model = new BillOfMaterialsModel
@@ -34,7 +44,7 @@ namespace WarehouseManagment.Services
                 ProductId = productId ?? 0,
                 Version = productId.HasValue ? await GetNextVersionAsync(productId.Value) : 1,
                 EffectiveFrom = DateTime.Today,
-                Lines = BuildEmptyLines(10)
+                Lines = new List<BillOfMaterialLineModel> { new BillOfMaterialLineModel() }
             };
 
             return await PrepareModelAsync(model);
@@ -61,12 +71,11 @@ namespace WarehouseManagment.Services
         public async Task CreateDraftAsync(BillOfMaterialsModel model)
         {
             await ValidateProductAsync(model.ProductId);
-            await EnsureVersionIsUniqueAsync(model.ProductId, model.Version, null);
 
             var bom = new BillOfMaterials
             {
                 ProductId = model.ProductId,
-                Version = model.Version,
+                Version = await GetNextVersionAsync(model.ProductId),
                 IsActive = false,
                 HasBeenActivated = false,
                 EffectiveFrom = model.EffectiveFrom,
@@ -98,12 +107,8 @@ namespace WarehouseManagment.Services
             }
 
             EnsureDraft(bom);
-            await ValidateProductAsync(model.ProductId);
-            await EnsureVersionIsUniqueAsync(model.ProductId, model.Version, bom.Id);
             var oldValues = ToJson(BuildAuditValues(bom));
 
-            bom.ProductId = model.ProductId;
-            bom.Version = model.Version;
             bom.EffectiveFrom = model.EffectiveFrom;
             bom.Notes = NormalizeOptional(model.Notes);
             bom.UpdatedOn = DateTime.Now;
@@ -124,6 +129,55 @@ namespace WarehouseManagment.Services
             await _dbContext.SaveChangesAsync();
         }
 
+        public async Task<int> CreateNewVersionFromActiveAsync(int activeBomId)
+        {
+            var activeBom = await _dbContext.BillsOfMaterials
+                .AsNoTracking()
+                .Include(x => x.Lines)
+                .FirstOrDefaultAsync(x => x.Id == activeBomId);
+
+            if (activeBom == null)
+            {
+                throw new ArgumentNullException(nameof(activeBom));
+            }
+
+            if (!activeBom.IsActive)
+            {
+                throw new InvalidOperationException("Нова версия може да се създаде само от активна разходна норма.");
+            }
+
+            var draft = new BillOfMaterials
+            {
+                ProductId = activeBom.ProductId,
+                Version = await GetNextVersionAsync(activeBom.ProductId),
+                IsActive = false,
+                HasBeenActivated = false,
+                EffectiveFrom = activeBom.EffectiveFrom,
+                Notes = activeBom.Notes,
+                CreatedOn = DateTime.Now,
+                Lines = activeBom.Lines.Select(x => new BillOfMaterialLine
+                {
+                    MaterialId = x.MaterialId,
+                    QuantityPerUnit = x.QuantityPerUnit,
+                    WastePercent = x.WastePercent,
+                    UnitOfMeasureId = x.UnitOfMeasureId,
+                    Notes = x.Notes
+                }).ToList()
+            };
+
+            await _dbContext.BillsOfMaterials.AddAsync(draft);
+            await _auditLogService.AddAsync(new AuditLogEntryModel
+            {
+                ActionType = AuditActionType.Create,
+                EntityType = "BillOfMaterials",
+                Description = $"Създадена нова чернова версия {draft.Version} от активна разходна норма версия {activeBom.Version}.",
+                NewValues = ToJson(BuildAuditValues(draft))
+            });
+            await _dbContext.SaveChangesAsync();
+
+            return draft.Id;
+        }
+
         public async Task ActivateAsync(int id)
         {
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
@@ -137,6 +191,16 @@ namespace WarehouseManagment.Services
                 if (bom == null)
                 {
                     throw new ArgumentNullException(nameof(bom));
+                }
+
+                if (bom.IsActive)
+                {
+                    throw new InvalidOperationException("Разходната норма вече е активна.");
+                }
+
+                if (bom.HasBeenActivated)
+                {
+                    throw new InvalidOperationException("Историческа версия не може да бъде активирана повторно.");
                 }
 
                 if (!bom.Lines.Any())
@@ -202,34 +266,29 @@ namespace WarehouseManagment.Services
                 model.ProductDisplayName = FormatProduct(product);
             }
 
-            if (model.IsEditable)
+            if (model.IsEditable && !model.Lines.Any())
             {
-                while (model.Lines.Count < 10)
-                {
-                    model.Lines.Add(new BillOfMaterialLineModel { QuantityPerUnit = 1 });
-                }
+                model.Lines.Add(new BillOfMaterialLineModel());
             }
 
             return model;
         }
 
-        private static List<BillOfMaterialLineModel> BuildEmptyLines(int count)
-        {
-            return Enumerable.Range(0, count)
-                .Select(_ => new BillOfMaterialLineModel { QuantityPerUnit = 1 })
-                .ToList();
-        }
-
         private async Task ApplyLinesAsync(BillOfMaterials bom, IEnumerable<BillOfMaterialLineModel> lines)
         {
-            foreach (var lineModel in lines.Where(x => x.MaterialId > 0))
+            foreach (var lineModel in lines.Where(IsPopulatedLine))
             {
-                if (lineModel.QuantityPerUnit <= 0)
+                if (lineModel.MaterialId <= 0)
+                {
+                    throw new InvalidOperationException("Изберете материал за попълнения ред.");
+                }
+
+                if (!lineModel.QuantityPerUnit.HasValue || lineModel.QuantityPerUnit.Value <= 0)
                 {
                     throw new InvalidOperationException("Количеството за единица трябва да бъде по-голямо от нула.");
                 }
 
-                if (lineModel.WastePercent < 0)
+                if (lineModel.WastePercent.HasValue && lineModel.WastePercent.Value < 0)
                 {
                     throw new InvalidOperationException("Фирата не може да бъде отрицателна.");
                 }
@@ -257,7 +316,7 @@ namespace WarehouseManagment.Services
                 bom.Lines.Add(new BillOfMaterialLine
                 {
                     MaterialId = lineModel.MaterialId,
-                    QuantityPerUnit = lineModel.QuantityPerUnit,
+                    QuantityPerUnit = lineModel.QuantityPerUnit.Value,
                     WastePercent = lineModel.WastePercent,
                     UnitOfMeasureId = material.UnitOfMeasureId,
                     Notes = NormalizeOptional(lineModel.Notes)
@@ -271,16 +330,6 @@ namespace WarehouseManagment.Services
             if (!productExists)
             {
                 throw new InvalidOperationException("Избраният артикул не съществува.");
-            }
-        }
-
-        private async Task EnsureVersionIsUniqueAsync(int productId, int version, int? currentId)
-        {
-            var exists = await _dbContext.BillsOfMaterials
-                .AnyAsync(x => x.ProductId == productId && x.Version == version && (!currentId.HasValue || x.Id != currentId.Value));
-            if (exists)
-            {
-                throw new InvalidOperationException("За този артикул вече има разходна норма с тази версия.");
             }
         }
 
@@ -303,9 +352,14 @@ namespace WarehouseManagment.Services
                 .ToListAsync();
         }
 
+        private static bool IsPopulatedLine(BillOfMaterialLineModel line)
+        {
+            return line.MaterialId > 0 || line.QuantityPerUnit.HasValue || line.WastePercent.HasValue || !string.IsNullOrWhiteSpace(line.Notes);
+        }
+
         private static void EnsureDraft(BillOfMaterials bom)
         {
-            if (bom.HasBeenActivated)
+            if (bom.IsActive || bom.HasBeenActivated)
             {
                 throw new InvalidOperationException("Версията вече е била активна и е заключена за редакция.");
             }
