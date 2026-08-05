@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
@@ -12,17 +13,20 @@ namespace WarehouseManagment.Services
         private readonly IDocumentNumberService _documentNumberService;
         private readonly IAuditLogService _auditLogService;
         private readonly ICurrentUserService _currentUserService;
+        private readonly ILogger<MaterialStockService> _logger;
 
         public MaterialStockService(
             ApplicationDbContext dbContext,
             IDocumentNumberService documentNumberService,
             IAuditLogService auditLogService,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            ILogger<MaterialStockService> logger)
         {
             _dbContext = dbContext;
             _documentNumberService = documentNumberService;
             _auditLogService = auditLogService;
             _currentUserService = currentUserService;
+            _logger = logger;
         }
 
         public async Task<Warehouse?> GetDefaultActiveWarehouseAsync()
@@ -140,14 +144,14 @@ namespace WarehouseManagment.Services
 
             if (preparedModel.ReceivedQuantity <= 0)
             {
-                throw new InvalidOperationException("Received quantity must be greater than zero.");
+                throw new InvalidOperationException("Въведете получено количество по-голямо от нула.");
             }
 
-            var documentNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.GoodsReceipt);
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
             try
             {
+                var documentNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.GoodsReceipt);
                 await ValidateReceiptReferencesAsync(preparedModel);
                 var materialBatch = await ResolveReceiptBatchAsync(preparedModel);
 
@@ -290,11 +294,11 @@ namespace WarehouseManagment.Services
                 throw new InvalidOperationException("Въведете количество по-голямо от нула.");
             }
 
-            var documentNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.MaterialTransfer);
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
             try
             {
+                var documentNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.MaterialTransfer);
                 await ValidateTransferReferencesAsync(preparedModel);
                 var sourceStock = await GetSourceStockForTransferAsync(preparedModel);
 
@@ -462,21 +466,45 @@ namespace WarehouseManagment.Services
 
             if (preparedModel.NewQuantity < 0)
             {
-                throw new InvalidOperationException("Material stock adjustment quantity cannot be negative.");
+                throw new InvalidOperationException("Коригираната наличност не може да бъде отрицателна.");
             }
 
-            if (preparedModel.Difference > 0)
+            if (preparedModel.Difference == 0)
             {
-                var documentNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.StockAdjustment);
-                await IncreaseStockAsync(CreateAdjustmentChangeModel(preparedModel, preparedModel.Difference, documentNumber));
-            }
-            else if (preparedModel.Difference < 0)
-            {
-                var documentNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.StockAdjustment);
-                await DecreaseStockAsync(CreateAdjustmentChangeModel(preparedModel, Math.Abs(preparedModel.Difference), documentNumber));
+                return preparedModel.Difference;
             }
 
-            return preparedModel.Difference;
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+            try
+            {
+                var documentNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.StockAdjustment);
+                var changeModel = CreateAdjustmentChangeModel(preparedModel, preparedModel.NewQuantity, documentNumber);
+                ValidateChangeModel(changeModel, requirePositiveQuantity: false);
+                await ValidateReferencesAsync(changeModel);
+                var stock = await GetOrCreateStockAsync(changeModel);
+                var oldQuantity = stock.Quantity;
+
+                if (preparedModel.NewQuantity < 0)
+                {
+                    throw new InvalidOperationException("Коригираната наличност не може да бъде отрицателна.");
+                }
+
+                stock.Quantity = preparedModel.NewQuantity;
+                stock.LastUpdatedOn = DateTime.Now;
+
+                await CreateMovementAsync(changeModel, preparedModel.Difference);
+                await AddAdjustmentAuditAsync(changeModel, oldQuantity, stock.Quantity);
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return preparedModel.Difference;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task IncreaseStockAsync(MaterialStockChangeModel model)
@@ -518,7 +546,7 @@ namespace WarehouseManagment.Services
 
                 if (newQuantity < 0)
                 {
-                    throw new InvalidOperationException("Material stock cannot become negative.");
+                    throw new InvalidOperationException("Складовата наличност не може да стане отрицателна.");
                 }
 
                 stock.Quantity = newQuantity;
@@ -542,18 +570,18 @@ namespace WarehouseManagment.Services
 
             if (model.Quantity < 0)
             {
-                throw new InvalidOperationException("Material stock adjustment quantity cannot be negative.");
-            }
-
-            if (model.MovementType == MovementType.Adjustment && string.IsNullOrWhiteSpace(model.ReferenceNumber))
-            {
-                model.ReferenceNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.StockAdjustment);
+                throw new InvalidOperationException("Коригираната наличност не може да бъде отрицателна.");
             }
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
             try
             {
+                if (model.MovementType == MovementType.Adjustment && string.IsNullOrWhiteSpace(model.ReferenceNumber))
+                {
+                    model.ReferenceNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.StockAdjustment);
+                }
+
                 await ValidateReferencesAsync(model);
                 var stock = await GetOrCreateStockAsync(model);
                 var oldQuantity = stock.Quantity;
@@ -700,14 +728,14 @@ namespace WarehouseManagment.Services
 
             if (material == null)
             {
-                throw new InvalidOperationException("Material does not exist.");
+                throw new InvalidOperationException("Материалът не съществува.");
             }
 
             var warehouseExists = await _dbContext.Warehouses.AnyAsync(x => x.Id == model.WarehouseId);
 
             if (!warehouseExists)
             {
-                throw new InvalidOperationException("Warehouse does not exist.");
+                throw new InvalidOperationException("Складът не съществува.");
             }
 
             if (model.WarehouseLocationId.HasValue)
@@ -717,7 +745,7 @@ namespace WarehouseManagment.Services
 
                 if (!locationBelongsToWarehouse)
                 {
-                    throw new InvalidOperationException("Selected warehouse location does not belong to the selected warehouse.");
+                    throw new InvalidOperationException("Избраната локация не принадлежи към избрания склад.");
                 }
             }
 
@@ -727,7 +755,7 @@ namespace WarehouseManagment.Services
 
                 if (!supplierExists)
                 {
-                    throw new InvalidOperationException("Supplier does not exist.");
+                    throw new InvalidOperationException("Доставчикът не съществува.");
                 }
             }
 
@@ -738,7 +766,7 @@ namespace WarehouseManagment.Services
 
                 if (!batchBelongsToMaterial)
                 {
-                    throw new InvalidOperationException("Selected material batch does not belong to the selected material.");
+                    throw new InvalidOperationException("Избраната партида не принадлежи към избрания материал.");
                 }
             }
 
@@ -824,14 +852,14 @@ namespace WarehouseManagment.Services
 
             if (!materialExists)
             {
-                throw new InvalidOperationException("Material does not exist.");
+                throw new InvalidOperationException("Материалът не съществува.");
             }
 
             var warehouseExists = await _dbContext.Warehouses.AnyAsync(x => x.Id == model.WarehouseId);
 
             if (!warehouseExists)
             {
-                throw new InvalidOperationException("Warehouse does not exist.");
+                throw new InvalidOperationException("Складът не съществува.");
             }
 
             if (model.WarehouseLocationId.HasValue)
@@ -841,7 +869,7 @@ namespace WarehouseManagment.Services
 
                 if (!locationBelongsToWarehouse)
                 {
-                    throw new InvalidOperationException("Selected warehouse location does not belong to the selected warehouse.");
+                    throw new InvalidOperationException("Избраната локация не принадлежи към избрания склад.");
                 }
             }
 
@@ -852,7 +880,7 @@ namespace WarehouseManagment.Services
 
                 if (!batchBelongsToMaterial)
                 {
-                    throw new InvalidOperationException("Selected material batch does not belong to the selected material.");
+                    throw new InvalidOperationException("Избраната партида не принадлежи към избрания материал.");
                 }
             }
         }
@@ -877,7 +905,33 @@ namespace WarehouseManagment.Services
             };
 
             await _dbContext.MaterialStocks.AddAsync(stock);
-            return stock;
+
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+                return stock;
+            }
+            catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+            {
+                _logger.LogWarning(
+                    ex,
+                    "MaterialStock unique constraint collision for MaterialId {MaterialId}, WarehouseId {WarehouseId}, WarehouseLocationId {WarehouseLocationId}, MaterialBatchId {MaterialBatchId}. Reloading existing row.",
+                    model.MaterialId,
+                    model.WarehouseId,
+                    model.WarehouseLocationId,
+                    model.MaterialBatchId);
+
+                _dbContext.Entry(stock).State = EntityState.Detached;
+
+                var existingStock = await GetSingleStockOrDefaultAsync(model);
+
+                if (existingStock != null)
+                {
+                    return existingStock;
+                }
+
+                throw new InvalidOperationException("Складовата позиция беше създадена едновременно от друга операция, но не може да бъде презаредена безопасно. Моля, опитайте отново.", ex);
+            }
         }
 
         private async Task<MaterialStock> GetExistingStockAsync(MaterialStockChangeModel model)
@@ -886,7 +940,7 @@ namespace WarehouseManagment.Services
 
             if (stock == null)
             {
-                throw new InvalidOperationException("Material stock row does not exist.");
+                throw new InvalidOperationException("Складова позиция за материала не съществува.");
             }
 
             return stock;
@@ -898,7 +952,7 @@ namespace WarehouseManagment.Services
 
             if (rows.Count > 1)
             {
-                throw new InvalidOperationException("Duplicate material stock rows exist for the selected material, warehouse, location and batch.");
+                throw new InvalidOperationException("Има дублирани складови позиции за избрания материал, склад, локация и партида.");
             }
 
             return rows.FirstOrDefault();
@@ -945,38 +999,44 @@ namespace WarehouseManagment.Services
         {
             if (model.MaterialId <= 0)
             {
-                throw new InvalidOperationException("Material stock change requires a material.");
+                throw new InvalidOperationException("Операцията с материална наличност изисква материал.");
             }
 
             if (model.WarehouseId <= 0)
             {
-                throw new InvalidOperationException("Material stock change requires a warehouse.");
+                throw new InvalidOperationException("Операцията с материална наличност изисква склад.");
             }
 
             if (!Enum.IsDefined(typeof(MovementType), model.MovementType))
             {
-                throw new InvalidOperationException("Material stock change requires a valid movement type.");
+                throw new InvalidOperationException("Операцията с материална наличност изисква валиден тип движение.");
             }
 
             if (requirePositiveQuantity && model.Quantity <= 0)
             {
-                throw new InvalidOperationException("Material stock quantity must be greater than zero.");
+                throw new InvalidOperationException("Количеството трябва да бъде по-голямо от нула.");
             }
 
             if (string.IsNullOrWhiteSpace(model.ReferenceType))
             {
-                throw new InvalidOperationException("Material stock change requires a reference type.");
+                throw new InvalidOperationException("Операцията с материална наличност изисква тип референция.");
             }
 
             if (model.ReferenceId <= 0)
             {
-                throw new InvalidOperationException("Material stock change requires a valid reference id.");
+                throw new InvalidOperationException("Операцията с материална наличност изисква валидна референция.");
             }
         }
 
         private static string ToJson(object value)
         {
             return JsonSerializer.Serialize(value);
+        }
+
+        private static bool IsUniqueConstraintViolation(DbUpdateException exception)
+        {
+            return exception.InnerException is SqlException sqlException &&
+                sqlException.Errors.Cast<SqlError>().Any(error => error.Number == 2601 || error.Number == 2627);
         }
     }
 }
