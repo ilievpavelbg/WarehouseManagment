@@ -4,11 +4,11 @@ namespace WarehouseManagment.Models
 {
     public class BillOfMaterialLineModel
     {
-        public int Id { get; set; }
+        public int? Id { get; set; }
 
-        public int BillOfMaterialsId { get; set; }
+        public int? BillOfMaterialsId { get; set; }
 
-        public int MaterialId { get; set; }
+        public int? MaterialId { get; set; }
 
         public string MaterialCode { get; set; } = string.Empty;
 
@@ -16,7 +16,7 @@ namespace WarehouseManagment.Models
 
         public string UnitOfMeasureName { get; set; } = string.Empty;
 
-        public int UnitOfMeasureId { get; set; }
+        public int? UnitOfMeasureId { get; set; }
 
         public decimal? QuantityPerUnit { get; set; }
 

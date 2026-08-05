@@ -278,11 +278,6 @@ namespace WarehouseManagment.Services
         {
             foreach (var lineModel in lines.Where(IsPopulatedLine))
             {
-                if (lineModel.MaterialId <= 0)
-                {
-                    throw new InvalidOperationException("Изберете материал за попълнения ред.");
-                }
-
                 if (!lineModel.QuantityPerUnit.HasValue || lineModel.QuantityPerUnit.Value <= 0)
                 {
                     throw new InvalidOperationException("Количеството за единица трябва да бъде по-голямо от нула.");
@@ -293,21 +288,25 @@ namespace WarehouseManagment.Services
                     throw new InvalidOperationException("Фирата не може да бъде отрицателна.");
                 }
 
-                if (bom.Lines.Any(x => x.MaterialId == lineModel.MaterialId))
+                var materialId = lineModel.MaterialId.GetValueOrDefault();
+
+                if (bom.Lines.Any(x => x.MaterialId == materialId))
                 {
                     throw new InvalidOperationException("Материалът не може да се повтаря в една разходна норма.");
                 }
 
                 var material = await _dbContext.Materials
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.Id == lineModel.MaterialId && x.IsActive);
+                    .FirstOrDefaultAsync(x => x.Id == materialId && x.IsActive);
 
                 if (material == null)
                 {
                     throw new InvalidOperationException("Избраният материал не съществува или не е активен.");
                 }
 
-                var unitId = lineModel.UnitOfMeasureId == 0 ? material.UnitOfMeasureId : lineModel.UnitOfMeasureId;
+                var unitId = !lineModel.UnitOfMeasureId.HasValue || lineModel.UnitOfMeasureId.Value == 0
+                    ? material.UnitOfMeasureId
+                    : lineModel.UnitOfMeasureId.Value;
                 if (unitId != material.UnitOfMeasureId)
                 {
                     throw new InvalidOperationException("Мерната единица на реда трябва да съвпада с мерната единица на материала.");
@@ -315,7 +314,7 @@ namespace WarehouseManagment.Services
 
                 bom.Lines.Add(new BillOfMaterialLine
                 {
-                    MaterialId = lineModel.MaterialId,
+                    MaterialId = materialId,
                     QuantityPerUnit = lineModel.QuantityPerUnit.Value,
                     WastePercent = lineModel.WastePercent,
                     UnitOfMeasureId = material.UnitOfMeasureId,
@@ -354,7 +353,7 @@ namespace WarehouseManagment.Services
 
         private static bool IsPopulatedLine(BillOfMaterialLineModel line)
         {
-            return line.MaterialId > 0 || line.QuantityPerUnit.HasValue || line.WastePercent.HasValue || !string.IsNullOrWhiteSpace(line.Notes);
+            return line.MaterialId.HasValue && line.MaterialId.Value > 0;
         }
 
         private static void EnsureDraft(BillOfMaterials bom)
