@@ -3,26 +3,28 @@
 
 @{
     var disabled = Model.IsEditable ? null : "disabled";
+    var productDisabled = Model.Id > 0 || !Model.IsEditable ? "disabled" : null;
 }
+
+<div class="alert alert-info">
+    Версията се определя автоматично. Попълвайте само реалните операции; празните редове се игнорират.
+</div>
 
 <div class="row">
     <div class="col-md-6 mb-3">
         <label asp-for="ProductId" class="form-label">Артикул</label>
-        <select asp-for="ProductId" class="form-select" asp-items="@(new SelectList(Model.Products, "Id", "Text", Model.ProductId))" disabled="@disabled">
+        <select asp-for="ProductId" class="form-select" asp-items="@(new SelectList(Model.Products, "Id", "Text", Model.ProductId))" disabled="@productDisabled">
             <option value="">Изберете...</option>
         </select>
-        @if (!Model.IsEditable)
+        @if (productDisabled != null)
         {
             <input type="hidden" asp-for="ProductId" />
         }
     </div>
     <div class="col-md-2 mb-3">
         <label asp-for="Version" class="form-label">Версия</label>
-        <input asp-for="Version" class="form-control" disabled="@disabled" />
-        @if (!Model.IsEditable)
-        {
-            <input type="hidden" asp-for="Version" />
-        }
+        <input asp-for="Version" class="form-control" readonly />
+        <div class="form-text">Автоматична версия.</div>
     </div>
     <div class="col-md-4 mb-3">
         <label asp-for="Notes" class="form-label">Бележки</label>
@@ -30,13 +32,19 @@
     </div>
 </div>
 
-<table class="table table-sm table-bordered">
+<h5>Операции</h5>
+
+<table class="table table-sm table-bordered align-middle" id="routingStepsTable">
     <thead>
         <tr>
             <th>Операция</th>
             <th style="width:140px">Последователност</th>
             <th style="width:170px">Стандартно време мин.</th>
             <th>Бележки</th>
+            @if (Model.IsEditable)
+            {
+                <th style="width:100px"></th>
+            }
         </tr>
     </thead>
     <tbody>
@@ -48,15 +56,79 @@
                     <select asp-for="Steps[i].ProductionOperationId" class="form-select form-select-sm" asp-items="@(new SelectList(Model.Operations, "Id", "Text", Model.Steps[i].ProductionOperationId))" disabled="@disabled">
                         <option value="">Изберете...</option>
                     </select>
-                    @if (!string.IsNullOrWhiteSpace(Model.Steps[i].ProductionOperationCode))
+                    @if (!string.IsNullOrWhiteSpace(Model.Steps[i].ProductionOperationName))
                     {
-                        <div class="form-text">@Model.Steps[i].ProductionOperationCode - @Model.Steps[i].ProductionOperationName / @Model.Steps[i].RequiredRole</div>
+                        <div class="form-text">@Model.Steps[i].ProductionOperationName - @Model.Steps[i].RequiredRole</div>
                     }
                 </td>
                 <td><input asp-for="Steps[i].Sequence" class="form-control form-control-sm" disabled="@disabled" /></td>
                 <td><input asp-for="Steps[i].StandardTimeMinutes" class="form-control form-control-sm" disabled="@disabled" /></td>
                 <td><input asp-for="Steps[i].Notes" class="form-control form-control-sm" disabled="@disabled" /></td>
+                @if (Model.IsEditable)
+                {
+                    <td><button type="button" class="btn btn-sm btn-outline-danger remove-routing-step">Премахни</button></td>
+                }
             </tr>
         }
     </tbody>
 </table>
+
+@if (Model.IsEditable)
+{
+    <button type="button" class="btn btn-sm btn-outline-primary mb-3" id="addRoutingStep">Добави операция</button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tableBody = document.querySelector('#routingStepsTable tbody');
+            const addButton = document.getElementById('addRoutingStep');
+
+            function reindexRows() {
+                Array.from(tableBody.rows).forEach(function (row, index) {
+                    row.querySelectorAll('input, select').forEach(function (field) {
+                        if (field.name) {
+                            field.name = field.name.replace(/Steps\[\d+\]/, 'Steps[' + index + ']');
+                        }
+                        if (field.id) {
+                            field.id = field.id.replace(/Steps_\d+__/, 'Steps_' + index + '__');
+                        }
+                    });
+                });
+            }
+
+            function clearRow(row) {
+                row.querySelectorAll('input').forEach(function (input) {
+                    input.value = '';
+                });
+                row.querySelectorAll('select').forEach(function (select) {
+                    select.selectedIndex = 0;
+                });
+                row.querySelectorAll('.form-text').forEach(function (hint) {
+                    hint.remove();
+                });
+            }
+
+            addButton.addEventListener('click', function () {
+                const sourceRow = tableBody.rows[tableBody.rows.length - 1];
+                const newRow = sourceRow.cloneNode(true);
+                clearRow(newRow);
+                tableBody.appendChild(newRow);
+                reindexRows();
+            });
+
+            tableBody.addEventListener('click', function (event) {
+                if (!event.target.classList.contains('remove-routing-step')) {
+                    return;
+                }
+
+                if (tableBody.rows.length === 1) {
+                    clearRow(tableBody.rows[0]);
+                    reindexRows();
+                    return;
+                }
+
+                event.target.closest('tr').remove();
+                reindexRows();
+            });
+        });
+    </script>
+}

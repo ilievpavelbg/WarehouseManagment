@@ -8,7 +8,9 @@
 
 @if (!Model.IsEditable)
 {
-    <div class="alert alert-info">Тази версия вече е била активна и е заключена за редакция.</div>
+    <div class="alert alert-info">
+        Тази версия е активна или историческа и е достъпна само за преглед. За промени създайте нова версия от активния маршрут.
+    </div>
 }
 
 <form asp-action="Edit" method="post">

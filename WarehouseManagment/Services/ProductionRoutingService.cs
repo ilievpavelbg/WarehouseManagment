@@ -30,7 +30,7 @@ namespace WarehouseManagment.Services
             return await _dbContext.ProductionOperations
                 .AsNoTracking()
                 .OrderBy(x => x.DefaultSequence)
-                .ThenBy(x => x.Code)
+                .ThenBy(x => x.Name)
                 .ToListAsync();
         }
 
@@ -116,31 +116,30 @@ namespace WarehouseManagment.Services
             return await _dbContext.ProductRoutings
                 .AsNoTracking()
                 .Include(x => x.Product)
+                .Include(x => x.Steps)
                 .OrderBy(x => x.Product.SKU)
                 .ThenByDescending(x => x.Version)
                 .ToListAsync();
         }
 
+        public async Task<List<ProductRouting>> GetRoutingsByProductAsync(int productId)
+        {
+            return await _dbContext.ProductRoutings
+                .AsNoTracking()
+                .Include(x => x.Product)
+                .Include(x => x.Steps)
+                .Where(x => x.ProductId == productId)
+                .OrderByDescending(x => x.Version)
+                .ToListAsync();
+        }
+
         public async Task<ProductRoutingModel> GetCreateRoutingModelAsync(int? productId = null)
         {
-            var operations = await _dbContext.ProductionOperations
-                .AsNoTracking()
-                .Where(x => x.IsActive)
-                .OrderBy(x => x.DefaultSequence)
-                .ToListAsync();
-
             var model = new ProductRoutingModel
             {
                 ProductId = productId ?? 0,
                 Version = productId.HasValue ? await GetNextRoutingVersionAsync(productId.Value) : 1,
-                Steps = operations.Select(x => new ProductRoutingStepModel
-                {
-                    ProductionOperationId = x.Id,
-                    ProductionOperationCode = x.Code,
-                    ProductionOperationName = x.Name,
-                    RequiredRole = x.RequiredRole,
-                    Sequence = x.DefaultSequence
-                }).ToList()
+                Steps = new List<ProductRoutingStepModel> { new ProductRoutingStepModel() }
             };
 
             return await PrepareRoutingModelAsync(model);
@@ -166,12 +165,11 @@ namespace WarehouseManagment.Services
         public async Task CreateRoutingDraftAsync(ProductRoutingModel model)
         {
             await ValidateProductAsync(model.ProductId);
-            await EnsureRoutingVersionIsUniqueAsync(model.ProductId, model.Version, null);
 
             var routing = new ProductRouting
             {
                 ProductId = model.ProductId,
-                Version = model.Version,
+                Version = await GetNextRoutingVersionAsync(model.ProductId),
                 IsActive = false,
                 HasBeenActivated = false,
                 Notes = NormalizeOptional(model.Notes),
@@ -184,10 +182,18 @@ namespace WarehouseManagment.Services
             {
                 ActionType = AuditActionType.Create,
                 EntityType = "ProductRouting",
-                Description = $"Създадена чернова технологичен маршрут версия {routing.Version}.",
+                Description = $"Създаден чернови технологичен маршрут версия {routing.Version}.",
                 NewValues = ToJson(BuildRoutingAuditValues(routing))
             });
-            await _dbContext.SaveChangesAsync();
+
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (IsRoutingVersionCollision(ex))
+            {
+                throw new InvalidOperationException("Вече е създадена версия на маршрута за този артикул. Отворете нова чернова и опитайте отново.", ex);
+            }
         }
 
         public async Task UpdateRoutingDraftAsync(ProductRoutingModel model)
@@ -202,12 +208,8 @@ namespace WarehouseManagment.Services
             }
 
             EnsureDraft(routing);
-            await ValidateProductAsync(model.ProductId);
-            await EnsureRoutingVersionIsUniqueAsync(model.ProductId, model.Version, routing.Id);
             var oldValues = ToJson(BuildRoutingAuditValues(routing));
 
-            routing.ProductId = model.ProductId;
-            routing.Version = model.Version;
             routing.Notes = NormalizeOptional(model.Notes);
             routing.UpdatedOn = DateTime.Now;
 
@@ -220,11 +222,69 @@ namespace WarehouseManagment.Services
                 ActionType = AuditActionType.Update,
                 EntityType = "ProductRouting",
                 EntityId = routing.Id,
-                Description = $"Редактирана чернова технологичен маршрут версия {routing.Version}.",
+                Description = $"Редактиран чернови технологичен маршрут версия {routing.Version}.",
                 OldValues = oldValues,
                 NewValues = ToJson(BuildRoutingAuditValues(routing))
             });
             await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task<int> CreateNewRoutingVersionFromActiveAsync(int activeRoutingId)
+        {
+            var activeRouting = await _dbContext.ProductRoutings
+                .AsNoTracking()
+                .Include(x => x.Steps)
+                .FirstOrDefaultAsync(x => x.Id == activeRoutingId);
+
+            if (activeRouting == null)
+            {
+                throw new ArgumentNullException(nameof(activeRouting));
+            }
+
+            if (!activeRouting.IsActive)
+            {
+                throw new InvalidOperationException("Нова версия може да се създаде само от активен технологичен маршрут.");
+            }
+
+            var draft = new ProductRouting
+            {
+                ProductId = activeRouting.ProductId,
+                Version = await GetNextRoutingVersionAsync(activeRouting.ProductId),
+                IsActive = false,
+                HasBeenActivated = false,
+                Notes = activeRouting.Notes,
+                CreatedOn = DateTime.Now,
+                Steps = activeRouting.Steps
+                    .OrderBy(x => x.Sequence)
+                    .Select(x => new ProductRoutingStep
+                    {
+                        ProductionOperationId = x.ProductionOperationId,
+                        Sequence = x.Sequence,
+                        StandardTimeMinutes = x.StandardTimeMinutes,
+                        Notes = x.Notes
+                    })
+                    .ToList()
+            };
+
+            await _dbContext.ProductRoutings.AddAsync(draft);
+            await _auditLogService.AddAsync(new AuditLogEntryModel
+            {
+                ActionType = AuditActionType.Create,
+                EntityType = "ProductRouting",
+                Description = $"Създадена нова чернова версия {draft.Version} от активен технологичен маршрут версия {activeRouting.Version}.",
+                NewValues = ToJson(BuildRoutingAuditValues(draft))
+            });
+
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (IsRoutingVersionCollision(ex))
+            {
+                throw new InvalidOperationException("Вече е създадена нова версия на маршрута за този артикул. Презаредете списъка и опитайте отново.", ex);
+            }
+
+            return draft.Id;
         }
 
         public async Task ActivateRoutingAsync(int id)
@@ -241,6 +301,8 @@ namespace WarehouseManagment.Services
                 {
                     throw new ArgumentNullException(nameof(routing));
                 }
+
+                EnsureDraft(routing);
 
                 if (!routing.Steps.Any())
                 {
@@ -295,24 +357,25 @@ namespace WarehouseManagment.Services
                 .AsNoTracking()
                 .Where(x => x.IsActive)
                 .OrderBy(x => x.DefaultSequence)
-                .Select(x => new ProductionSelectItemModel { Id = x.Id, Text = x.Code + " - " + x.Name })
+                .ThenBy(x => x.Name)
+                .Select(x => new ProductionSelectItemModel
+                {
+                    Id = x.Id,
+                    Text = x.Name + " - " + x.RequiredRole
+                })
                 .ToListAsync();
 
             if (model.ProductId > 0)
             {
+                model.Version = model.Id == 0 ? await GetNextRoutingVersionAsync(model.ProductId) : model.Version;
+
                 var product = await _dbContext.Products.AsNoTracking().FirstOrDefaultAsync(x => x.Id == model.ProductId);
                 model.ProductDisplayName = FormatProduct(product);
             }
 
-            if (model.IsEditable)
+            if (model.IsEditable && !model.Steps.Any())
             {
-                while (model.Steps.Count < model.Operations.Count + 3)
-                {
-                    model.Steps.Add(new ProductRoutingStepModel
-                    {
-                        Sequence = model.Steps.Count == 0 ? 10 : model.Steps.Max(x => x.Sequence) + 10
-                    });
-                }
+                model.Steps.Add(new ProductRoutingStepModel());
             }
 
             return model;
@@ -320,21 +383,39 @@ namespace WarehouseManagment.Services
 
         private async Task ApplyStepsAsync(ProductRouting routing, IEnumerable<ProductRoutingStepModel> steps)
         {
-            foreach (var stepModel in steps.Where(x => x.ProductionOperationId > 0))
+            foreach (var stepModel in steps.Where(IsPopulatedStep))
             {
-                if (routing.Steps.Any(x => x.Sequence == stepModel.Sequence))
+                if (!stepModel.ProductionOperationId.HasValue || stepModel.ProductionOperationId.Value <= 0)
+                {
+                    throw new InvalidOperationException("Изберете операция за попълнения ред.");
+                }
+
+                if (!stepModel.Sequence.HasValue || stepModel.Sequence.Value <= 0)
+                {
+                    throw new InvalidOperationException("Последователността трябва да бъде положително число.");
+                }
+
+                if (stepModel.StandardTimeMinutes.HasValue && stepModel.StandardTimeMinutes.Value <= 0)
+                {
+                    throw new InvalidOperationException("Стандартното време трябва да бъде по-голямо от нула.");
+                }
+
+                var operationId = stepModel.ProductionOperationId.Value;
+                var sequence = stepModel.Sequence.Value;
+
+                if (routing.Steps.Any(x => x.Sequence == sequence))
                 {
                     throw new InvalidOperationException("Последователността на стъпките не може да се повтаря.");
                 }
 
-                if (routing.Steps.Any(x => x.ProductionOperationId == stepModel.ProductionOperationId))
+                if (routing.Steps.Any(x => x.ProductionOperationId == operationId))
                 {
                     throw new InvalidOperationException("Операцията не може да се повтаря в един маршрут.");
                 }
 
                 var operation = await _dbContext.ProductionOperations
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.Id == stepModel.ProductionOperationId && x.IsActive);
+                    .FirstOrDefaultAsync(x => x.Id == operationId && x.IsActive);
 
                 if (operation == null)
                 {
@@ -345,11 +426,16 @@ namespace WarehouseManagment.Services
 
                 routing.Steps.Add(new ProductRoutingStep
                 {
-                    ProductionOperationId = stepModel.ProductionOperationId,
-                    Sequence = stepModel.Sequence,
+                    ProductionOperationId = operationId,
+                    Sequence = sequence,
                     StandardTimeMinutes = stepModel.StandardTimeMinutes,
                     Notes = NormalizeOptional(stepModel.Notes)
                 });
+            }
+
+            if (!routing.Steps.Any())
+            {
+                throw new InvalidOperationException("Добавете поне една операция към маршрута.");
             }
         }
 
@@ -369,16 +455,6 @@ namespace WarehouseManagment.Services
             if (exists)
             {
                 throw new InvalidOperationException("Вече съществува операция с този код.");
-            }
-        }
-
-        private async Task EnsureRoutingVersionIsUniqueAsync(int productId, int version, int? currentId)
-        {
-            var exists = await _dbContext.ProductRoutings
-                .AnyAsync(x => x.ProductId == productId && x.Version == version && (!currentId.HasValue || x.Id != currentId.Value));
-            if (exists)
-            {
-                throw new InvalidOperationException("За този артикул вече има маршрут с тази версия.");
             }
         }
 
@@ -407,6 +483,14 @@ namespace WarehouseManagment.Services
             return model;
         }
 
+        private static bool IsPopulatedStep(ProductRoutingStepModel step)
+        {
+            return (step.ProductionOperationId.HasValue && step.ProductionOperationId.Value > 0)
+                || step.Sequence.HasValue
+                || step.StandardTimeMinutes.HasValue
+                || !string.IsNullOrWhiteSpace(step.Notes);
+        }
+
         private static void ValidateRole(string role)
         {
             if (!SupportedProductionRoles.Contains(role))
@@ -417,7 +501,7 @@ namespace WarehouseManagment.Services
 
         private static void EnsureDraft(ProductRouting routing)
         {
-            if (routing.HasBeenActivated)
+            if (routing.IsActive || routing.HasBeenActivated)
             {
                 throw new InvalidOperationException("Версията вече е била активна и е заключена за редакция.");
             }
@@ -487,6 +571,14 @@ namespace WarehouseManagment.Services
                 routing.ActivatedOn,
                 Steps = routing.Steps.Select(x => new { x.ProductionOperationId, x.Sequence, x.StandardTimeMinutes, x.Notes }).ToList()
             };
+        }
+
+        private static bool IsRoutingVersionCollision(DbUpdateException exception)
+        {
+            var message = exception.InnerException?.Message ?? exception.Message;
+            return message.Contains("ProductRoutings", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("IX_ProductRoutings_ProductId_Version", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("ProductId", StringComparison.OrdinalIgnoreCase) && message.Contains("Version", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string FormatProduct(Product? product)

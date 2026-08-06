@@ -98,6 +98,23 @@ namespace WarehouseManagment.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateNewVersion(int id)
+        {
+            try
+            {
+                var draftId = await _productionRoutingService.CreateNewRoutingVersionFromActiveAsync(id);
+                TempData["SuccessMessage"] = "Създадена е нова чернова версия от активния маршрут.";
+                return RedirectToAction(nameof(Edit), new { id = draftId });
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = ex.Message;
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Activate(int id)
         {
             try
@@ -117,7 +134,6 @@ namespace WarehouseManagment.Controllers
         {
             target.Id = source.Id;
             target.ProductId = source.ProductId;
-            target.Version = source.Version;
             target.Notes = source.Notes;
             target.Steps = source.Steps;
         }

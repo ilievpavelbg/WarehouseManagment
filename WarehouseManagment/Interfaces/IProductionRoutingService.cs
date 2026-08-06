@@ -17,6 +17,8 @@ namespace WarehouseManagment.Interfaces
 
         Task<List<ProductRouting>> GetRoutingsAsync();
 
+        Task<List<ProductRouting>> GetRoutingsByProductAsync(int productId);
+
         Task<ProductRoutingModel> GetCreateRoutingModelAsync(int? productId = null);
 
         Task<ProductRoutingModel> GetEditRoutingModelAsync(int id);
@@ -24,6 +26,8 @@ namespace WarehouseManagment.Interfaces
         Task CreateRoutingDraftAsync(ProductRoutingModel model);
 
         Task UpdateRoutingDraftAsync(ProductRoutingModel model);
+
+        Task<int> CreateNewRoutingVersionFromActiveAsync(int activeRoutingId);
 
         Task ActivateRoutingAsync(int id);
     }
