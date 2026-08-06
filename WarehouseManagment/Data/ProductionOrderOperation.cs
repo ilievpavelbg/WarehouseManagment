@@ -52,5 +52,9 @@ namespace WarehouseManagment.Data
 
         [StringLength(500)]
         public string? Notes { get; set; }
+
+        public List<ProductionWorkEntry> WorkEntries { get; set; } = new List<ProductionWorkEntry>();
+
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
     }
 }

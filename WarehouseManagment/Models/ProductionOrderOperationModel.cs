@@ -2,6 +2,8 @@ namespace WarehouseManagment.Models
 {
     public class ProductionOrderOperationModel
     {
+        public int Id { get; set; }
+
         public int Sequence { get; set; }
 
         public string OperationName { get; set; } = string.Empty;
@@ -21,5 +23,13 @@ namespace WarehouseManagment.Models
         public ProductionOrderOperationStatus Status { get; set; }
 
         public string? Notes { get; set; }
+
+        public decimal ProgressPercent { get; set; }
+
+        public DateTime? LastReportDate { get; set; }
+
+        public string? LastReportingWorker { get; set; }
+
+        public List<ProductionWorkEntryRowModel> WorkHistory { get; set; } = new List<ProductionWorkEntryRowModel>();
     }
 }

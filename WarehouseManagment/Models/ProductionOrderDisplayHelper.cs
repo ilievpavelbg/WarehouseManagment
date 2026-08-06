@@ -55,5 +55,32 @@ namespace WarehouseManagment.Models
                 _ => status.ToString()
             };
         }
+
+        public static string OperationStatusCss(ProductionOrderOperationStatus status)
+        {
+            return status switch
+            {
+                ProductionOrderOperationStatus.Locked => "bg-secondary",
+                ProductionOrderOperationStatus.Pending => "bg-info text-dark",
+                ProductionOrderOperationStatus.Ready => "bg-primary",
+                ProductionOrderOperationStatus.InProgress => "bg-warning text-dark",
+                ProductionOrderOperationStatus.Completed => "bg-success",
+                ProductionOrderOperationStatus.Cancelled => "bg-danger",
+                _ => "bg-secondary"
+            };
+        }
+
+        public static string RoleText(string role)
+        {
+            return role switch
+            {
+                WarehouseManagment.Constants.ApplicationRoles.Cutter => "Кроячка",
+                WarehouseManagment.Constants.ApplicationRoles.Sewer => "Шивачка",
+                WarehouseManagment.Constants.ApplicationRoles.Finisher => "Довършителни операции",
+                WarehouseManagment.Constants.ApplicationRoles.ProductionManager => "Производствен мениджър",
+                WarehouseManagment.Constants.ApplicationRoles.Administrator => "Администратор",
+                _ => role
+            };
+        }
     }
 }

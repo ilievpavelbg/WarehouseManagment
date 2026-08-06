@@ -20,7 +20,7 @@
         var salesControllers = new[] { "Product", "Sale", "Courier" };
         var wmsControllers = new[] { "Warehouse", "WarehouseSettings", "Material", "StockInquiry", "LowStock", "InventoryMovement", "AuditLog" };
         var masterDataControllers = new[] { "MaterialCategory", "UnitOfMeasure", "Supplier" };
-        var productionControllers = new[] { "ProductionOrder", "ProductionProfile", "CostComponent", "ProductCostCalculation", "BillOfMaterials", "ProductionOperation", "ProductRouting" };
+        var productionControllers = new[] { "ProductionOrder", "ProductionWork", "ProductionProfile", "CostComponent", "ProductCostCalculation", "BillOfMaterials", "ProductionOperation", "ProductRouting" };
         var adminControllers = new[] { "UserRoles" };
         var isHomeActive = string.Equals(currentController, "Home", StringComparison.OrdinalIgnoreCase);
         var isSalesActive = salesControllers.Contains(currentController);
@@ -33,10 +33,12 @@
         var isWarehouseOperator = User.IsInRole(ApplicationRoles.WarehouseOperator);
         var isReadOnly = User.IsInRole(ApplicationRoles.ReadOnly);
         var isProductionManager = User.IsInRole(ApplicationRoles.ProductionManager);
+        var isProductionWorker = User.IsInRole(ApplicationRoles.Cutter) || User.IsInRole(ApplicationRoles.Sewer) || User.IsInRole(ApplicationRoles.Finisher);
         var canManageWarehouse = isAdministrator || isWarehouseManager;
         var canReadWarehouse = canManageWarehouse || isWarehouseOperator || isReadOnly;
         var canViewLowStock = canManageWarehouse || isReadOnly;
         var canManageProduction = isAdministrator || isProductionManager;
+        var canWorkProduction = canManageProduction || isProductionWorker;
     }
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
@@ -108,21 +110,25 @@
                                     </ul>
                                 </li>
                             }
-                            @if (canManageProduction)
+                            @if (canWorkProduction)
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle @(isProductionActive ? "active" : string.Empty)" href="#" id="productionDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         Производство
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="productionDropdown">
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="ProductionOrder" asp-action="Index">Производствени поръчки</a></li>
-                                        <li><hr class="dropdown-divider" /></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="ProductionProfile" asp-action="Index">Производствени изделия</a></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="CostComponent" asp-action="Index">Компоненти себестойност</a></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="ProductCostCalculation" asp-action="Index">Калкулации</a></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="BillOfMaterials" asp-action="Index">Разходни норми</a></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="ProductionOperation" asp-action="Index">Производствени операции</a></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="ProductRouting" asp-action="Index">Технологични маршрути</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="ProductionWork" asp-action="Index">Моите задачи</a></li>
+                                        @if (canManageProduction)
+                                        {
+                                            <li><a class="dropdown-item" asp-area="" asp-controller="ProductionOrder" asp-action="Index">Производствени поръчки</a></li>
+                                            <li><hr class="dropdown-divider" /></li>
+                                            <li><a class="dropdown-item" asp-area="" asp-controller="ProductionProfile" asp-action="Index">Производствени изделия</a></li>
+                                            <li><a class="dropdown-item" asp-area="" asp-controller="CostComponent" asp-action="Index">Компоненти себестойност</a></li>
+                                            <li><a class="dropdown-item" asp-area="" asp-controller="ProductCostCalculation" asp-action="Index">Калкулации</a></li>
+                                            <li><a class="dropdown-item" asp-area="" asp-controller="BillOfMaterials" asp-action="Index">Разходни норми</a></li>
+                                            <li><a class="dropdown-item" asp-area="" asp-controller="ProductionOperation" asp-action="Index">Производствени операции</a></li>
+                                            <li><a class="dropdown-item" asp-area="" asp-controller="ProductRouting" asp-action="Index">Технологични маршрути</a></li>
+                                        }
                                     </ul>
                                 </li>
                             }

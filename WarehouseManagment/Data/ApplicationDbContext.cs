@@ -39,6 +39,7 @@ namespace WarehouseManagment.Data
         public DbSet<ProductRoutingStep> ProductRoutingSteps { get; set; }
         public DbSet<ProductionOrder> ProductionOrders { get; set; } = null!;
         public DbSet<ProductionOrderOperation> ProductionOrderOperations { get; set; } = null!;
+        public DbSet<ProductionWorkEntry> ProductionWorkEntries { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -467,6 +468,10 @@ namespace WarehouseManagment.Data
                 .HasColumnType("decimal(18,4)");
 
             builder.Entity<ProductionOrder>()
+                .Property(x => x.RowVersion)
+                .IsRowVersion();
+
+            builder.Entity<ProductionOrder>()
                 .HasOne(x => x.Product)
                 .WithMany()
                 .HasForeignKey(x => x.ProductId)
@@ -539,6 +544,10 @@ namespace WarehouseManagment.Data
                 .HasColumnType("decimal(18,4)");
 
             builder.Entity<ProductionOrderOperation>()
+                .Property(x => x.RowVersion)
+                .IsRowVersion();
+
+            builder.Entity<ProductionOrderOperation>()
                 .HasOne(x => x.ProductionOrder)
                 .WithMany(x => x.Operations)
                 .HasForeignKey(x => x.ProductionOrderId)
@@ -554,6 +563,32 @@ namespace WarehouseManagment.Data
                 .HasOne(x => x.ProductRoutingStep)
                 .WithMany()
                 .HasForeignKey(x => x.ProductRoutingStepId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionWorkEntry>()
+                .HasIndex(x => x.ProductionOrderOperationId);
+
+            builder.Entity<ProductionWorkEntry>()
+                .HasIndex(x => x.UserId);
+
+            builder.Entity<ProductionWorkEntry>()
+                .HasIndex(x => x.CreatedOn);
+
+            builder.Entity<ProductionWorkEntry>()
+                .HasIndex(x => new { x.ProductionOrderOperationId, x.CreatedOn });
+
+            builder.Entity<ProductionWorkEntry>()
+                .Property(x => x.ReportedCompletedQuantity)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductionWorkEntry>()
+                .Property(x => x.ReportedRejectedQuantity)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductionWorkEntry>()
+                .HasOne(x => x.ProductionOrderOperation)
+                .WithMany(x => x.WorkEntries)
+                .HasForeignKey(x => x.ProductionOrderOperationId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

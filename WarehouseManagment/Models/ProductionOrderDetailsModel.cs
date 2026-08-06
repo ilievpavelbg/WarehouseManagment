@@ -34,6 +34,8 @@ namespace WarehouseManagment.Models
 
         public string? StartedByUserId { get; set; }
 
+        public string? CompletedByUserId { get; set; }
+
         public int BillOfMaterialsVersion { get; set; }
 
         public int ProductRoutingVersion { get; set; }

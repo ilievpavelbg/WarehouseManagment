@@ -103,5 +103,7 @@ namespace WarehouseManagment.Data
         public string? CancellationReason { get; set; }
 
         public List<ProductionOrderOperation> Operations { get; set; } = new List<ProductionOrderOperation>();
+
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
     }
 }

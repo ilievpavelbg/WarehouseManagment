@@ -70,6 +70,14 @@ builder.Services.AddAuthorization(options =>
 
     options.AddPolicy(ApplicationPolicies.RequireProductionManager, policy =>
         policy.RequireRole(ApplicationRoles.Administrator, ApplicationRoles.ProductionManager));
+
+    options.AddPolicy(ApplicationPolicies.RequireProductionWorker, policy =>
+        policy.RequireRole(
+            ApplicationRoles.Administrator,
+            ApplicationRoles.ProductionManager,
+            ApplicationRoles.Cutter,
+            ApplicationRoles.Sewer,
+            ApplicationRoles.Finisher));
 });
 
 builder.Services.AddControllersWithViews();
@@ -101,6 +109,7 @@ builder.Services.AddScoped<IProductCostCalculationService, ProductCostCalculatio
 builder.Services.AddScoped<IBillOfMaterialsService, BillOfMaterialsService>();
 builder.Services.AddScoped<IProductionRoutingService, ProductionRoutingService>();
 builder.Services.AddScoped<IProductionOrderService, ProductionOrderService>();
+builder.Services.AddScoped<IProductionWorkService, ProductionWorkService>();
 builder.Services.AddScoped<IProductionSetupSeeder, ProductionSetupSeeder>();
 builder.Services.AddScoped<IRoleSeeder, RoleSeeder>();
 builder.Services.AddSingleton<IHttpContextAccessor,  HttpContextAccessor>();

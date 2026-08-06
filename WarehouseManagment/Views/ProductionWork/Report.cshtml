@@ -1,0 +1,100 @@
+@model ProductionWorkReportModel
+
+@{
+    ViewData["Title"] = "Отчитане на работа";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<form asp-action="Report" method="post">
+    <input type="hidden" asp-for="ProductionOrderOperationId" />
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="card mb-3">
+        <div class="card-header">Производствена задача</div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Поръчка</dt><dd class="col-sm-9">@Model.OrderNumber</dd>
+                <dt class="col-sm-3">Артикул</dt><dd class="col-sm-9">@Model.ProductDisplayName</dd>
+                <dt class="col-sm-3">Операция</dt><dd class="col-sm-9">@Model.OperationName</dd>
+                <dt class="col-sm-3">Производствена роля</dt><dd class="col-sm-9">@ProductionOrderDisplayHelper.RoleText(Model.RequiredRole)</dd>
+                <dt class="col-sm-3">Планирано</dt><dd class="col-sm-9">@Model.PlannedQuantity.ToString("N4") @Model.UnitOfMeasure</dd>
+                <dt class="col-sm-3">Налично за работа</dt><dd class="col-sm-9">@Model.AvailableQuantity.ToString("N4") @Model.UnitOfMeasure</dd>
+                <dt class="col-sm-3">Завършено до момента</dt><dd class="col-sm-9">@Model.CompletedQuantity.ToString("N4") @Model.UnitOfMeasure</dd>
+                <dt class="col-sm-3">Брак до момента</dt><dd class="col-sm-9">@Model.RejectedQuantity.ToString("N4") @Model.UnitOfMeasure</dd>
+                <dt class="col-sm-3">Мерна единица</dt><dd class="col-sm-9">@Model.UnitOfMeasure</dd>
+                <dt class="col-sm-3">Стандартно време</dt><dd class="col-sm-9">@(Model.StandardTimeMinutes?.ToString() ?? "-")</dd>
+                <dt class="col-sm-3">Работник</dt><dd class="col-sm-9">@Model.CurrentWorker</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3 mb-3">
+            <label asp-for="ReportedCompletedQuantity" class="form-label">Завършено количество</label>
+            <input asp-for="ReportedCompletedQuantity" class="form-control" />
+            <span asp-validation-for="ReportedCompletedQuantity" class="text-danger"></span>
+        </div>
+        <div class="col-md-3 mb-3">
+            <label asp-for="ReportedRejectedQuantity" class="form-label">Брак</label>
+            <input asp-for="ReportedRejectedQuantity" class="form-control" />
+            <span asp-validation-for="ReportedRejectedQuantity" class="text-danger"></span>
+        </div>
+        <div class="col-md-3 mb-3">
+            <label asp-for="WorkStartedOn" class="form-label">Начало на работа</label>
+            <input asp-for="WorkStartedOn" type="datetime-local" class="form-control" />
+        </div>
+        <div class="col-md-3 mb-3">
+            <label asp-for="WorkEndedOn" class="form-label">Край на работа</label>
+            <input asp-for="WorkEndedOn" type="datetime-local" class="form-control" />
+        </div>
+        <div class="col-12 mb-3">
+            <label asp-for="Notes" class="form-label">Бележки</label>
+            <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+            <span asp-validation-for="Notes" class="text-danger"></span>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Запази отчет</button>
+    <a class="btn btn-secondary" asp-action="Details" asp-route-id="@Model.ProductionOrderOperationId">Отказ</a>
+</form>
+
+<h5 class="mt-4">История на отчетите</h5>
+@if (!Model.WorkHistory.Any())
+{
+    <div class="alert alert-info">Няма отчетена работа по тази операция.</div>
+}
+else
+{
+    <table class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>Дата/час</th>
+                <th>Работник</th>
+                <th>Завършено</th>
+                <th>Брак</th>
+                <th>Начало</th>
+                <th>Край</th>
+                <th>Бележки</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var entry in Model.WorkHistory)
+            {
+                <tr>
+                    <td>@entry.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
+                    <td>@(string.IsNullOrWhiteSpace(entry.Worker) ? "-" : entry.Worker)</td>
+                    <td>@entry.ReportedCompletedQuantity.ToString("N4")</td>
+                    <td>@entry.ReportedRejectedQuantity.ToString("N4")</td>
+                    <td>@(entry.WorkStartedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                    <td>@(entry.WorkEndedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                    <td>@(entry.Notes ?? "-")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

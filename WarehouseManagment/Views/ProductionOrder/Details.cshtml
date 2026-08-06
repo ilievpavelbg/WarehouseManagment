@@ -15,8 +15,14 @@
     <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
 }
 
-<div class="alert alert-info">
-    Отчитане от работници, складови движения и автоматични количества ще бъдат активирани в следващите етапи.
+<div class="mb-3">
+    <div class="d-flex justify-content-between">
+        <span>Общ прогрес</span>
+        <strong>@Model.ProgressPercent.ToString("N2")%</strong>
+    </div>
+    <div class="progress">
+        <div class="progress-bar" role="progressbar" style="width: @Model.ProgressPercent.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)%;" aria-valuenow="@Model.ProgressPercent.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)" aria-valuemin="0" aria-valuemax="100"></div>
+    </div>
 </div>
 
 <div class="row g-3 mb-3">
@@ -72,6 +78,7 @@
                     <dt class="col-sm-5">Създадена</dt><dd class="col-sm-7">@Model.CreatedOn.ToString("dd.MM.yyyy HH:mm")</dd>
                     <dt class="col-sm-5">Създал</dt><dd class="col-sm-7">@(Model.CreatedByUserId ?? "-")</dd>
                     <dt class="col-sm-5">Стартирал</dt><dd class="col-sm-7">@(Model.StartedByUserId ?? "-")</dd>
+                    <dt class="col-sm-5">Завършил</dt><dd class="col-sm-7">@(Model.CompletedByUserId ?? "-")</dd>
                     @if (Model.Status == ProductionOrderStatus.Cancelled)
                     {
                         <dt class="col-sm-5">Отменена на</dt><dd class="col-sm-7">@(Model.CancelledOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</dd>
@@ -96,7 +103,11 @@
             <th>Завършени</th>
             <th>Брак</th>
             <th>Статус</th>
+            <th>Прогрес</th>
+            <th>Последен отчет</th>
+            <th>Последен работник</th>
             <th>Стандартно време</th>
+            <th>Действия</th>
         </tr>
     </thead>
     <tbody>
@@ -110,12 +121,72 @@
                 <td>@operation.AvailableQuantity.ToString("N4")</td>
                 <td>@operation.CompletedQuantity.ToString("N4")</td>
                 <td>@operation.RejectedQuantity.ToString("N4")</td>
-                <td>@ProductionOrderDisplayHelper.OperationStatusText(operation.Status)</td>
+                <td><span class="badge @ProductionOrderDisplayHelper.OperationStatusCss(operation.Status)">@ProductionOrderDisplayHelper.OperationStatusText(operation.Status)</span></td>
+                <td style="min-width: 160px;">
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: @operation.ProgressPercent.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)%;" aria-valuenow="@operation.ProgressPercent.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)" aria-valuemin="0" aria-valuemax="100">
+                            @operation.ProgressPercent.ToString("N0")%
+                        </div>
+                    </div>
+                    @if (operation.Status == ProductionOrderOperationStatus.Ready || operation.Status == ProductionOrderOperationStatus.InProgress)
+                    {
+                        <span class="badge bg-warning text-dark mt-1">Активна операция</span>
+                    }
+                </td>
+                <td>@(operation.LastReportDate?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                <td>@(operation.LastReportingWorker ?? "-")</td>
                 <td>@(operation.StandardTimeMinutes?.ToString() ?? "-")</td>
+                <td>
+                    @if (operation.AvailableQuantity > 0 && (operation.Status == ProductionOrderOperationStatus.Ready || operation.Status == ProductionOrderOperationStatus.InProgress))
+                    {
+                        <a class="btn btn-sm btn-outline-success" asp-controller="ProductionWork" asp-action="Report" asp-route-id="@operation.Id">Отчет</a>
+                    }
+                </td>
             </tr>
         }
     </tbody>
 </table>
+
+<h5>История на отчетена работа</h5>
+@if (!Model.Operations.Any(x => x.WorkHistory.Any()))
+{
+    <div class="alert alert-info">Няма отчетена работа по тази производствена поръчка.</div>
+}
+else
+{
+    <table class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>Дата/час</th>
+                <th>Операция</th>
+                <th>Работник</th>
+                <th>Завършено</th>
+                <th>Брак</th>
+                <th>Начало</th>
+                <th>Край</th>
+                <th>Бележки</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var operation in Model.Operations)
+            {
+                foreach (var entry in operation.WorkHistory)
+                {
+                    <tr>
+                        <td>@entry.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>@operation.OperationName</td>
+                        <td>@(string.IsNullOrWhiteSpace(entry.Worker) ? "-" : entry.Worker)</td>
+                        <td>@entry.ReportedCompletedQuantity.ToString("N4")</td>
+                        <td>@entry.ReportedRejectedQuantity.ToString("N4")</td>
+                        <td>@(entry.WorkStartedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                        <td>@(entry.WorkEndedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                        <td>@(entry.Notes ?? "-")</td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+}
 
 <div class="mb-3">
     @if (Model.Status == ProductionOrderStatus.Planned)

@@ -337,7 +337,9 @@ namespace WarehouseManagment.Services
 
             try
             {
-                var order = await _dbContext.ProductionOrders.FirstOrDefaultAsync(x => x.Id == id);
+                var order = await _dbContext.ProductionOrders
+                    .Include(x => x.Operations)
+                    .FirstOrDefaultAsync(x => x.Id == id);
                 if (order == null)
                 {
                     throw new ArgumentNullException(nameof(order));
@@ -353,6 +355,27 @@ namespace WarehouseManagment.Services
                 order.ActualStartDate = DateTime.Now;
                 order.StartedByUserId = _currentUserService.UserId;
                 order.UpdatedOn = DateTime.Now;
+
+                var orderedOperations = order.Operations.OrderBy(x => x.Sequence).ToList();
+                if (!orderedOperations.Any())
+                {
+                    throw new InvalidOperationException("Производствената поръчка няма операции за стартиране.");
+                }
+
+                for (var index = 0; index < orderedOperations.Count; index++)
+                {
+                    var operation = orderedOperations[index];
+                    if (index == 0)
+                    {
+                        operation.AvailableQuantity = order.PlannedQuantity;
+                        operation.Status = ProductionOrderOperationStatus.Ready;
+                    }
+                    else
+                    {
+                        operation.AvailableQuantity = 0;
+                        operation.Status = ProductionOrderOperationStatus.Locked;
+                    }
+                }
 
                 await AddStatusAuditAsync(order, oldStatus, order.Status, "Стартирана производствена поръчка");
                 await _dbContext.SaveChangesAsync();
@@ -436,6 +459,14 @@ namespace WarehouseManagment.Services
                     throw new InvalidOperationException("Само планирани производствени поръчки могат да бъдат изтрити.");
                 }
 
+                var operationIds = order.Operations.Select(x => x.Id).ToList();
+                var hasWorkEntries = await _dbContext.ProductionWorkEntries
+                    .AnyAsync(x => operationIds.Contains(x.ProductionOrderOperationId));
+                if (hasWorkEntries)
+                {
+                    throw new InvalidOperationException("Производствена поръчка с отчетена работа не може да бъде изтрита.");
+                }
+
                 await _auditLogService.AddAsync(new AuditLogEntryModel
                 {
                     ActionType = AuditActionType.ProductionOrderDelete,
@@ -508,7 +539,8 @@ namespace WarehouseManagment.Services
             return _dbContext.ProductionOrders
                 .Include(x => x.WipWarehouse)
                 .Include(x => x.FinishedGoodsWarehouse)
-                .Include(x => x.Operations);
+                .Include(x => x.Operations)
+                    .ThenInclude(x => x.WorkEntries);
         }
 
         private async Task<ProductionOrderReadinessModel> GetReadinessAsync(int productId)
@@ -653,6 +685,7 @@ namespace WarehouseManagment.Services
                 CreatedOn = order.CreatedOn,
                 CreatedByUserId = order.CreatedByUserId,
                 StartedByUserId = order.StartedByUserId,
+                CompletedByUserId = order.CompletedByUserId,
                 BillOfMaterialsVersion = order.BillOfMaterialsVersionSnapshot,
                 ProductRoutingVersion = order.ProductRoutingVersionSnapshot,
                 ProductCostCalculationVersion = order.ProductCostCalculationVersionSnapshot,
@@ -666,6 +699,7 @@ namespace WarehouseManagment.Services
                     .OrderBy(x => x.Sequence)
                     .Select(x => new ProductionOrderOperationModel
                     {
+                        Id = x.Id,
                         Sequence = x.Sequence,
                         OperationName = x.OperationNameSnapshot,
                         RequiredRole = x.RequiredRoleSnapshot,
@@ -675,7 +709,32 @@ namespace WarehouseManagment.Services
                         CompletedQuantity = x.CompletedQuantity,
                         RejectedQuantity = x.RejectedQuantity,
                         Status = x.Status,
-                        Notes = x.Notes
+                        Notes = x.Notes,
+                        ProgressPercent = CalculateOperationProgress(x),
+                        LastReportDate = x.WorkEntries
+                            .OrderByDescending(entry => entry.CreatedOn)
+                            .ThenByDescending(entry => entry.Id)
+                            .Select(entry => (DateTime?)entry.CreatedOn)
+                            .FirstOrDefault(),
+                        LastReportingWorker = x.WorkEntries
+                            .OrderByDescending(entry => entry.CreatedOn)
+                            .ThenByDescending(entry => entry.Id)
+                            .Select(entry => entry.UserNameSnapshot ?? entry.UserId)
+                            .FirstOrDefault(),
+                        WorkHistory = x.WorkEntries
+                            .OrderByDescending(entry => entry.CreatedOn)
+                            .ThenByDescending(entry => entry.Id)
+                            .Select(entry => new ProductionWorkEntryRowModel
+                            {
+                                CreatedOn = entry.CreatedOn,
+                                Worker = entry.UserNameSnapshot ?? entry.UserId ?? string.Empty,
+                                ReportedCompletedQuantity = entry.ReportedCompletedQuantity,
+                                ReportedRejectedQuantity = entry.ReportedRejectedQuantity,
+                                WorkStartedOn = entry.WorkStartedOn,
+                                WorkEndedOn = entry.WorkEndedOn,
+                                Notes = entry.Notes
+                            })
+                            .ToList()
                     })
                     .ToList()
             };
@@ -690,6 +749,17 @@ namespace WarehouseManagment.Services
 
             var lastOperation = order.Operations.OrderByDescending(x => x.Sequence).First();
             var progress = lastOperation.CompletedQuantity / order.PlannedQuantity * 100;
+            return Math.Min(100, Math.Max(0, progress));
+        }
+
+        private static decimal CalculateOperationProgress(ProductionOrderOperation operation)
+        {
+            if (operation.PlannedQuantity <= 0)
+            {
+                return 0;
+            }
+
+            var progress = operation.CompletedQuantity / operation.PlannedQuantity * 100;
             return Math.Min(100, Math.Max(0, progress));
         }
 

@@ -1,0 +1,65 @@
+@model ProductionWorkDetailsModel
+
+@{
+    ViewData["Title"] = "Производствена задача";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<div class="card mb-3">
+    <div class="card-header">Задача</div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Поръчка</dt><dd class="col-sm-9">@Model.Task.OrderNumber</dd>
+            <dt class="col-sm-3">Артикул</dt><dd class="col-sm-9">@Model.Task.ProductDisplayName</dd>
+            <dt class="col-sm-3">Операция</dt><dd class="col-sm-9">@Model.Task.OperationName</dd>
+            <dt class="col-sm-3">Роля</dt><dd class="col-sm-9">@ProductionOrderDisplayHelper.RoleText(Model.Task.RequiredRole)</dd>
+            <dt class="col-sm-3">Планирано</dt><dd class="col-sm-9">@Model.Task.PlannedQuantity.ToString("N4") @Model.Task.UnitOfMeasure</dd>
+            <dt class="col-sm-3">Налично за работа</dt><dd class="col-sm-9">@Model.Task.AvailableQuantity.ToString("N4") @Model.Task.UnitOfMeasure</dd>
+            <dt class="col-sm-3">Завършено</dt><dd class="col-sm-9">@Model.Task.CompletedQuantity.ToString("N4") @Model.Task.UnitOfMeasure</dd>
+            <dt class="col-sm-3">Брак</dt><dd class="col-sm-9">@Model.Task.RejectedQuantity.ToString("N4") @Model.Task.UnitOfMeasure</dd>
+            <dt class="col-sm-3">Статус</dt><dd class="col-sm-9"><span class="badge @ProductionOrderDisplayHelper.OperationStatusCss(Model.Task.Status)">@ProductionOrderDisplayHelper.OperationStatusText(Model.Task.Status)</span></dd>
+        </dl>
+    </div>
+</div>
+
+<div class="mb-3">
+    <a class="btn btn-success" asp-action="Report" asp-route-id="@Model.Task.ProductionOrderOperationId">Отчети работа</a>
+    <a class="btn btn-secondary" asp-action="Index">Назад</a>
+</div>
+
+<h5>История на отчетите</h5>
+@if (!Model.WorkHistory.Any())
+{
+    <div class="alert alert-info">Няма отчетена работа по тази операция.</div>
+}
+else
+{
+    <table class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>Дата/час</th>
+                <th>Работник</th>
+                <th>Завършено</th>
+                <th>Брак</th>
+                <th>Начало</th>
+                <th>Край</th>
+                <th>Бележки</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var entry in Model.WorkHistory)
+            {
+                <tr>
+                    <td>@entry.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
+                    <td>@(string.IsNullOrWhiteSpace(entry.Worker) ? "-" : entry.Worker)</td>
+                    <td>@entry.ReportedCompletedQuantity.ToString("N4")</td>
+                    <td>@entry.ReportedRejectedQuantity.ToString("N4")</td>
+                    <td>@(entry.WorkStartedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                    <td>@(entry.WorkEndedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                    <td>@(entry.Notes ?? "-")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

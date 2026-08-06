@@ -7,5 +7,9 @@ namespace WarehouseManagment.Interfaces
         string? UserName { get; }
 
         string? IpAddress { get; }
+
+        IReadOnlyCollection<string> Roles { get; }
+
+        bool IsInRole(string role);
     }
 }
