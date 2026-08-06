@@ -100,6 +100,7 @@ builder.Services.AddScoped<ICostComponentService, CostComponentService>();
 builder.Services.AddScoped<IProductCostCalculationService, ProductCostCalculationService>();
 builder.Services.AddScoped<IBillOfMaterialsService, BillOfMaterialsService>();
 builder.Services.AddScoped<IProductionRoutingService, ProductionRoutingService>();
+builder.Services.AddScoped<IProductionOrderService, ProductionOrderService>();
 builder.Services.AddScoped<IProductionSetupSeeder, ProductionSetupSeeder>();
 builder.Services.AddScoped<IRoleSeeder, RoleSeeder>();
 builder.Services.AddSingleton<IHttpContextAccessor,  HttpContextAccessor>();

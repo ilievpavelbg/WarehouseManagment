@@ -11,6 +11,11 @@ namespace WarehouseManagment.Models
         SettingsChange = 7,
         Import = 8,
         Login = 9,
-        Logout = 10
+        Logout = 10,
+        ProductionOrderCreate = 11,
+        ProductionOrderUpdate = 12,
+        ProductionOrderStatusChange = 13,
+        ProductionOrderCancel = 14,
+        ProductionOrderDelete = 15
     }
 }

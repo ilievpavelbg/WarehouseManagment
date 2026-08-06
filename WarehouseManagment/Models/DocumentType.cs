@@ -4,6 +4,7 @@ namespace WarehouseManagment.Models
     {
         GoodsReceipt = 1,
         MaterialTransfer = 2,
-        StockAdjustment = 3
+        StockAdjustment = 3,
+        ProductionOrder = 4
     }
 }

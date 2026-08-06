@@ -20,7 +20,7 @@
         var salesControllers = new[] { "Product", "Sale", "Courier" };
         var wmsControllers = new[] { "Warehouse", "WarehouseSettings", "Material", "StockInquiry", "LowStock", "InventoryMovement", "AuditLog" };
         var masterDataControllers = new[] { "MaterialCategory", "UnitOfMeasure", "Supplier" };
-        var productionControllers = new[] { "ProductionProfile", "CostComponent", "ProductCostCalculation", "BillOfMaterials", "ProductionOperation", "ProductRouting" };
+        var productionControllers = new[] { "ProductionOrder", "ProductionProfile", "CostComponent", "ProductCostCalculation", "BillOfMaterials", "ProductionOperation", "ProductRouting" };
         var adminControllers = new[] { "UserRoles" };
         var isHomeActive = string.Equals(currentController, "Home", StringComparison.OrdinalIgnoreCase);
         var isSalesActive = salesControllers.Contains(currentController);
@@ -115,6 +115,8 @@
                                         Производство
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="productionDropdown">
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="ProductionOrder" asp-action="Index">Производствени поръчки</a></li>
+                                        <li><hr class="dropdown-divider" /></li>
                                         <li><a class="dropdown-item" asp-area="" asp-controller="ProductionProfile" asp-action="Index">Производствени изделия</a></li>
                                         <li><a class="dropdown-item" asp-area="" asp-controller="CostComponent" asp-action="Index">Компоненти себестойност</a></li>
                                         <li><a class="dropdown-item" asp-area="" asp-controller="ProductCostCalculation" asp-action="Index">Калкулации</a></li>

@@ -1,0 +1,58 @@
+@model ProductionOrderEditModel
+
+@{
+    ViewData["Title"] = "Редакция на производствена поръчка";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+@if (!Model.IsEditable)
+{
+    <div class="alert alert-info">Само планирани производствени поръчки могат да се редактират.</div>
+}
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="row">
+        <div class="col-md-3 mb-3">
+            <label class="form-label">Поръчка</label>
+            <input asp-for="OrderNumber" class="form-control" readonly />
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Артикул</label>
+            <input asp-for="ProductDisplayName" class="form-control" readonly />
+        </div>
+        <div class="col-md-3 mb-3">
+            <label class="form-label">Количество</label>
+            <input value="@Model.PlannedQuantity.ToString("N4") @Model.UnitOfMeasure" class="form-control" readonly />
+        </div>
+        <div class="col-md-3 mb-3">
+            <label asp-for="PlannedStartDate" class="form-label">Планиран старт</label>
+            <input asp-for="PlannedStartDate" type="date" class="form-control" disabled="@(!Model.IsEditable)" />
+        </div>
+        <div class="col-md-3 mb-3">
+            <label asp-for="PlannedEndDate" class="form-label">Планиран край</label>
+            <input asp-for="PlannedEndDate" type="date" class="form-control" disabled="@(!Model.IsEditable)" />
+        </div>
+        <div class="col-md-3 mb-3">
+            <label asp-for="Priority" class="form-label">Приоритет</label>
+            <select asp-for="Priority" class="form-select" asp-items="Html.GetEnumSelectList<ProductionOrderPriority>()" disabled="@(!Model.IsEditable)"></select>
+        </div>
+        <div class="col-12 mb-3">
+            <label asp-for="Notes" class="form-label">Бележки</label>
+            <textarea asp-for="Notes" class="form-control" rows="3" disabled="@(!Model.IsEditable)"></textarea>
+        </div>
+    </div>
+
+    @if (Model.IsEditable)
+    {
+        <button type="submit" class="btn btn-primary">Запази</button>
+    }
+    <a class="btn btn-secondary" asp-action="Details" asp-route-id="@Model.Id">Назад</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

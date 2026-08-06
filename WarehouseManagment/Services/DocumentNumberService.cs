@@ -86,6 +86,7 @@ namespace WarehouseManagment.Services
                 DocumentType.GoodsReceipt => "GR",
                 DocumentType.MaterialTransfer => "TR",
                 DocumentType.StockAdjustment => "ADJ",
+                DocumentType.ProductionOrder => "PO",
                 _ => throw new InvalidOperationException("Invalid document type.")
             };
         }

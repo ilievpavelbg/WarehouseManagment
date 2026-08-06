@@ -1,0 +1,145 @@
+@model ProductionOrderIndexModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    ViewData["Title"] = "Производствени поръчки";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<div class="mb-3">
+    <a class="btn btn-primary" asp-action="Create">Нова производствена поръчка</a>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-2">
+        <label class="form-label">Поръчка</label>
+        <input asp-for="Filter.OrderNumber" name="OrderNumber" class="form-control" />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Артикул</label>
+        <select asp-for="Filter.ProductId" name="ProductId" class="form-select" asp-items="@(new SelectList(Model.Products, "Id", "Text", Model.Filter.ProductId))">
+            <option value="">Всички</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Статус</label>
+        <select asp-for="Filter.Status" name="Status" class="form-select" asp-items="Html.GetEnumSelectList<ProductionOrderStatus>()">
+            <option value="">Всички</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Дата от</label>
+        <input asp-for="Filter.PlannedDateFrom" name="PlannedDateFrom" type="date" class="form-control" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Дата до</label>
+        <input asp-for="Filter.PlannedDateTo" name="PlannedDateTo" type="date" class="form-control" />
+    </div>
+    <div class="col-md-1 d-flex align-items-end">
+        <div class="form-check">
+            <input asp-for="Filter.OverdueOnly" name="OverdueOnly" class="form-check-input" />
+            <label class="form-check-label">Проср.</label>
+        </div>
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-outline-primary">Филтър</button>
+        <a class="btn btn-outline-secondary" asp-action="Index">Изчисти</a>
+    </div>
+</form>
+
+@if (!Model.Rows.Any())
+{
+    <div class="alert alert-info">Няма намерени производствени поръчки.</div>
+}
+else
+{
+    <table class="table table-striped table-bordered align-middle">
+        <thead>
+            <tr>
+                <th>Поръчка</th>
+                <th>Артикул</th>
+                <th>Планирано количество</th>
+                <th>Мерна единица</th>
+                <th>Планиран старт</th>
+                <th>Планиран край</th>
+                <th>Статус</th>
+                <th>Прогрес</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in Model.Rows)
+            {
+                <tr>
+                    <td>@row.OrderNumber</td>
+                    <td>@row.ProductDisplayName</td>
+                    <td>@row.PlannedQuantity.ToString("N4")</td>
+                    <td>@row.UnitOfMeasure</td>
+                    <td>@(row.PlannedStartDate?.ToString("dd.MM.yyyy") ?? "-")</td>
+                    <td>@(row.PlannedEndDate?.ToString("dd.MM.yyyy") ?? "-")</td>
+                    <td><span class="badge @StatusCss(row.Status)">@StatusText(row.Status)</span></td>
+                    <td>@row.ProgressPercent.ToString("N2")%</td>
+                    <td class="text-nowrap">
+                        <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@row.Id">Преглед</a>
+                        @if (row.Status == ProductionOrderStatus.Planned)
+                        {
+                            <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@row.Id">Редакция</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<nav>
+    <ul class="pagination">
+        <li class="page-item @(Model.Page <= 1 ? "disabled" : string.Empty)">
+            <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-orderNumber="@Model.Filter.OrderNumber" asp-route-productId="@Model.Filter.ProductId" asp-route-status="@Model.Filter.Status" asp-route-plannedDateFrom="@Model.Filter.PlannedDateFrom?.ToString("yyyy-MM-dd")" asp-route-plannedDateTo="@Model.Filter.PlannedDateTo?.ToString("yyyy-MM-dd")" asp-route-overdueOnly="@Model.Filter.OverdueOnly">Назад</a>
+        </li>
+        <li class="page-item disabled"><span class="page-link">@Model.Page / @Model.TotalPages</span></li>
+        <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : string.Empty)">
+            <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-orderNumber="@Model.Filter.OrderNumber" asp-route-productId="@Model.Filter.ProductId" asp-route-status="@Model.Filter.Status" asp-route-plannedDateFrom="@Model.Filter.PlannedDateFrom?.ToString("yyyy-MM-dd")" asp-route-plannedDateTo="@Model.Filter.PlannedDateTo?.ToString("yyyy-MM-dd")" asp-route-overdueOnly="@Model.Filter.OverdueOnly">Напред</a>
+        </li>
+    </ul>
+</nav>
+
+@functions {
+    private static string StatusCss(ProductionOrderStatus status)
+    {
+        return status switch
+        {
+            ProductionOrderStatus.Planned => "bg-info text-dark",
+            ProductionOrderStatus.Released => "bg-primary",
+            ProductionOrderStatus.InProgress => "bg-warning text-dark",
+            ProductionOrderStatus.Cancelled => "bg-danger",
+            ProductionOrderStatus.Completed => "bg-success",
+            _ => "bg-secondary"
+        };
+    }
+
+    private static string StatusText(ProductionOrderStatus status)
+    {
+        return status switch
+        {
+            ProductionOrderStatus.Draft => "Чернова",
+            ProductionOrderStatus.Planned => "Планирана",
+            ProductionOrderStatus.Released => "Освободена",
+            ProductionOrderStatus.InProgress => "В производство",
+            ProductionOrderStatus.Paused => "Пауза",
+            ProductionOrderStatus.Completed => "Завършена",
+            ProductionOrderStatus.Cancelled => "Анулирана",
+            _ => status.ToString()
+        };
+    }
+}

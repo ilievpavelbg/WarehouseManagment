@@ -37,6 +37,8 @@ namespace WarehouseManagment.Data
         public DbSet<ProductionOperation> ProductionOperations { get; set; }
         public DbSet<ProductRouting> ProductRoutings { get; set; }
         public DbSet<ProductRoutingStep> ProductRoutingSteps { get; set; }
+        public DbSet<ProductionOrder> ProductionOrders { get; set; } = null!;
+        public DbSet<ProductionOrderOperation> ProductionOrderOperations { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -442,6 +444,116 @@ namespace WarehouseManagment.Data
                 .HasOne(x => x.ProductionOperation)
                 .WithMany(x => x.ProductRoutingSteps)
                 .HasForeignKey(x => x.ProductionOperationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrder>()
+                .HasIndex(x => x.OrderNumber)
+                .IsUnique();
+
+            builder.Entity<ProductionOrder>()
+                .HasIndex(x => x.ProductId);
+
+            builder.Entity<ProductionOrder>()
+                .HasIndex(x => x.Status);
+
+            builder.Entity<ProductionOrder>()
+                .HasIndex(x => x.PlannedStartDate);
+
+            builder.Entity<ProductionOrder>()
+                .HasIndex(x => x.PlannedEndDate);
+
+            builder.Entity<ProductionOrder>()
+                .Property(x => x.PlannedQuantity)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductionOrder>()
+                .HasOne(x => x.Product)
+                .WithMany()
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrder>()
+                .HasOne(x => x.ProductProductionProfile)
+                .WithMany()
+                .HasForeignKey(x => x.ProductProductionProfileId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrder>()
+                .HasOne(x => x.BillOfMaterials)
+                .WithMany()
+                .HasForeignKey(x => x.BillOfMaterialsId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrder>()
+                .HasOne(x => x.ProductRouting)
+                .WithMany()
+                .HasForeignKey(x => x.ProductRoutingId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrder>()
+                .HasOne(x => x.ProductCostCalculation)
+                .WithMany()
+                .HasForeignKey(x => x.ProductCostCalculationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrder>()
+                .HasOne(x => x.ProductionUnitOfMeasure)
+                .WithMany()
+                .HasForeignKey(x => x.ProductionUnitOfMeasureId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrder>()
+                .HasOne(x => x.WipWarehouse)
+                .WithMany()
+                .HasForeignKey(x => x.WipWarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrder>()
+                .HasOne(x => x.FinishedGoodsWarehouse)
+                .WithMany()
+                .HasForeignKey(x => x.FinishedGoodsWarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrderOperation>()
+                .HasIndex(x => new { x.ProductionOrderId, x.Sequence })
+                .IsUnique();
+
+            builder.Entity<ProductionOrderOperation>()
+                .HasIndex(x => new { x.ProductionOrderId, x.ProductionOperationId })
+                .IsUnique();
+
+            builder.Entity<ProductionOrderOperation>()
+                .Property(x => x.PlannedQuantity)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductionOrderOperation>()
+                .Property(x => x.AvailableQuantity)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductionOrderOperation>()
+                .Property(x => x.CompletedQuantity)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductionOrderOperation>()
+                .Property(x => x.RejectedQuantity)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductionOrderOperation>()
+                .HasOne(x => x.ProductionOrder)
+                .WithMany(x => x.Operations)
+                .HasForeignKey(x => x.ProductionOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<ProductionOrderOperation>()
+                .HasOne(x => x.ProductionOperation)
+                .WithMany()
+                .HasForeignKey(x => x.ProductionOperationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrderOperation>()
+                .HasOne(x => x.ProductRoutingStep)
+                .WithMany()
+                .HasForeignKey(x => x.ProductRoutingStepId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }
