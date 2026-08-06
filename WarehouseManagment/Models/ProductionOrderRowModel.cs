@@ -21,5 +21,7 @@ namespace WarehouseManagment.Models
         public ProductionOrderPriority Priority { get; set; }
 
         public decimal ProgressPercent { get; set; }
+
+        public bool IsOverdue { get; set; }
     }
 }

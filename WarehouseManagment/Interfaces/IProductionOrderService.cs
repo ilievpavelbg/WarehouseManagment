@@ -18,6 +18,8 @@ namespace WarehouseManagment.Interfaces
 
         Task UpdatePlannedAsync(ProductionOrderEditModel model);
 
+        Task<ProductionOrderCancelModel> GetCancelModelAsync(int id);
+
         Task ReleaseAsync(int id);
 
         Task StartAsync(int id);

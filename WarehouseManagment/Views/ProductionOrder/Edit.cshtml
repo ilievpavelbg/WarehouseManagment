@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Редакция на производствена поръчка";
+    var disabled = Model.IsEditable ? null : "disabled";
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
@@ -30,19 +31,31 @@
         </div>
         <div class="col-md-3 mb-3">
             <label asp-for="PlannedStartDate" class="form-label">Планиран старт</label>
-            <input asp-for="PlannedStartDate" type="date" class="form-control" disabled="@(!Model.IsEditable)" />
+            <input asp-for="PlannedStartDate" type="date" class="form-control" disabled="@disabled" />
         </div>
         <div class="col-md-3 mb-3">
             <label asp-for="PlannedEndDate" class="form-label">Планиран край</label>
-            <input asp-for="PlannedEndDate" type="date" class="form-control" disabled="@(!Model.IsEditable)" />
+            <input asp-for="PlannedEndDate" type="date" class="form-control" disabled="@disabled" />
         </div>
         <div class="col-md-3 mb-3">
             <label asp-for="Priority" class="form-label">Приоритет</label>
-            <select asp-for="Priority" class="form-select" asp-items="Html.GetEnumSelectList<ProductionOrderPriority>()" disabled="@(!Model.IsEditable)"></select>
+            <select asp-for="Priority" class="form-select" disabled="@disabled">
+                @foreach (ProductionOrderPriority priority in Enum.GetValues(typeof(ProductionOrderPriority)))
+                {
+                    if (Model.Priority == priority)
+                    {
+                        <option value="@priority" selected>@ProductionOrderDisplayHelper.PriorityText(priority)</option>
+                    }
+                    else
+                    {
+                        <option value="@priority">@ProductionOrderDisplayHelper.PriorityText(priority)</option>
+                    }
+                }
+            </select>
         </div>
         <div class="col-12 mb-3">
             <label asp-for="Notes" class="form-label">Бележки</label>
-            <textarea asp-for="Notes" class="form-control" rows="3" disabled="@(!Model.IsEditable)"></textarea>
+            <textarea asp-for="Notes" class="form-control" rows="3" disabled="@disabled"></textarea>
         </div>
     </div>
 

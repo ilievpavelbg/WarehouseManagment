@@ -3,6 +3,7 @@
 
 @{
     ViewData["Title"] = "Нова производствена поръчка";
+    var canCreate = Model.Readiness?.IsReady == true;
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
@@ -14,20 +15,36 @@
         <div class="col-md-6 mb-3">
             <label asp-for="ProductId" class="form-label">Артикул</label>
             <select asp-for="ProductId" class="form-select" asp-items="@(new SelectList(Model.Products, "Id", "Text", Model.ProductId))" id="productSelector">
-                <option value="">Изберете...</option>
+                <option value="">Изберете артикул...</option>
             </select>
         </div>
         <div class="col-md-3 mb-3">
             <label asp-for="PlannedQuantity" class="form-label">Планирано количество</label>
-            <input asp-for="PlannedQuantity" class="form-control" />
+            <div class="input-group">
+                <input asp-for="PlannedQuantity" class="form-control" />
+                <span class="input-group-text">@(string.IsNullOrWhiteSpace(Model.ProductionUnit) ? "м.е." : Model.ProductionUnit)</span>
+            </div>
         </div>
         <div class="col-md-3 mb-3">
             <label asp-for="Priority" class="form-label">Приоритет</label>
-            <select asp-for="Priority" class="form-select" asp-items="Html.GetEnumSelectList<ProductionOrderPriority>()"></select>
+            <select asp-for="Priority" class="form-select">
+                @foreach (ProductionOrderPriority priority in Enum.GetValues(typeof(ProductionOrderPriority)))
+                {
+                    if (Model.Priority == priority)
+                    {
+                        <option value="@priority" selected>@ProductionOrderDisplayHelper.PriorityText(priority)</option>
+                    }
+                    else
+                    {
+                        <option value="@priority">@ProductionOrderDisplayHelper.PriorityText(priority)</option>
+                    }
+                }
+            </select>
         </div>
         <div class="col-md-3 mb-3">
             <label asp-for="PlannedStartDate" class="form-label">Планиран старт</label>
             <input asp-for="PlannedStartDate" type="date" class="form-control" />
+            <div class="form-text">Показва се като дата; в списъци и справки се визуализира като dd.MM.yyyy.</div>
         </div>
         <div class="col-md-3 mb-3">
             <label asp-for="PlannedEndDate" class="form-label">Планиран край</label>
@@ -43,13 +60,13 @@
     {
         var readinessItems = new[]
         {
-            new { Label = "Производствен профил", Ok = Model.Readiness.HasActiveProductionProfile, Value = Model.Readiness.ProductionProfileText ?? string.Empty },
-            new { Label = "Разходна норма", Ok = Model.Readiness.HasActiveBillOfMaterials, Value = Model.Readiness.BillOfMaterialsVersion.HasValue ? $"Версия {Model.Readiness.BillOfMaterialsVersion}" : string.Empty },
-            new { Label = "Маршрут", Ok = Model.Readiness.HasActiveRouting && Model.Readiness.RoutingStepsCount > 0, Value = Model.Readiness.ProductRoutingVersion.HasValue ? $"Версия {Model.Readiness.ProductRoutingVersion}, операции {Model.Readiness.RoutingStepsCount}" : string.Empty },
-            new { Label = "Калкулация", Ok = true, Value = Model.Readiness.CostCalculationText },
-            new { Label = "Мерна единица", Ok = !string.IsNullOrWhiteSpace(Model.Readiness.ProductionUnit), Value = Model.Readiness.ProductionUnit ?? string.Empty },
-            new { Label = "Склад производство / НЗП", Ok = Model.Readiness.HasDefaultWipWarehouse, Value = Model.Readiness.WipWarehouse ?? string.Empty },
-            new { Label = "Склад готова продукция", Ok = Model.Readiness.HasDefaultFinishedGoodsWarehouse, Value = Model.Readiness.FinishedGoodsWarehouse ?? string.Empty }
+            new { Label = "Производствен профил", Required = true, Ok = Model.Readiness.HasActiveProductionProfile, Value = Model.Readiness.ProductionProfileText ?? string.Empty },
+            new { Label = "Разходна норма", Required = true, Ok = Model.Readiness.HasActiveBillOfMaterials, Value = Model.Readiness.BillOfMaterialsVersion.HasValue ? $"Версия {Model.Readiness.BillOfMaterialsVersion}" : string.Empty },
+            new { Label = "Технологичен маршрут", Required = true, Ok = Model.Readiness.HasActiveRouting && Model.Readiness.RoutingStepsCount > 0, Value = Model.Readiness.ProductRoutingVersion.HasValue ? $"Версия {Model.Readiness.ProductRoutingVersion}, операции {Model.Readiness.RoutingStepsCount}" : string.Empty },
+            new { Label = "Калкулация", Required = false, Ok = true, Value = Model.Readiness.CostCalculationText },
+            new { Label = "Мерна единица", Required = true, Ok = !string.IsNullOrWhiteSpace(Model.Readiness.ProductionUnit), Value = Model.Readiness.ProductionUnit ?? string.Empty },
+            new { Label = "Склад производство / НЗП", Required = true, Ok = Model.Readiness.HasDefaultWipWarehouse, Value = Model.Readiness.WipWarehouse ?? string.Empty },
+            new { Label = "Склад готова продукция", Required = true, Ok = Model.Readiness.HasDefaultFinishedGoodsWarehouse, Value = Model.Readiness.FinishedGoodsWarehouse ?? string.Empty }
         };
 
         <div class="card mb-3">
@@ -64,7 +81,7 @@
                                 @if (item.Ok)
                                 {
                                     <span class="badge bg-success">OK</span>
-                                    <span>@(string.IsNullOrWhiteSpace(item.Value) ? "-" : item.Value)</span>
+                                    <span>@(string.IsNullOrWhiteSpace(item.Value) ? "Не е зададена" : item.Value)</span>
                                 }
                                 else
                                 {
@@ -76,9 +93,29 @@
                 </div>
             </div>
         </div>
+
+        @if (canCreate)
+        {
+            <div class="alert alert-success">Готово за създаване.</div>
+        }
+        else
+        {
+            <div class="alert alert-danger">Поръчката не може да бъде създадена. Попълнете липсващите настройки.</div>
+        }
+    }
+    else
+    {
+        <div class="alert alert-info">Изберете артикул, за да се провери готовността за производство.</div>
     }
 
-    <button type="submit" class="btn btn-primary">Създай поръчка</button>
+    @if (canCreate)
+    {
+        <button type="submit" class="btn btn-primary">Създай поръчка</button>
+    }
+    else
+    {
+        <button type="submit" class="btn btn-primary" disabled>Създай поръчка</button>
+    }
     <a class="btn btn-secondary" asp-action="Index">Отказ</a>
 </form>
 

@@ -1,0 +1,36 @@
+@model ProductionOrderCancelModel
+
+@{
+    ViewData["Title"] = "Отмяна на производствена поръчка";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<div class="alert alert-warning">
+    Отмяната изисква причина и ще бъде записана в одит лога.
+</div>
+
+<dl class="row">
+    <dt class="col-sm-3">Поръчка</dt>
+    <dd class="col-sm-9">@Model.OrderNumber</dd>
+    <dt class="col-sm-3">Артикул</dt>
+    <dd class="col-sm-9">@Model.ProductDisplayName</dd>
+    <dt class="col-sm-3">Статус</dt>
+    <dd class="col-sm-9">@ProductionOrderDisplayHelper.StatusText(Model.Status)</dd>
+</dl>
+
+<form asp-action="Cancel" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="All" class="text-danger"></div>
+    <div class="mb-3">
+        <label asp-for="CancellationReason" class="form-label">Причина за отмяна</label>
+        <textarea asp-for="CancellationReason" class="form-control" rows="4"></textarea>
+        <span asp-validation-for="CancellationReason" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-danger" onclick="return confirm('Да отменя ли производствената поръчка?');">Отмени</button>
+    <a class="btn btn-secondary" asp-action="Details" asp-route-id="@Model.Id">Назад</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

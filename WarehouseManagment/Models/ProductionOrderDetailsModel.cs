@@ -32,6 +32,8 @@ namespace WarehouseManagment.Models
 
         public string? CreatedByUserId { get; set; }
 
+        public string? StartedByUserId { get; set; }
+
         public int BillOfMaterialsVersion { get; set; }
 
         public int ProductRoutingVersion { get; set; }
@@ -49,6 +51,8 @@ namespace WarehouseManagment.Models
         public string? CancellationReason { get; set; }
 
         public DateTime? CancelledOn { get; set; }
+
+        public string? CancelledByUserId { get; set; }
 
         public decimal ProgressPercent { get; set; }
 

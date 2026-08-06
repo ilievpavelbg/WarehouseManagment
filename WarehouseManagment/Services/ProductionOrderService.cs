@@ -95,6 +95,8 @@ namespace WarehouseManagment.Services
             var model = new ProductionOrderCreateModel
             {
                 ProductId = productId ?? 0,
+                PlannedQuantity = 1,
+                PlannedStartDate = DateTime.Today,
                 Priority = ProductionOrderPriority.Normal
             };
 
@@ -302,6 +304,26 @@ namespace WarehouseManagment.Services
                 NewValues = ToJson(new { order.PlannedStartDate, order.PlannedEndDate, order.Priority, order.Notes })
             });
             await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task<ProductionOrderCancelModel> GetCancelModelAsync(int id)
+        {
+            var order = await _dbContext.ProductionOrders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (order == null)
+            {
+                throw new ArgumentNullException(nameof(order));
+            }
+
+            return new ProductionOrderCancelModel
+            {
+                Id = order.Id,
+                OrderNumber = order.OrderNumber,
+                ProductDisplayName = FormatProduct(order.ProductSkuSnapshot, order.ProductDescriptionSnapshot),
+                Status = order.Status
+            };
         }
 
         public async Task ReleaseAsync(int id)
@@ -606,7 +628,8 @@ namespace WarehouseManagment.Services
                 PlannedEndDate = order.PlannedEndDate,
                 Status = order.Status,
                 Priority = order.Priority,
-                ProgressPercent = CalculateProgress(order)
+                ProgressPercent = CalculateProgress(order),
+                IsOverdue = IsOverdue(order)
             };
         }
 
@@ -629,6 +652,7 @@ namespace WarehouseManagment.Services
                 Notes = order.Notes,
                 CreatedOn = order.CreatedOn,
                 CreatedByUserId = order.CreatedByUserId,
+                StartedByUserId = order.StartedByUserId,
                 BillOfMaterialsVersion = order.BillOfMaterialsVersionSnapshot,
                 ProductRoutingVersion = order.ProductRoutingVersionSnapshot,
                 ProductCostCalculationVersion = order.ProductCostCalculationVersionSnapshot,
@@ -636,6 +660,7 @@ namespace WarehouseManagment.Services
                 FinishedGoodsWarehouse = FormatWarehouse(order.FinishedGoodsWarehouse),
                 CancellationReason = order.CancellationReason,
                 CancelledOn = order.CancelledOn,
+                CancelledByUserId = order.CancelledByUserId,
                 ProgressPercent = CalculateProgress(order),
                 Operations = order.Operations
                     .OrderBy(x => x.Sequence)
@@ -666,6 +691,14 @@ namespace WarehouseManagment.Services
             var lastOperation = order.Operations.OrderByDescending(x => x.Sequence).First();
             var progress = lastOperation.CompletedQuantity / order.PlannedQuantity * 100;
             return Math.Min(100, Math.Max(0, progress));
+        }
+
+        private static bool IsOverdue(ProductionOrder order)
+        {
+            return order.PlannedEndDate.HasValue
+                && order.PlannedEndDate.Value.Date < DateTime.Today
+                && order.Status != ProductionOrderStatus.Completed
+                && order.Status != ProductionOrderStatus.Cancelled;
         }
 
         private static object BuildAuditValues(ProductionOrder order, Warehouse? wipWarehouse, Warehouse? finishedGoodsWarehouse)

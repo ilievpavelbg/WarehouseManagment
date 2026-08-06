@@ -33,8 +33,19 @@
     </div>
     <div class="col-md-2">
         <label class="form-label">Статус</label>
-        <select asp-for="Filter.Status" name="Status" class="form-select" asp-items="Html.GetEnumSelectList<ProductionOrderStatus>()">
+        <select asp-for="Filter.Status" name="Status" class="form-select">
             <option value="">Всички</option>
+            @foreach (ProductionOrderStatus status in Enum.GetValues(typeof(ProductionOrderStatus)))
+            {
+                if (Model.Filter.Status == status)
+                {
+                    <option value="@status" selected>@ProductionOrderDisplayHelper.StatusText(status)</option>
+                }
+                else
+                {
+                    <option value="@status">@ProductionOrderDisplayHelper.StatusText(status)</option>
+                }
+            }
         </select>
     </div>
     <div class="col-md-2">
@@ -48,7 +59,7 @@
     <div class="col-md-1 d-flex align-items-end">
         <div class="form-check">
             <input asp-for="Filter.OverdueOnly" name="OverdueOnly" class="form-check-input" />
-            <label class="form-check-label">Проср.</label>
+            <label class="form-check-label">Само просрочени</label>
         </div>
     </div>
     <div class="col-12">
@@ -81,19 +92,43 @@ else
             @foreach (var row in Model.Rows)
             {
                 <tr>
-                    <td>@row.OrderNumber</td>
+                    <td>
+                        @row.OrderNumber
+                        @if (row.IsOverdue)
+                        {
+                            <span class="badge bg-danger ms-1">Просрочена</span>
+                        }
+                    </td>
                     <td>@row.ProductDisplayName</td>
                     <td>@row.PlannedQuantity.ToString("N4")</td>
                     <td>@row.UnitOfMeasure</td>
                     <td>@(row.PlannedStartDate?.ToString("dd.MM.yyyy") ?? "-")</td>
                     <td>@(row.PlannedEndDate?.ToString("dd.MM.yyyy") ?? "-")</td>
-                    <td><span class="badge @StatusCss(row.Status)">@StatusText(row.Status)</span></td>
+                    <td><span class="badge @ProductionOrderDisplayHelper.StatusCss(row.Status)">@ProductionOrderDisplayHelper.StatusText(row.Status)</span></td>
                     <td>@row.ProgressPercent.ToString("N2")%</td>
                     <td class="text-nowrap">
                         <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@row.Id">Преглед</a>
                         @if (row.Status == ProductionOrderStatus.Planned)
                         {
                             <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@row.Id">Редакция</a>
+                            <form asp-action="Release" asp-route-id="@row.Id" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('Да освободя ли поръчката за производство?');">Освободи</button>
+                            </form>
+                            <a class="btn btn-sm btn-outline-danger" asp-action="Cancel" asp-route-id="@row.Id">Отмени</a>
+                            <form asp-action="Delete" asp-route-id="@row.Id" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Изтриването е необратимо. Сигурни ли сте?');">Изтрий</button>
+                            </form>
+                        }
+                        else if (row.Status == ProductionOrderStatus.Released)
+                        {
+                            <form asp-action="Start" asp-route-id="@row.Id" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('Да стартирам ли производствената поръчка?');">Стартирай</button>
+                            </form>
+                            <a class="btn btn-sm btn-outline-danger" asp-action="Cancel" asp-route-id="@row.Id">Отмени</a>
+                        }
+                        else if (row.Status == ProductionOrderStatus.InProgress)
+                        {
+                            <a class="btn btn-sm btn-outline-danger" asp-action="Cancel" asp-route-id="@row.Id">Отмени</a>
                         }
                     </td>
                 </tr>
@@ -102,44 +137,17 @@ else
     </table>
 }
 
-<nav>
-    <ul class="pagination">
-        <li class="page-item @(Model.Page <= 1 ? "disabled" : string.Empty)">
-            <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-orderNumber="@Model.Filter.OrderNumber" asp-route-productId="@Model.Filter.ProductId" asp-route-status="@Model.Filter.Status" asp-route-plannedDateFrom="@Model.Filter.PlannedDateFrom?.ToString("yyyy-MM-dd")" asp-route-plannedDateTo="@Model.Filter.PlannedDateTo?.ToString("yyyy-MM-dd")" asp-route-overdueOnly="@Model.Filter.OverdueOnly">Назад</a>
-        </li>
-        <li class="page-item disabled"><span class="page-link">@Model.Page / @Model.TotalPages</span></li>
-        <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : string.Empty)">
-            <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-orderNumber="@Model.Filter.OrderNumber" asp-route-productId="@Model.Filter.ProductId" asp-route-status="@Model.Filter.Status" asp-route-plannedDateFrom="@Model.Filter.PlannedDateFrom?.ToString("yyyy-MM-dd")" asp-route-plannedDateTo="@Model.Filter.PlannedDateTo?.ToString("yyyy-MM-dd")" asp-route-overdueOnly="@Model.Filter.OverdueOnly">Напред</a>
-        </li>
-    </ul>
-</nav>
-
-@functions {
-    private static string StatusCss(ProductionOrderStatus status)
-    {
-        return status switch
-        {
-            ProductionOrderStatus.Planned => "bg-info text-dark",
-            ProductionOrderStatus.Released => "bg-primary",
-            ProductionOrderStatus.InProgress => "bg-warning text-dark",
-            ProductionOrderStatus.Cancelled => "bg-danger",
-            ProductionOrderStatus.Completed => "bg-success",
-            _ => "bg-secondary"
-        };
-    }
-
-    private static string StatusText(ProductionOrderStatus status)
-    {
-        return status switch
-        {
-            ProductionOrderStatus.Draft => "Чернова",
-            ProductionOrderStatus.Planned => "Планирана",
-            ProductionOrderStatus.Released => "Освободена",
-            ProductionOrderStatus.InProgress => "В производство",
-            ProductionOrderStatus.Paused => "Пауза",
-            ProductionOrderStatus.Completed => "Завършена",
-            ProductionOrderStatus.Cancelled => "Анулирана",
-            _ => status.ToString()
-        };
-    }
+@if (Model.TotalPages > 1)
+{
+    <nav>
+        <ul class="pagination">
+            <li class="page-item @(Model.Page <= 1 ? "disabled" : string.Empty)">
+                <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-orderNumber="@Model.Filter.OrderNumber" asp-route-productId="@Model.Filter.ProductId" asp-route-status="@Model.Filter.Status" asp-route-plannedDateFrom="@Model.Filter.PlannedDateFrom?.ToString("yyyy-MM-dd")" asp-route-plannedDateTo="@Model.Filter.PlannedDateTo?.ToString("yyyy-MM-dd")" asp-route-overdueOnly="@Model.Filter.OverdueOnly">Назад</a>
+            </li>
+            <li class="page-item disabled"><span class="page-link">@Model.Page / @Model.TotalPages</span></li>
+            <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : string.Empty)">
+                <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-orderNumber="@Model.Filter.OrderNumber" asp-route-productId="@Model.Filter.ProductId" asp-route-status="@Model.Filter.Status" asp-route-plannedDateFrom="@Model.Filter.PlannedDateFrom?.ToString("yyyy-MM-dd")" asp-route-plannedDateTo="@Model.Filter.PlannedDateTo?.ToString("yyyy-MM-dd")" asp-route-overdueOnly="@Model.Filter.OverdueOnly">Напред</a>
+            </li>
+        </ul>
+    </nav>
 }

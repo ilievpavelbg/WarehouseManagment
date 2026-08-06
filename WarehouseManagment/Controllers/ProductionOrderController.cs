@@ -10,10 +10,14 @@ namespace WarehouseManagment.Controllers
     public class ProductionOrderController : Controller
     {
         private readonly IProductionOrderService _productionOrderService;
+        private readonly ILogger<ProductionOrderController> _logger;
 
-        public ProductionOrderController(IProductionOrderService productionOrderService)
+        public ProductionOrderController(
+            IProductionOrderService productionOrderService,
+            ILogger<ProductionOrderController> logger)
         {
             _productionOrderService = productionOrderService;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -47,7 +51,8 @@ namespace WarehouseManagment.Controllers
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, ex.Message);
+                _logger.LogError(ex, "Production order creation failed.");
+                ModelState.AddModelError(string.Empty, GetFriendlyError(ex));
                 return View(await _productionOrderService.PrepareCreateModelAsync(model));
             }
         }
@@ -60,8 +65,9 @@ namespace WarehouseManagment.Controllers
                 var model = await _productionOrderService.GetDetailsAsync(id);
                 return View(model);
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Production order details not found. Id: {Id}", id);
                 return NotFound();
             }
         }
@@ -74,8 +80,9 @@ namespace WarehouseManagment.Controllers
                 var model = await _productionOrderService.GetEditModelAsync(id);
                 return View(model);
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Production order edit not found. Id: {Id}", id);
                 return NotFound();
             }
         }
@@ -97,8 +104,24 @@ namespace WarehouseManagment.Controllers
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, ex.Message);
+                _logger.LogError(ex, "Production order update failed. Id: {Id}", model.Id);
+                ModelState.AddModelError(string.Empty, GetFriendlyError(ex));
                 return View(model);
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Cancel(int id)
+        {
+            try
+            {
+                var model = await _productionOrderService.GetCancelModelAsync(id);
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Production order cancel page not found. Id: {Id}", id);
+                return NotFound();
             }
         }
 
@@ -109,11 +132,12 @@ namespace WarehouseManagment.Controllers
             try
             {
                 await _productionOrderService.ReleaseAsync(id);
-                TempData["SuccessMessage"] = "Производствената поръчка е освободена успешно.";
+                TempData["SuccessMessage"] = "Производствената поръчка е освободена за производство.";
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = ex.Message;
+                _logger.LogError(ex, "Production order release failed. Id: {Id}", id);
+                TempData["ErrorMessage"] = GetFriendlyError(ex);
             }
 
             return RedirectToAction(nameof(Details), new { id });
@@ -130,7 +154,8 @@ namespace WarehouseManagment.Controllers
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = ex.Message;
+                _logger.LogError(ex, "Production order start failed. Id: {Id}", id);
+                TempData["ErrorMessage"] = GetFriendlyError(ex);
             }
 
             return RedirectToAction(nameof(Details), new { id });
@@ -142,21 +167,25 @@ namespace WarehouseManagment.Controllers
         {
             if (!ModelState.IsValid)
             {
-                TempData["ErrorMessage"] = "Въведете причина за анулиране.";
-                return RedirectToAction(nameof(Details), new { id = model.Id });
+                var preparedModel = await _productionOrderService.GetCancelModelAsync(model.Id);
+                preparedModel.CancellationReason = model.CancellationReason;
+                return View(preparedModel);
             }
 
             try
             {
                 await _productionOrderService.CancelAsync(model);
-                TempData["SuccessMessage"] = "Производствената поръчка е анулирана успешно.";
+                TempData["SuccessMessage"] = "Производствената поръчка е отменена успешно.";
+                return RedirectToAction(nameof(Details), new { id = model.Id });
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = ex.Message;
+                _logger.LogError(ex, "Production order cancel failed. Id: {Id}", model.Id);
+                ModelState.AddModelError(string.Empty, GetFriendlyError(ex));
+                var preparedModel = await _productionOrderService.GetCancelModelAsync(model.Id);
+                preparedModel.CancellationReason = model.CancellationReason;
+                return View(preparedModel);
             }
-
-            return RedirectToAction(nameof(Details), new { id = model.Id });
         }
 
         [HttpPost]
@@ -171,9 +200,17 @@ namespace WarehouseManagment.Controllers
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = ex.Message;
+                _logger.LogError(ex, "Production order delete failed. Id: {Id}", id);
+                TempData["ErrorMessage"] = GetFriendlyError(ex);
                 return RedirectToAction(nameof(Details), new { id });
             }
+        }
+
+        private static string GetFriendlyError(Exception exception)
+        {
+            return exception is InvalidOperationException
+                ? exception.Message
+                : "Възникна грешка при обработката на производствената поръчка.";
         }
     }
 }

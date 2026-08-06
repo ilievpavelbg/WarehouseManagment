@@ -19,49 +19,81 @@
     Отчитане от работници, складови движения и автоматични количества ще бъдат активирани в следващите етапи.
 </div>
 
-<div class="row mb-3">
-    <div class="col-md-6">
-        <h5>Основни данни</h5>
-        <dl class="row">
-            <dt class="col-sm-4">Артикул</dt><dd class="col-sm-8">@Model.ProductDisplayName</dd>
-            <dt class="col-sm-4">Производствено име</dt><dd class="col-sm-8">@Model.ProductionName</dd>
-            <dt class="col-sm-4">Количество</dt><dd class="col-sm-8">@Model.PlannedQuantity.ToString("N4") @Model.UnitOfMeasure</dd>
-            <dt class="col-sm-4">Статус</dt><dd class="col-sm-8">@StatusText(Model.Status)</dd>
-            <dt class="col-sm-4">Прогрес</dt><dd class="col-sm-8">@Model.ProgressPercent.ToString("N2")%</dd>
-            <dt class="col-sm-4">Приоритет</dt><dd class="col-sm-8">@PriorityText(Model.Priority)</dd>
-            <dt class="col-sm-4">Планиран старт</dt><dd class="col-sm-8">@(Model.PlannedStartDate?.ToString("dd.MM.yyyy") ?? "-")</dd>
-            <dt class="col-sm-4">Планиран край</dt><dd class="col-sm-8">@(Model.PlannedEndDate?.ToString("dd.MM.yyyy") ?? "-")</dd>
-            <dt class="col-sm-4">Създадена</dt><dd class="col-sm-8">@Model.CreatedOn.ToString("dd.MM.yyyy HH:mm")</dd>
-            <dt class="col-sm-4">Бележки</dt><dd class="col-sm-8">@(Model.Notes ?? "-")</dd>
-        </dl>
+<div class="row g-3 mb-3">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">Основна информация</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Поръчка</dt><dd class="col-sm-7">@Model.OrderNumber</dd>
+                    <dt class="col-sm-5">Артикул</dt><dd class="col-sm-7">@Model.ProductDisplayName</dd>
+                    <dt class="col-sm-5">Производствено име</dt><dd class="col-sm-7">@Model.ProductionName</dd>
+                    <dt class="col-sm-5">Планирано количество</dt><dd class="col-sm-7">@Model.PlannedQuantity.ToString("N4") @Model.UnitOfMeasure</dd>
+                    <dt class="col-sm-5">Приоритет</dt><dd class="col-sm-7">@ProductionOrderDisplayHelper.PriorityText(Model.Priority)</dd>
+                    <dt class="col-sm-5">Статус</dt><dd class="col-sm-7"><span class="badge @ProductionOrderDisplayHelper.StatusCss(Model.Status)">@ProductionOrderDisplayHelper.StatusText(Model.Status)</span></dd>
+                    <dt class="col-sm-5">Прогрес</dt><dd class="col-sm-7">@Model.ProgressPercent.ToString("N2")%</dd>
+                    <dt class="col-sm-5">Бележки</dt><dd class="col-sm-7">@(Model.Notes ?? "-")</dd>
+                </dl>
+            </div>
+        </div>
     </div>
-    <div class="col-md-6">
-        <h5>Фиксирана настройка</h5>
-        <dl class="row">
-            <dt class="col-sm-5">Разходна норма</dt><dd class="col-sm-7">Версия @Model.BillOfMaterialsVersion</dd>
-            <dt class="col-sm-5">Маршрут</dt><dd class="col-sm-7">Версия @Model.ProductRoutingVersion</dd>
-            <dt class="col-sm-5">Калкулация</dt><dd class="col-sm-7">@Model.CostCalculationText</dd>
-            <dt class="col-sm-5">Склад производство / НЗП</dt><dd class="col-sm-7">@Model.WipWarehouse</dd>
-            <dt class="col-sm-5">Склад готова продукция</dt><dd class="col-sm-7">@Model.FinishedGoodsWarehouse</dd>
-            @if (Model.Status == ProductionOrderStatus.Cancelled)
-            {
-                <dt class="col-sm-5">Анулирана на</dt><dd class="col-sm-7">@(Model.CancelledOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</dd>
-                <dt class="col-sm-5">Причина</dt><dd class="col-sm-7">@Model.CancellationReason</dd>
-            }
-        </dl>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">Използвани версии</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Разходна норма</dt><dd class="col-sm-7">Версия @Model.BillOfMaterialsVersion</dd>
+                    <dt class="col-sm-5">Технологичен маршрут</dt><dd class="col-sm-7">Версия @Model.ProductRoutingVersion</dd>
+                    <dt class="col-sm-5">Калкулация</dt><dd class="col-sm-7">@Model.CostCalculationText</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">Складове</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Склад производство / НЗП</dt><dd class="col-sm-7">@Model.WipWarehouse</dd>
+                    <dt class="col-sm-5">Склад готова продукция</dt><dd class="col-sm-7">@Model.FinishedGoodsWarehouse</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">История / timestamps</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Планиран старт</dt><dd class="col-sm-7">@(Model.PlannedStartDate?.ToString("dd.MM.yyyy") ?? "-")</dd>
+                    <dt class="col-sm-5">Планиран край</dt><dd class="col-sm-7">@(Model.PlannedEndDate?.ToString("dd.MM.yyyy") ?? "-")</dd>
+                    <dt class="col-sm-5">Реален старт</dt><dd class="col-sm-7">@(Model.ActualStartDate?.ToString("dd.MM.yyyy HH:mm") ?? "-")</dd>
+                    <dt class="col-sm-5">Реален край</dt><dd class="col-sm-7">@(Model.ActualEndDate?.ToString("dd.MM.yyyy HH:mm") ?? "-")</dd>
+                    <dt class="col-sm-5">Създадена</dt><dd class="col-sm-7">@Model.CreatedOn.ToString("dd.MM.yyyy HH:mm")</dd>
+                    <dt class="col-sm-5">Създал</dt><dd class="col-sm-7">@(Model.CreatedByUserId ?? "-")</dd>
+                    <dt class="col-sm-5">Стартирал</dt><dd class="col-sm-7">@(Model.StartedByUserId ?? "-")</dd>
+                    @if (Model.Status == ProductionOrderStatus.Cancelled)
+                    {
+                        <dt class="col-sm-5">Отменена на</dt><dd class="col-sm-7">@(Model.CancelledOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</dd>
+                        <dt class="col-sm-5">Отменил</dt><dd class="col-sm-7">@(Model.CancelledByUserId ?? "-")</dd>
+                        <dt class="col-sm-5">Причина</dt><dd class="col-sm-7">@Model.CancellationReason</dd>
+                    }
+                </dl>
+            </div>
+        </div>
     </div>
 </div>
 
-<h5>Операции</h5>
+<h5>Производствени операции</h5>
 <table class="table table-striped table-bordered">
     <thead>
         <tr>
             <th>Последователност</th>
             <th>Операция</th>
             <th>Роля</th>
-            <th>Планирано</th>
-            <th>Налично</th>
-            <th>Завършено</th>
+            <th>План</th>
+            <th>Налични</th>
+            <th>Завършени</th>
             <th>Брак</th>
             <th>Статус</th>
             <th>Стандартно време</th>
@@ -78,7 +110,7 @@
                 <td>@operation.AvailableQuantity.ToString("N4")</td>
                 <td>@operation.CompletedQuantity.ToString("N4")</td>
                 <td>@operation.RejectedQuantity.ToString("N4")</td>
-                <td>@OperationStatusText(operation.Status)</td>
+                <td>@ProductionOrderDisplayHelper.OperationStatusText(operation.Status)</td>
                 <td>@(operation.StandardTimeMinutes?.ToString() ?? "-")</td>
             </tr>
         }
@@ -90,68 +122,23 @@
     {
         <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@Model.Id">Редакция</a>
         <form asp-action="Release" asp-route-id="@Model.Id" method="post" class="d-inline">
-            <button type="submit" class="btn btn-outline-primary">Освободи</button>
+            <button type="submit" class="btn btn-outline-primary" onclick="return confirm('Да освободя ли поръчката за производство?');">Освободи</button>
         </form>
+        <a class="btn btn-outline-danger" asp-action="Cancel" asp-route-id="@Model.Id">Отмени</a>
         <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline">
-            <button type="submit" class="btn btn-outline-danger">Изтрий</button>
+            <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Изтриването е необратимо. Сигурни ли сте?');">Изтрий</button>
         </form>
     }
     @if (Model.Status == ProductionOrderStatus.Released)
     {
         <form asp-action="Start" asp-route-id="@Model.Id" method="post" class="d-inline">
-            <button type="submit" class="btn btn-outline-success">Стартирай</button>
+            <button type="submit" class="btn btn-outline-success" onclick="return confirm('Да стартирам ли производствената поръчка?');">Стартирай</button>
         </form>
+        <a class="btn btn-outline-danger" asp-action="Cancel" asp-route-id="@Model.Id">Отмени</a>
     }
-    @if (Model.Status == ProductionOrderStatus.Planned || Model.Status == ProductionOrderStatus.Released || Model.Status == ProductionOrderStatus.InProgress)
+    @if (Model.Status == ProductionOrderStatus.InProgress)
     {
-        <form asp-action="Cancel" method="post" class="d-inline-flex gap-2 align-items-center">
-            <input type="hidden" name="Id" value="@Model.Id" />
-            <input name="CancellationReason" class="form-control form-control-sm" placeholder="Причина за анулиране" />
-            <button type="submit" class="btn btn-outline-danger">Анулирай</button>
-        </form>
+        <a class="btn btn-outline-danger" asp-action="Cancel" asp-route-id="@Model.Id">Отмени</a>
     }
     <a class="btn btn-secondary" asp-action="Index">Назад</a>
 </div>
-
-@functions {
-    private static string StatusText(ProductionOrderStatus status)
-    {
-        return status switch
-        {
-            ProductionOrderStatus.Draft => "Чернова",
-            ProductionOrderStatus.Planned => "Планирана",
-            ProductionOrderStatus.Released => "Освободена",
-            ProductionOrderStatus.InProgress => "В производство",
-            ProductionOrderStatus.Paused => "Пауза",
-            ProductionOrderStatus.Completed => "Завършена",
-            ProductionOrderStatus.Cancelled => "Анулирана",
-            _ => status.ToString()
-        };
-    }
-
-    private static string OperationStatusText(ProductionOrderOperationStatus status)
-    {
-        return status switch
-        {
-            ProductionOrderOperationStatus.Locked => "Заключена",
-            ProductionOrderOperationStatus.Pending => "Изчаква",
-            ProductionOrderOperationStatus.Ready => "Готова",
-            ProductionOrderOperationStatus.InProgress => "В процес",
-            ProductionOrderOperationStatus.Completed => "Завършена",
-            ProductionOrderOperationStatus.Cancelled => "Анулирана",
-            _ => status.ToString()
-        };
-    }
-
-    private static string PriorityText(ProductionOrderPriority priority)
-    {
-        return priority switch
-        {
-            ProductionOrderPriority.Low => "Нисък",
-            ProductionOrderPriority.Normal => "Нормален",
-            ProductionOrderPriority.High => "Висок",
-            ProductionOrderPriority.Urgent => "Спешен",
-            _ => priority.ToString()
-        };
-    }
-}
