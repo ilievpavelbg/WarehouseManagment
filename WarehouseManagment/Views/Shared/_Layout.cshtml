@@ -39,11 +39,14 @@
         var canViewLowStock = canManageWarehouse || isReadOnly;
         var canManageProduction = isAdministrator || isProductionManager;
         var canWorkProduction = canManageProduction || isProductionWorker;
+        var isProductionWorkerOnly = isProductionWorker && !canManageProduction;
+        var brandController = isProductionWorkerOnly ? "ProductionWork" : "Home";
+        var brandAction = "Index";
     }
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
             <div class="container-fluid">
-                <a class="navbar-brand rounded" asp-controller="Home" asp-action="Index" style="background-color:#ff0000; padding:8px;">Управление склад VETEIDA</a>
+                <a class="navbar-brand rounded" asp-controller="@brandController" asp-action="@brandAction" style="background-color:#ff0000; padding:8px;">Управление склад VETEIDA</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor01" aria-controls="navbarColor01"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -52,25 +55,34 @@
                     @if (User.Identity?.IsAuthenticated == true)
                     {
                         <ul class="navbar-nav me-auto mb-2 mb-lg-0 flex-nowrap">
-                            @if (canReadWarehouse)
+                            @if (isProductionWorkerOnly)
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link @(string.Equals(currentController, "ProductionWork", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-area="" asp-controller="ProductionWork" asp-action="Index">Моите задачи</a>
+                                </li>
+                            }
+                            @if (!isProductionWorkerOnly && canReadWarehouse)
                             {
                                 <li class="nav-item">
                                     <a class="nav-link @(isHomeActive ? "active" : string.Empty)" asp-area="" asp-controller="Home" asp-action="Index">Начало</a>
                                 </li>
                             }
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(isSalesActive ? "active" : string.Empty)" href="#" id="salesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Продажби
-                                </a>
-                                <ul class="dropdown-menu" aria-labelledby="salesDropdown">
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="Product" asp-action="Index">Артикули</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="Sale" asp-action="BarcodeScanerInput">Магазин</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="Sale" asp-action="AllSales">Отчет магазин</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="Courier" asp-action="BarcodeScanerInput">Куриер</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-controller="Courier" asp-action="AllCouriers">Отчет куриери</a></li>
-                                </ul>
-                            </li>
-                            @if (canReadWarehouse)
+                            @if (!isProductionWorkerOnly)
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle @(isSalesActive ? "active" : string.Empty)" href="#" id="salesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Продажби
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="salesDropdown">
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Product" asp-action="Index">Артикули</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Sale" asp-action="BarcodeScanerInput">Магазин</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Sale" asp-action="AllSales">Отчет магазин</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Courier" asp-action="BarcodeScanerInput">Куриер</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Courier" asp-action="AllCouriers">Отчет куриери</a></li>
+                                    </ul>
+                                </li>
+                            }
+                            @if (!isProductionWorkerOnly && canReadWarehouse)
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle @(isWmsActive ? "active" : string.Empty)" href="#" id="wmsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -97,7 +109,7 @@
                                     </ul>
                                 </li>
                             }
-                            @if (canManageWarehouse)
+                            @if (!isProductionWorkerOnly && canManageWarehouse)
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle @(isMasterDataActive ? "active" : string.Empty)" href="#" id="masterDataDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -110,7 +122,7 @@
                                     </ul>
                                 </li>
                             }
-                            @if (canWorkProduction)
+                            @if (!isProductionWorkerOnly && canWorkProduction)
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle @(isProductionActive ? "active" : string.Empty)" href="#" id="productionDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -132,7 +144,7 @@
                                     </ul>
                                 </li>
                             }
-                            @if (isAdministrator)
+                            @if (!isProductionWorkerOnly && isAdministrator)
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle @(isAdminActive ? "active" : string.Empty)" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">

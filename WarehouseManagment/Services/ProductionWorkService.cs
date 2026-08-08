@@ -67,6 +67,7 @@ namespace WarehouseManagment.Services
             }
 
             var totalRows = await query.CountAsync();
+            var totalAvailableQuantity = await query.SumAsync(x => x.AvailableQuantity);
             var operations = await query
                 .OrderBy(x => x.ProductionOrder.PlannedEndDate ?? DateTime.MaxValue)
                 .ThenBy(x => x.ProductionOrder.Priority)
@@ -75,11 +76,29 @@ namespace WarehouseManagment.Services
                 .Skip((filter.Page - 1) * PageSize)
                 .Take(PageSize)
                 .ToListAsync();
+            var today = DateTime.Today;
+            var tomorrow = today.AddDays(1);
+            var completedTodayQuery = _dbContext.ProductionWorkEntries
+                .AsNoTracking()
+                .Where(x => x.CreatedOn >= today && x.CreatedOn < tomorrow);
+
+            if (!CanAccessAllProductionOperations())
+            {
+                var userId = _currentUserService.UserId;
+                completedTodayQuery = completedTodayQuery.Where(x => x.UserId == userId);
+            }
 
             return new ProductionWorkTaskIndexModel
             {
                 Filter = filter,
                 Rows = operations.Select(ToTaskRowModel).ToList(),
+                UserName = _currentUserService.UserName ?? _currentUserService.UserId ?? string.Empty,
+                RoleDisplayName = GetCurrentRoleDisplayName(),
+                CurrentDate = today,
+                ActiveTaskCount = totalRows,
+                TotalAvailableQuantity = totalAvailableQuantity,
+                CompletedToday = await completedTodayQuery.SumAsync(x => x.ReportedCompletedQuantity),
+                RejectedToday = await completedTodayQuery.SumAsync(x => x.ReportedRejectedQuantity),
                 Page = filter.Page,
                 PageSize = PageSize,
                 TotalRows = totalRows
@@ -472,6 +491,22 @@ namespace WarehouseManagment.Services
             return _currentUserService.Roles
                 .Where(role => ProductionWorkerRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
                 .ToList();
+        }
+
+        private string GetCurrentRoleDisplayName()
+        {
+            if (_currentUserService.IsInRole(ApplicationRoles.ProductionManager))
+            {
+                return ProductionOrderDisplayHelper.RoleText(ApplicationRoles.ProductionManager);
+            }
+
+            if (_currentUserService.IsInRole(ApplicationRoles.Administrator))
+            {
+                return ProductionOrderDisplayHelper.RoleText(ApplicationRoles.Administrator);
+            }
+
+            var role = GetCurrentProductionRoles().FirstOrDefault();
+            return role == null ? string.Empty : ProductionOrderDisplayHelper.RoleText(role);
         }
 
         private static ProductionWorkTaskRowModel ToTaskRowModel(ProductionOrderOperation operation)

@@ -74,9 +74,9 @@ namespace WarehouseManagment.Models
         {
             return role switch
             {
-                WarehouseManagment.Constants.ApplicationRoles.Cutter => "Кроячка",
-                WarehouseManagment.Constants.ApplicationRoles.Sewer => "Шивачка",
-                WarehouseManagment.Constants.ApplicationRoles.Finisher => "Довършителни операции",
+                WarehouseManagment.Constants.ApplicationRoles.Cutter => "Крояч",
+                WarehouseManagment.Constants.ApplicationRoles.Sewer => "Шивач",
+                WarehouseManagment.Constants.ApplicationRoles.Finisher => "Довършител",
                 WarehouseManagment.Constants.ApplicationRoles.ProductionManager => "Производствен мениджър",
                 WarehouseManagment.Constants.ApplicationRoles.Administrator => "Администратор",
                 _ => role

@@ -1,13 +1,26 @@
 @{
     ViewData["Title"] = "Нямате достъп";
+    var isProductionWorker = User.IsInRole(ApplicationRoles.Cutter)
+        || User.IsInRole(ApplicationRoles.Sewer)
+        || User.IsInRole(ApplicationRoles.Finisher);
+    var isProductionManager = User.IsInRole(ApplicationRoles.ProductionManager);
+    var isAdministrator = User.IsInRole(ApplicationRoles.Administrator);
+    var showWorkerButton = isProductionWorker && !isProductionManager && !isAdministrator;
 }
 
 <div class="row mt-5">
     <div class="col-md-6 offset-md-3">
         <div class="alert alert-warning text-center">
             <h1 class="h3">@ViewData["Title"]</h1>
-            <p class="mb-4">Вашият профил няма необходимите права за достъп до тази страница.</p>
-            <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Към началната страница</a>
+            <p class="mb-4">Нямате права за достъп до тази страница. Използвайте меню „Моите задачи“ за производствената си работа.</p>
+            @if (showWorkerButton)
+            {
+                <a class="btn btn-primary" asp-controller="ProductionWork" asp-action="Index">Към моите задачи</a>
+            }
+            else
+            {
+                <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Към началната страница</a>
+            }
             <a class="btn btn-outline-primary" asp-controller="User" asp-action="Logout">Вход с друг профил</a>
         </div>
     </div>

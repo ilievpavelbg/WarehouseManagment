@@ -164,10 +164,16 @@ namespace WarehouseManagment.Controllers
 
                     if (!string.IsNullOrEmpty(returnUrl))
                     {
-                        return LocalRedirect(returnUrl);
+                        var roles = await _userManager.GetRolesAsync(user);
+                        if (CanUseReturnUrl(returnUrl, roles))
+                        {
+                            return LocalRedirect(returnUrl);
+                        }
+
+                        return RedirectToDefaultLandingPage(roles);
                     }
 
-                    return RedirectToAction("Index", "Home");
+                    return RedirectToDefaultLandingPage(await _userManager.GetRolesAsync(user));
                 }
             }
 
@@ -225,6 +231,47 @@ namespace WarehouseManagment.Controllers
         private bool ShouldValidateCaptcha()
         {
             return !_webHostEnvironment.IsDevelopment();
+        }
+
+        private bool CanUseReturnUrl(string returnUrl, IList<string> roles)
+        {
+            if (!Url.IsLocalUrl(returnUrl))
+            {
+                return false;
+            }
+
+            if (!IsProductionWorkerOnly(roles))
+            {
+                return true;
+            }
+
+            return returnUrl.StartsWith("/ProductionWork", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private IActionResult RedirectToDefaultLandingPage(IList<string> roles)
+        {
+            if (IsProductionWorkerOnly(roles))
+            {
+                return RedirectToAction("Index", "ProductionWork");
+            }
+
+            if (roles.Contains(ApplicationRoles.ProductionManager))
+            {
+                return RedirectToAction("Index", "ProductionOrder");
+            }
+
+            return RedirectToAction("Index", "Home");
+        }
+
+        private static bool IsProductionWorkerOnly(IList<string> roles)
+        {
+            var isProductionWorker = roles.Contains(ApplicationRoles.Cutter)
+                || roles.Contains(ApplicationRoles.Sewer)
+                || roles.Contains(ApplicationRoles.Finisher);
+
+            return isProductionWorker
+                && !roles.Contains(ApplicationRoles.Administrator)
+                && !roles.Contains(ApplicationRoles.ProductionManager);
         }
 
         private async Task<bool> VerifyRecaptcha(string recaptchaResponse, string secret)
