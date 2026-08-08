@@ -4,6 +4,20 @@
     ViewData["Title"] = "Производствена поръчка";
     var materialReadiness = Model.MaterialReadiness;
     var canStart = Model.Status == ProductionOrderStatus.Released && materialReadiness?.IsReady == true && materialReadiness.IsTransferred == false;
+    var isReleasedWaitingForMaterials = Model.Status == ProductionOrderStatus.Released && materialReadiness != null && !materialReadiness.IsReady;
+    var shortageCount = materialReadiness?.Rows.Count(x => x.ShortageQuantity > 0) ?? 0;
+    var readinessText = materialReadiness == null
+        ? "Няма данни за материална готовност"
+        : materialReadiness.IsTransferred
+            ? "Материалите са прехвърлени"
+            : materialReadiness.IsReady
+                ? "Готова за стартиране"
+                : "Не е готова за стартиране";
+    var readinessBadgeClass = materialReadiness == null
+        ? "bg-secondary"
+        : materialReadiness.IsReady || materialReadiness.IsTransferred
+            ? "bg-success"
+            : "bg-danger";
 }
 
 <h1 class="text-center">@Model.OrderNumber</h1>
@@ -17,6 +31,17 @@
     <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
 }
 
+@if (isReleasedWaitingForMaterials)
+{
+    <div class="alert alert-warning border-warning shadow-sm">
+        <h5 class="alert-heading mb-2">Поръчката изчаква материали</h5>
+        <p class="mb-0">
+            Поръчката е освободена, но не може да бъде стартирана поради недостиг на материали.
+            Производството ще може да започне след осигуряване на всички необходими материали.
+        </p>
+    </div>
+}
+
 <div class="mb-3">
     <div class="d-flex justify-content-between">
         <span>Общ прогрес</span>
@@ -24,6 +49,21 @@
     </div>
     <div class="progress">
         <div class="progress-bar" role="progressbar" style="width: @Model.ProgressPercent.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)%;" aria-valuenow="@Model.ProgressPercent.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)" aria-valuemin="0" aria-valuemax="100"></div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">Производствен процес</div>
+    <div class="card-body">
+        <div class="d-flex flex-wrap gap-2">
+            <span class="badge @(Model.Status == ProductionOrderStatus.Planned ? "bg-primary" : "bg-secondary")">Планирана</span>
+            <span class="badge @(Model.Status == ProductionOrderStatus.Released ? "bg-primary" : "bg-secondary")">Освободена</span>
+            <span class="badge @(Model.Status == ProductionOrderStatus.Released ? readinessBadgeClass : "bg-secondary")">Проверка на материалите</span>
+            <span class="badge @(materialReadiness?.IsTransferred == true ? "bg-primary" : "bg-secondary")">Трансфер към производствен склад</span>
+            <span class="badge @(Model.Status == ProductionOrderStatus.InProgress ? "bg-primary" : "bg-secondary")">Стартиране</span>
+            <span class="badge @(Model.Status == ProductionOrderStatus.InProgress ? "bg-primary" : "bg-secondary")">Производство</span>
+            <span class="badge @(Model.Status == ProductionOrderStatus.Completed ? "bg-success" : "bg-secondary")">Завършване</span>
+        </div>
     </div>
 </div>
 
@@ -96,10 +136,7 @@
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span>Материали за производство</span>
-        @if (materialReadiness != null)
-        {
-            <span class="badge @materialReadiness.SummaryCssClass">@materialReadiness.SummaryStatus</span>
-        }
+        <span class="badge @readinessBadgeClass">@readinessText</span>
     </div>
     <div class="card-body">
         @if (materialReadiness == null)
@@ -116,6 +153,24 @@
                     <strong>Дестинация:</strong> @(materialReadiness.DestinationWarehouse ?? "Склад производство / НЗП не е зададен")
                 </div>
             </div>
+
+            @if (materialReadiness.Rows.Any())
+            {
+                if (shortageCount > 0)
+                {
+                    <div class="alert alert-danger">
+                        <strong>Липсват @shortageCount материала.</strong><br />
+                        Производството не може да бъде стартирано.
+                    </div>
+                }
+                else if (!materialReadiness.IsTransferred)
+                {
+                    <div class="alert alert-success">
+                        <strong>Всички материали са налични.</strong><br />
+                        Производството може да бъде стартирано.
+                    </div>
+                }
+            }
 
             <div class="alert @(materialReadiness.IsReady ? "alert-success" : "alert-warning")">@materialReadiness.Message</div>
 
@@ -152,16 +207,17 @@
                         <tbody>
                             @foreach (var row in materialReadiness.Rows)
                             {
-                                <tr>
+                                var hasShortage = row.ShortageQuantity > 0;
+                                <tr class="@(hasShortage ? "table-warning" : string.Empty)">
                                     <td>
                                         <strong>@row.MaterialCode</strong><br />
                                         <span>@row.MaterialName</span>
                                     </td>
                                     <td class="text-end">@row.OutstandingQuantity.ToString("N4")</td>
                                     <td class="text-end">@row.AvailableQuantity.ToString("N4")</td>
-                                    <td class="text-end">@row.ShortageQuantity.ToString("N4")</td>
+                                    <td class="text-end @(hasShortage ? "text-danger fw-bold" : string.Empty)">@row.ShortageQuantity.ToString("N4")</td>
                                     <td>@row.Unit</td>
-                                    <td><span class="badge @row.StatusCssClass">@row.StatusText</span></td>
+                                    <td><span class="badge @(hasShortage ? "bg-danger" : "bg-success")">@row.StatusText</span></td>
                                 </tr>
                                 @if (row.Allocations.Any())
                                 {
@@ -323,7 +379,9 @@ else
     @if (Model.Status == ProductionOrderStatus.Released)
     {
         <form asp-action="Start" asp-route-id="@Model.Id" method="post" class="d-inline">
-            <button type="submit" class="btn btn-outline-success" disabled="@(!canStart)" onclick="return confirm('Да стартирам ли производствената поръчка и да прехвърля материалите към НЗП?');">Стартирай</button>
+            <span title="@(canStart ? string.Empty : "Липсват необходими материали")" data-bs-toggle="tooltip">
+                <button type="submit" class="btn btn-outline-success" disabled="@(!canStart)" onclick="return confirm('Да стартирам ли производствената поръчка и да прехвърля материалите към НЗП?');">Стартирай</button>
+            </span>
         </form>
         <a class="btn btn-outline-danger" asp-action="Cancel" asp-route-id="@Model.Id">Отмени</a>
     }
