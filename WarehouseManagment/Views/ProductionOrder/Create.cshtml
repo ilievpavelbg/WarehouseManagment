@@ -3,7 +3,7 @@
 
 @{
     ViewData["Title"] = "Нова производствена поръчка";
-    var canCreate = Model.Readiness?.IsReady == true && Model.ProductInventoryId.HasValue && Model.ProductInventoryId.Value > 0;
+    var canCreate = Model.Readiness?.IsReady == true;
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
@@ -20,7 +20,7 @@
         </div>
         <div class="col-md-3 mb-3">
             <label asp-for="ProductInventoryId" class="form-label">Размер / вариант</label>
-            <select asp-for="ProductInventoryId" class="form-select" asp-items="@(new SelectList(Model.ProductInventoryVariants, "Id", "Text", Model.ProductInventoryId))">
+            <select asp-for="ProductInventoryId" class="form-select" asp-items="@(new SelectList(Model.ProductInventoryVariants, "Id", "Text", Model.ProductInventoryId))" id="variantSelector">
                 <option value="">Изберете размер...</option>
             </select>
             @if (Model.ProductId > 0 && !Model.ProductInventoryVariants.Any())
@@ -69,7 +69,7 @@
             new { Label = "Мерна единица", Ok = !string.IsNullOrWhiteSpace(Model.Readiness.ProductionUnit), Value = Model.Readiness.ProductionUnit ?? string.Empty },
             new { Label = "Склад производство / НЗП", Ok = Model.Readiness.HasDefaultWipWarehouse, Value = Model.Readiness.WipWarehouse ?? string.Empty },
             new { Label = "Склад готова продукция", Ok = Model.Readiness.HasDefaultFinishedGoodsWarehouse, Value = Model.Readiness.FinishedGoodsWarehouse ?? string.Empty },
-            new { Label = "Размер / вариант", Ok = Model.ProductInventoryId.HasValue && Model.ProductInventoryId.Value > 0, Value = Model.ProductInventoryVariants.FirstOrDefault(x => x.Id == Model.ProductInventoryId)?.Text ?? string.Empty }
+            new { Label = "Размер / вариант", Ok = Model.Readiness.HasValidProductInventory, Value = Model.Readiness.ProductInventoryText ?? string.Empty }
         };
 
         <div class="card mb-3">
@@ -115,10 +115,28 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const productSelector = document.getElementById('productSelector');
+            const variantSelector = document.getElementById('variantSelector');
+            const createUrl = '@Url.Action("Create", "ProductionOrder")';
+
             productSelector.addEventListener('change', function () {
                 if (productSelector.value) {
-                    window.location.href = '@Url.Action("Create", "ProductionOrder")' + '?productId=' + encodeURIComponent(productSelector.value);
+                    window.location.href = createUrl + '?productId=' + encodeURIComponent(productSelector.value);
+                } else {
+                    window.location.href = createUrl;
                 }
+            });
+
+            variantSelector.addEventListener('change', function () {
+                if (!productSelector.value) {
+                    return;
+                }
+
+                let url = createUrl + '?productId=' + encodeURIComponent(productSelector.value);
+                if (variantSelector.value) {
+                    url += '&productInventoryId=' + encodeURIComponent(variantSelector.value);
+                }
+
+                window.location.href = url;
             });
         });
     </script>

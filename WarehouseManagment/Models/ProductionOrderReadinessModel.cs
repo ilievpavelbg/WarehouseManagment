@@ -36,12 +36,17 @@ namespace WarehouseManagment.Models
 
         public string? FinishedGoodsWarehouse { get; set; }
 
+        public bool HasValidProductInventory { get; set; }
+
+        public string? ProductInventoryText { get; set; }
+
         public bool IsReady => HasProduct
             && HasActiveProductionProfile
             && HasActiveBillOfMaterials
             && HasActiveRouting
             && RoutingStepsCount > 0
             && HasDefaultWipWarehouse
-            && HasDefaultFinishedGoodsWarehouse;
+            && HasDefaultFinishedGoodsWarehouse
+            && HasValidProductInventory;
     }
 }

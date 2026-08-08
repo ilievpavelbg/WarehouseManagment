@@ -31,9 +31,9 @@ namespace WarehouseManagment.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Create(int? productId)
+        public async Task<IActionResult> Create(int? productId, int? productInventoryId)
         {
-            var model = await _productionOrderService.GetCreateModelAsync(productId);
+            var model = await _productionOrderService.GetCreateModelAsync(productId, productInventoryId);
             return View(model);
         }
 

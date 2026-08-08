@@ -6,7 +6,7 @@ namespace WarehouseManagment.Interfaces
     {
         Task<ProductionOrderIndexModel> GetIndexAsync(ProductionOrderFilterModel filter);
 
-        Task<ProductionOrderCreateModel> GetCreateModelAsync(int? productId = null);
+        Task<ProductionOrderCreateModel> GetCreateModelAsync(int? productId = null, int? productInventoryId = null);
 
         Task<ProductionOrderCreateModel> PrepareCreateModelAsync(ProductionOrderCreateModel model);
 

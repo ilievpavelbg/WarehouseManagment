@@ -94,11 +94,12 @@ namespace WarehouseManagment.Services
             };
         }
 
-        public async Task<ProductionOrderCreateModel> GetCreateModelAsync(int? productId = null)
+        public async Task<ProductionOrderCreateModel> GetCreateModelAsync(int? productId = null, int? productInventoryId = null)
         {
             var model = new ProductionOrderCreateModel
             {
                 ProductId = productId ?? 0,
+                ProductInventoryId = productInventoryId,
                 PlannedQuantity = 1,
                 PlannedStartDate = DateTime.Today,
                 Priority = ProductionOrderPriority.Normal
@@ -113,11 +114,19 @@ namespace WarehouseManagment.Services
             model.ProductInventoryVariants = model.ProductId > 0
                 ? await GetProductInventoryVariantItemsAsync(model.ProductId)
                 : new List<ProductInventoryVariantSelectItemModel>();
+
+            if (model.ProductInventoryId.HasValue
+                && !model.ProductInventoryVariants.Any(x => x.Id == model.ProductInventoryId.Value))
+            {
+                model.ProductInventoryId = null;
+            }
+
             if (!model.ProductInventoryId.HasValue && model.ProductInventoryVariants.Count == 1)
             {
                 model.ProductInventoryId = model.ProductInventoryVariants[0].Id;
             }
-            model.Readiness = model.ProductId > 0 ? await GetReadinessAsync(model.ProductId) : null;
+
+            model.Readiness = model.ProductId > 0 ? await GetReadinessAsync(model.ProductId, model.ProductInventoryId) : null;
             return model;
         }
 
@@ -140,6 +149,10 @@ namespace WarehouseManagment.Services
                 var productInventory = await _dbContext.ProductInventory
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x => x.Id == model.ProductInventoryId && x.ProductId == model.ProductId);
+                if (productInventory == null)
+                {
+                    throw new InvalidOperationException("Избраният размер/вариант не принадлежи на избрания артикул.");
+                }
                 if (productInventory == null)
                 {
                     throw new InvalidOperationException("Избраният размер / вариант не съществува за избрания артикул.");
@@ -600,9 +613,17 @@ namespace WarehouseManagment.Services
                     .ThenInclude(x => x.WorkEntries);
         }
 
-        private async Task<ProductionOrderReadinessModel> GetReadinessAsync(int productId)
+        private async Task<ProductionOrderReadinessModel> GetReadinessAsync(int productId, int? productInventoryId)
         {
             var productExists = await _dbContext.Products.AsNoTracking().AnyAsync(x => x.Id == productId);
+            ProductInventory? productInventory = null;
+            if (productInventoryId.HasValue && productInventoryId.Value > 0)
+            {
+                productInventory = await _dbContext.ProductInventory
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == productInventoryId.Value && x.ProductId == productId);
+            }
+
             var profile = await _dbContext.ProductProductionProfiles
                 .AsNoTracking()
                 .Include(x => x.ProductionUnitOfMeasure)
@@ -635,7 +656,9 @@ namespace WarehouseManagment.Services
                 HasDefaultWipWarehouse = defaults.WipWarehouse != null,
                 WipWarehouse = FormatWarehouse(defaults.WipWarehouse),
                 HasDefaultFinishedGoodsWarehouse = defaults.FinishedGoodsWarehouse != null,
-                FinishedGoodsWarehouse = FormatWarehouse(defaults.FinishedGoodsWarehouse)
+                FinishedGoodsWarehouse = FormatWarehouse(defaults.FinishedGoodsWarehouse),
+                HasValidProductInventory = productInventory != null,
+                ProductInventoryText = productInventory?.Size.ToString()
             };
         }
 
