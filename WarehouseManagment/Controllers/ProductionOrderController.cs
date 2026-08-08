@@ -10,13 +10,16 @@ namespace WarehouseManagment.Controllers
     public class ProductionOrderController : Controller
     {
         private readonly IProductionOrderService _productionOrderService;
+        private readonly IProductionFinalizationService _productionFinalizationService;
         private readonly ILogger<ProductionOrderController> _logger;
 
         public ProductionOrderController(
             IProductionOrderService productionOrderService,
+            IProductionFinalizationService productionFinalizationService,
             ILogger<ProductionOrderController> logger)
         {
             _productionOrderService = productionOrderService;
+            _productionFinalizationService = productionFinalizationService;
             _logger = logger;
         }
 
@@ -177,6 +180,65 @@ namespace WarehouseManagment.Controllers
             }
 
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Finalize(int id)
+        {
+            try
+            {
+                var model = await _productionFinalizationService.GetFinalizeModelAsync(id);
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Production order finalize page not available. Id: {Id}", id);
+                TempData["ErrorMessage"] = GetFriendlyError(ex);
+                return RedirectToAction(nameof(Details), new { id });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Finalize(ProductionFinalizeModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                var prepared = await _productionFinalizationService.GetFinalizeModelAsync(model.ProductionOrderId);
+                foreach (var input in model.Materials)
+                {
+                    var row = prepared.Materials.FirstOrDefault(x => x.ProductionOrderMaterialId == input.ProductionOrderMaterialId);
+                    if (row != null)
+                    {
+                        row.ProposedConsumedQuantity = input.ProposedConsumedQuantity;
+                    }
+                }
+
+                return View(prepared);
+            }
+
+            try
+            {
+                await _productionFinalizationService.FinalizeAsync(model);
+                TempData["SuccessMessage"] = "Производствената поръчка е приключена успешно.";
+                return RedirectToAction(nameof(Details), new { id = model.ProductionOrderId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Production order finalization failed. Id: {Id}", model.ProductionOrderId);
+                ModelState.AddModelError(string.Empty, GetFriendlyError(ex));
+                var prepared = await _productionFinalizationService.GetFinalizeModelAsync(model.ProductionOrderId);
+                foreach (var input in model.Materials)
+                {
+                    var row = prepared.Materials.FirstOrDefault(x => x.ProductionOrderMaterialId == input.ProductionOrderMaterialId);
+                    if (row != null)
+                    {
+                        row.ProposedConsumedQuantity = input.ProposedConsumedQuantity;
+                    }
+                }
+
+                return View(prepared);
+            }
         }
 
         [HttpPost]

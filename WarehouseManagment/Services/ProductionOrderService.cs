@@ -110,6 +110,13 @@ namespace WarehouseManagment.Services
         public async Task<ProductionOrderCreateModel> PrepareCreateModelAsync(ProductionOrderCreateModel model)
         {
             model.Products = await GetProductSelectItemsAsync();
+            model.ProductInventoryVariants = model.ProductId > 0
+                ? await GetProductInventoryVariantItemsAsync(model.ProductId)
+                : new List<ProductInventoryVariantSelectItemModel>();
+            if (!model.ProductInventoryId.HasValue && model.ProductInventoryVariants.Count == 1)
+            {
+                model.ProductInventoryId = model.ProductInventoryVariants[0].Id;
+            }
             model.Readiness = model.ProductId > 0 ? await GetReadinessAsync(model.ProductId) : null;
             return model;
         }
@@ -128,6 +135,14 @@ namespace WarehouseManagment.Services
                 if (product == null)
                 {
                     throw new InvalidOperationException("Избраният артикул не съществува.");
+                }
+
+                var productInventory = await _dbContext.ProductInventory
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == model.ProductInventoryId && x.ProductId == model.ProductId);
+                if (productInventory == null)
+                {
+                    throw new InvalidOperationException("Избраният размер / вариант не съществува за избрания артикул.");
                 }
 
                 var profile = await _dbContext.ProductProductionProfiles
@@ -168,6 +183,7 @@ namespace WarehouseManagment.Services
                 {
                     OrderNumber = orderNumber,
                     ProductId = product.Id,
+                    ProductInventoryId = productInventory.Id,
                     ProductProductionProfileId = profile.Id,
                     BillOfMaterialsId = bom.Id,
                     ProductRoutingId = routing.Id,
@@ -576,6 +592,10 @@ namespace WarehouseManagment.Services
             return _dbContext.ProductionOrders
                 .Include(x => x.WipWarehouse)
                 .Include(x => x.FinishedGoodsWarehouse)
+                .Include(x => x.ProductInventory)
+                .Include(x => x.FinishedGoodsReceipts)
+                    .ThenInclude(x => x.Warehouse)
+                .Include(x => x.Materials)
                 .Include(x => x.Operations)
                     .ThenInclude(x => x.WorkEntries);
         }
@@ -659,6 +679,11 @@ namespace WarehouseManagment.Services
                 throw new InvalidOperationException("Изберете артикул.");
             }
 
+            if (!model.ProductInventoryId.HasValue || model.ProductInventoryId.Value <= 0)
+            {
+                throw new InvalidOperationException("Изберете размер / вариант за готова продукция.");
+            }
+
             if (model.PlannedQuantity <= 0)
             {
                 throw new InvalidOperationException("Планираното количество трябва да бъде по-голямо от нула.");
@@ -681,6 +706,21 @@ namespace WarehouseManagment.Services
                 .AsNoTracking()
                 .OrderBy(x => x.SKU)
                 .Select(x => new ProductionSelectItemModel { Id = x.Id, Text = x.SKU + " - " + (x.Description ?? string.Empty) })
+                .ToListAsync();
+        }
+
+        private async Task<List<ProductInventoryVariantSelectItemModel>> GetProductInventoryVariantItemsAsync(int productId)
+        {
+            return await _dbContext.ProductInventory
+                .AsNoTracking()
+                .Where(x => x.ProductId == productId)
+                .OrderBy(x => x.Size)
+                .Select(x => new ProductInventoryVariantSelectItemModel
+                {
+                    Id = x.Id,
+                    ProductId = x.ProductId,
+                    Text = x.Size.ToString()
+                })
                 .ToListAsync();
         }
 
@@ -709,6 +749,7 @@ namespace WarehouseManagment.Services
                 Id = order.Id,
                 OrderNumber = order.OrderNumber,
                 ProductDisplayName = FormatProduct(order.ProductSkuSnapshot, order.ProductDescriptionSnapshot),
+                ProductVariant = order.ProductInventory?.Size.ToString() ?? string.Empty,
                 ProductionName = order.ProductionNameSnapshot,
                 PlannedQuantity = order.PlannedQuantity,
                 UnitOfMeasure = order.ProductionUnitNameSnapshot,
@@ -734,6 +775,35 @@ namespace WarehouseManagment.Services
                 MaterialsTransferredOn = order.MaterialsTransferredOn,
                 MaterialsTransferredByUserId = order.MaterialsTransferredByUserId,
                 MaterialsTransferDocumentNumber = order.MaterialsTransferDocumentNumber,
+                ProductionFinalizedOn = order.ProductionFinalizedOn,
+                ProductionFinalizedByUserId = order.ProductionFinalizedByUserId,
+                MaterialConsumptionDocumentNumber = order.MaterialConsumptionDocumentNumber,
+                FinishedGoodsReceiptDocumentNumber = order.FinishedGoodsReceiptDocumentNumber,
+                FinishedGoodsReceipt = order.FinishedGoodsReceipts
+                    .OrderByDescending(x => x.CreatedOn)
+                    .Select(x => new ProductionFinishedGoodsReceiptDetailsModel
+                    {
+                        ProductDisplayName = FormatProduct(x.ProductSkuSnapshot, x.ProductDescriptionSnapshot),
+                        Size = x.SizeSnapshot,
+                        Quantity = x.Quantity,
+                        Warehouse = FormatWarehouse(x.Warehouse),
+                        DocumentNumber = x.DocumentNumber,
+                        CreatedOn = x.CreatedOn,
+                        CreatedByUserId = x.CreatedByUserId
+                    })
+                    .FirstOrDefault(),
+                MaterialCompletionRows = order.Materials
+                    .OrderBy(x => x.MaterialCodeSnapshot)
+                    .Select(x => new ProductionMaterialCompletionRowModel
+                    {
+                        MaterialDisplayName = $"{x.MaterialCodeSnapshot} - {x.MaterialNameSnapshot}",
+                        Unit = x.UnitNameSnapshot,
+                        RequiredQuantity = x.RequiredQuantity,
+                        TransferredQuantity = x.TransferredQuantity,
+                        ConsumedQuantity = x.ConsumedQuantity,
+                        ReturnedQuantity = x.ReturnedQuantity
+                    })
+                    .ToList(),
                 ProgressPercent = CalculateProgress(order),
                 Operations = order.Operations
                     .OrderBy(x => x.Sequence)

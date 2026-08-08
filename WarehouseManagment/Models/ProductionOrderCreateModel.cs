@@ -7,6 +7,10 @@ namespace WarehouseManagment.Models
         [Required(ErrorMessage = "Изберете артикул.")]
         public int ProductId { get; set; }
 
+        [Required(ErrorMessage = "Изберете размер / вариант за готова продукция.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Изберете размер / вариант за готова продукция.")]
+        public int? ProductInventoryId { get; set; }
+
         [Range(typeof(decimal), "0.0001", "79228162514264337593543950335", ErrorMessage = "Планираното количество трябва да бъде по-голямо от нула.")]
         public decimal PlannedQuantity { get; set; } = 1;
 
@@ -22,6 +26,8 @@ namespace WarehouseManagment.Models
         public string? Notes { get; set; }
 
         public List<ProductionSelectItemModel> Products { get; set; } = new List<ProductionSelectItemModel>();
+
+        public List<ProductInventoryVariantSelectItemModel> ProductInventoryVariants { get; set; } = new List<ProductInventoryVariantSelectItemModel>();
 
         public ProductionOrderReadinessModel? Readiness { get; set; }
 

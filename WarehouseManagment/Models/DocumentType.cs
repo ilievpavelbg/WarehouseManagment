@@ -6,6 +6,8 @@ namespace WarehouseManagment.Models
         MaterialTransfer = 2,
         StockAdjustment = 3,
         ProductionOrder = 4,
-        ProductionMaterialTransfer = 5
+        ProductionMaterialTransfer = 5,
+        ProductionMaterialConsumption = 6,
+        FinishedGoodsReceipt = 7
     }
 }

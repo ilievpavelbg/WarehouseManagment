@@ -21,6 +21,9 @@ namespace WarehouseManagment.Models
         ProductionOperationStatusChange = 17,
         ProductionOrderAutoComplete = 18,
         ProductionMaterialTransfer = 19,
-        ProductionMaterialSnapshotCreate = 20
+        ProductionMaterialSnapshotCreate = 20,
+        ProductionMaterialConsumption = 21,
+        FinishedGoodsReceipt = 22,
+        ProductionOrderFinalized = 23
     }
 }

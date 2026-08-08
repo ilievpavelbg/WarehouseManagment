@@ -31,6 +31,9 @@ namespace WarehouseManagment.Data
         public int? ProductCostCalculationId { get; set; }
         public ProductCostCalculation? ProductCostCalculation { get; set; }
 
+        public int? ProductInventoryId { get; set; }
+        public ProductInventory? ProductInventory { get; set; }
+
         public decimal PlannedQuantity { get; set; }
 
         [Required]
@@ -110,9 +113,22 @@ namespace WarehouseManagment.Data
         [StringLength(100)]
         public string? MaterialsTransferDocumentNumber { get; set; }
 
+        public DateTime? ProductionFinalizedOn { get; set; }
+
+        [StringLength(450)]
+        public string? ProductionFinalizedByUserId { get; set; }
+
+        [StringLength(100)]
+        public string? MaterialConsumptionDocumentNumber { get; set; }
+
+        [StringLength(100)]
+        public string? FinishedGoodsReceiptDocumentNumber { get; set; }
+
         public List<ProductionOrderOperation> Operations { get; set; } = new List<ProductionOrderOperation>();
 
         public List<ProductionOrderMaterial> Materials { get; set; } = new List<ProductionOrderMaterial>();
+
+        public List<ProductionFinishedGoodsReceipt> FinishedGoodsReceipts { get; set; } = new List<ProductionFinishedGoodsReceipt>();
 
         public byte[] RowVersion { get; set; } = Array.Empty<byte>();
     }

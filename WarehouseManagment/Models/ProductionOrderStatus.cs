@@ -8,6 +8,7 @@ namespace WarehouseManagment.Models
         InProgress = 4,
         Paused = 5,
         Completed = 6,
-        Cancelled = 7
+        Cancelled = 7,
+        ProductionCompleted = 8
     }
 }

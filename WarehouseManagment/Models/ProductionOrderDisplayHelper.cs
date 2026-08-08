@@ -11,6 +11,7 @@ namespace WarehouseManagment.Models
                 ProductionOrderStatus.Released => "Освободена за производство",
                 ProductionOrderStatus.InProgress => "В процес",
                 ProductionOrderStatus.Paused => "На пауза",
+                ProductionOrderStatus.ProductionCompleted => "Производството е завършено",
                 ProductionOrderStatus.Completed => "Завършена",
                 ProductionOrderStatus.Cancelled => "Отменена",
                 _ => status.ToString()
@@ -24,6 +25,7 @@ namespace WarehouseManagment.Models
                 ProductionOrderStatus.Planned => "bg-info text-dark",
                 ProductionOrderStatus.Released => "bg-primary",
                 ProductionOrderStatus.InProgress => "bg-warning text-dark",
+                ProductionOrderStatus.ProductionCompleted => "bg-info text-dark",
                 ProductionOrderStatus.Cancelled => "bg-danger",
                 ProductionOrderStatus.Completed => "bg-success",
                 _ => "bg-secondary"

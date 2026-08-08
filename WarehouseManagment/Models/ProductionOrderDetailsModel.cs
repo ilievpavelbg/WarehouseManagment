@@ -8,6 +8,8 @@ namespace WarehouseManagment.Models
 
         public string ProductDisplayName { get; set; } = string.Empty;
 
+        public string ProductVariant { get; set; } = string.Empty;
+
         public string ProductionName { get; set; } = string.Empty;
 
         public decimal PlannedQuantity { get; set; }
@@ -63,6 +65,18 @@ namespace WarehouseManagment.Models
         public string? MaterialsTransferredByUserId { get; set; }
 
         public string? MaterialsTransferDocumentNumber { get; set; }
+
+        public DateTime? ProductionFinalizedOn { get; set; }
+
+        public string? ProductionFinalizedByUserId { get; set; }
+
+        public string? MaterialConsumptionDocumentNumber { get; set; }
+
+        public string? FinishedGoodsReceiptDocumentNumber { get; set; }
+
+        public ProductionFinishedGoodsReceiptDetailsModel? FinishedGoodsReceipt { get; set; }
+
+        public List<ProductionMaterialCompletionRowModel> MaterialCompletionRows { get; set; } = new List<ProductionMaterialCompletionRowModel>();
 
         public ProductionMaterialReadinessModel? MaterialReadiness { get; set; }
 

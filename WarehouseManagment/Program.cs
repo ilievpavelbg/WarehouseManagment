@@ -110,6 +110,7 @@ builder.Services.AddScoped<IBillOfMaterialsService, BillOfMaterialsService>();
 builder.Services.AddScoped<IProductionRoutingService, ProductionRoutingService>();
 builder.Services.AddScoped<IProductionOrderService, ProductionOrderService>();
 builder.Services.AddScoped<IProductionMaterialService, ProductionMaterialService>();
+builder.Services.AddScoped<IProductionFinalizationService, ProductionFinalizationService>();
 builder.Services.AddScoped<IProductionWorkService, ProductionWorkService>();
 builder.Services.AddScoped<IProductionSetupSeeder, ProductionSetupSeeder>();
 builder.Services.AddScoped<IRoleSeeder, RoleSeeder>();

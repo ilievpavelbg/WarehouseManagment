@@ -88,6 +88,8 @@ namespace WarehouseManagment.Services
                 DocumentType.StockAdjustment => "ADJ",
                 DocumentType.ProductionOrder => "PO",
                 DocumentType.ProductionMaterialTransfer => "PMT",
+                DocumentType.ProductionMaterialConsumption => "PMC",
+                DocumentType.FinishedGoodsReceipt => "FGR",
                 _ => throw new InvalidOperationException("Invalid document type.")
             };
         }

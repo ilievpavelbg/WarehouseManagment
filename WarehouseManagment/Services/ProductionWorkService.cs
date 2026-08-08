@@ -451,9 +451,7 @@ namespace WarehouseManagment.Services
                 return false;
             }
 
-            order.Status = ProductionOrderStatus.Completed;
-            order.ActualEndDate = DateTime.Now;
-            order.CompletedByUserId = _currentUserService.UserId;
+            order.Status = ProductionOrderStatus.ProductionCompleted;
             return true;
         }
 

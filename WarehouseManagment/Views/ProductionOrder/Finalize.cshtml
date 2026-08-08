@@ -1,0 +1,98 @@
+@model ProductionFinalizeModel
+
+@{
+    ViewData["Title"] = "Приключи производствената поръчка";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<form asp-action="Finalize" method="post">
+    <input type="hidden" asp-for="ProductionOrderId" />
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    @if (!Model.CanFinalize && !string.IsNullOrWhiteSpace(Model.BlockingMessage))
+    {
+        <div class="alert alert-danger">@Model.BlockingMessage</div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-header">Обща информация</div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-4">Поръчка</dt><dd class="col-sm-8">@Model.OrderNumber</dd>
+                <dt class="col-sm-4">Артикул</dt><dd class="col-sm-8">@Model.ProductDisplayName</dd>
+                <dt class="col-sm-4">Размер / вариант</dt><dd class="col-sm-8">@Model.SizeVariant</dd>
+                <dt class="col-sm-4">Планирано количество</dt><dd class="col-sm-8">@Model.PlannedQuantity.ToString("N4")</dd>
+                <dt class="col-sm-4">Готово добро количество</dt><dd class="col-sm-8">@Model.FinalGoodQuantity.ToString("N4")</dd>
+                <dt class="col-sm-4">Брак общо</dt><dd class="col-sm-8">@Model.TotalRejectQuantity.ToString("N4")</dd>
+                <dt class="col-sm-4">Склад готова продукция</dt><dd class="col-sm-8">@Model.FinishedGoodsWarehouse</dd>
+                <dt class="col-sm-4">Склад НЗП</dt><dd class="col-sm-8">@Model.WipWarehouse</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        Непотребените материали ще останат в склада НЗП. Те няма да бъдат автоматично върнати в основния склад.
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">Материали</div>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>Материал</th>
+                        <th class="text-end">Необходимо</th>
+                        <th class="text-end">Прехвърлено</th>
+                        <th class="text-end">Вече потребено</th>
+                        <th class="text-end">Потвърдено потребление</th>
+                        <th class="text-end">Остава в НЗП</th>
+                        <th>Мерна единица</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < Model.Materials.Count; i++)
+                    {
+                        <tr>
+                            <td>
+                                @Model.Materials[i].MaterialDisplayName
+                                <input type="hidden" asp-for="Materials[i].ProductionOrderMaterialId" />
+                                <input type="hidden" asp-for="Materials[i].MaterialDisplayName" />
+                                <input type="hidden" asp-for="Materials[i].Unit" />
+                                <input type="hidden" asp-for="Materials[i].RequiredQuantity" />
+                                <input type="hidden" asp-for="Materials[i].TransferredQuantity" />
+                                <input type="hidden" asp-for="Materials[i].AlreadyConsumedQuantity" />
+                                <input type="hidden" asp-for="Materials[i].ReturnedQuantity" />
+                            </td>
+                            <td class="text-end">@Model.Materials[i].RequiredQuantity.ToString("N4")</td>
+                            <td class="text-end">@Model.Materials[i].TransferredQuantity.ToString("N4")</td>
+                            <td class="text-end">@Model.Materials[i].AlreadyConsumedQuantity.ToString("N4")</td>
+                            <td>
+                                <input asp-for="Materials[i].ProposedConsumedQuantity" class="form-control text-end" />
+                            </td>
+                            <td class="text-end">@Model.Materials[i].RemainingAfterFinalization.ToString("N4")</td>
+                            <td>@Model.Materials[i].Unit</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">Документи</div>
+        <div class="card-body">
+            <ul class="mb-0">
+                <li>PMC документ за потребление на материали</li>
+                <li>FGR документ за приемане на готова продукция</li>
+            </ul>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-success" disabled="@(!Model.CanFinalize)" onclick="return confirm('Да приключа ли производството и да създам PMC/FGR документи?');">Приключи производството</button>
+    <a class="btn btn-secondary" asp-action="Details" asp-route-id="@Model.ProductionOrderId">Назад</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
