@@ -19,6 +19,8 @@ namespace WarehouseManagment.Models
         ProductionOrderDelete = 15,
         ProductionWorkReport = 16,
         ProductionOperationStatusChange = 17,
-        ProductionOrderAutoComplete = 18
+        ProductionOrderAutoComplete = 18,
+        ProductionMaterialTransfer = 19,
+        ProductionMaterialSnapshotCreate = 20
     }
 }

@@ -1,3 +1,4 @@
+using System.Data;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using WarehouseManagment.Data;
@@ -14,17 +15,20 @@ namespace WarehouseManagment.Services
         private readonly IDocumentNumberService _documentNumberService;
         private readonly IAuditLogService _auditLogService;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IProductionMaterialService _productionMaterialService;
 
         public ProductionOrderService(
             ApplicationDbContext dbContext,
             IDocumentNumberService documentNumberService,
             IAuditLogService auditLogService,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            IProductionMaterialService productionMaterialService)
         {
             _dbContext = dbContext;
             _documentNumberService = documentNumberService;
             _auditLogService = auditLogService;
             _currentUserService = currentUserService;
+            _productionMaterialService = productionMaterialService;
         }
 
         public async Task<ProductionOrderIndexModel> GetIndexAsync(ProductionOrderFilterModel filter)
@@ -112,7 +116,7 @@ namespace WarehouseManagment.Services
 
         public async Task<int> CreateAsync(ProductionOrderCreateModel model)
         {
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
             try
             {
@@ -137,8 +141,9 @@ namespace WarehouseManagment.Services
 
                 var bom = await _dbContext.BillsOfMaterials
                     .AsNoTracking()
+                    .Include(x => x.Lines)
                     .FirstOrDefaultAsync(x => x.ProductId == model.ProductId && x.IsActive);
-                if (bom == null)
+                if (bom == null || !bom.Lines.Any())
                 {
                     throw new InvalidOperationException("Няма активна разходна норма за избрания артикул.");
                 }
@@ -209,6 +214,9 @@ namespace WarehouseManagment.Services
                     });
                 }
 
+                var materialSnapshot = await _productionMaterialService.BuildMaterialSnapshotAsync(order);
+                order.Materials.AddRange(materialSnapshot);
+
                 await _dbContext.ProductionOrders.AddAsync(order);
                 await _auditLogService.AddAsync(new AuditLogEntryModel
                 {
@@ -242,7 +250,9 @@ namespace WarehouseManagment.Services
                 throw new ArgumentNullException(nameof(order));
             }
 
-            return ToDetailsModel(order);
+            var model = ToDetailsModel(order);
+            model.MaterialReadiness = await _productionMaterialService.GetReadinessAsync(id);
+            return model;
         }
 
         public async Task<ProductionOrderEditModel> GetEditModelAsync(int id)
@@ -333,12 +343,14 @@ namespace WarehouseManagment.Services
 
         public async Task StartAsync(int id)
         {
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
             try
             {
                 var order = await _dbContext.ProductionOrders
                     .Include(x => x.Operations)
+                    .Include(x => x.Materials)
+                        .ThenInclude(x => x.Allocations)
                     .FirstOrDefaultAsync(x => x.Id == id);
                 if (order == null)
                 {
@@ -349,6 +361,13 @@ namespace WarehouseManagment.Services
                 {
                     throw new InvalidOperationException("Само освободена производствена поръчка може да бъде стартирана.");
                 }
+
+                if (order.MaterialsTransferredOn.HasValue)
+                {
+                    throw new InvalidOperationException("Материалите за тази производствена поръчка вече са прехвърлени към производство.");
+                }
+
+                await _productionMaterialService.TransferMaterialsToWipAsync(order);
 
                 var oldStatus = order.Status;
                 order.Status = ProductionOrderStatus.InProgress;
@@ -388,6 +407,11 @@ namespace WarehouseManagment.Services
             }
         }
 
+        public async Task GenerateMaterialSnapshotAsync(int id)
+        {
+            await _productionMaterialService.GenerateMaterialSnapshotForExistingOrderAsync(id);
+        }
+
         public async Task CancelAsync(ProductionOrderCancelModel model)
         {
             if (string.IsNullOrWhiteSpace(model.CancellationReason))
@@ -410,6 +434,11 @@ namespace WarehouseManagment.Services
                     && order.Status != ProductionOrderStatus.InProgress)
                 {
                     throw new InvalidOperationException("Тази производствена поръчка не може да бъде анулирана.");
+                }
+
+                if (order.Status == ProductionOrderStatus.InProgress && order.MaterialsTransferredOn.HasValue)
+                {
+                    throw new InvalidOperationException("Материалите вече са прехвърлени към производство. Преди анулиране трябва да бъде извършено връщане на материалите.");
                 }
 
                 var oldStatus = order.Status;
@@ -448,6 +477,8 @@ namespace WarehouseManagment.Services
             {
                 var order = await _dbContext.ProductionOrders
                     .Include(x => x.Operations)
+                    .Include(x => x.Materials)
+                        .ThenInclude(x => x.Allocations)
                     .FirstOrDefaultAsync(x => x.Id == id);
                 if (order == null)
                 {
@@ -467,6 +498,11 @@ namespace WarehouseManagment.Services
                     throw new InvalidOperationException("Производствена поръчка с отчетена работа не може да бъде изтрита.");
                 }
 
+                if (order.MaterialsTransferredOn.HasValue || order.Materials.Any(x => x.Allocations.Any()))
+                {
+                    throw new InvalidOperationException("Производствена поръчка с прехвърлени материали не може да бъде изтрита.");
+                }
+
                 await _auditLogService.AddAsync(new AuditLogEntryModel
                 {
                     ActionType = AuditActionType.ProductionOrderDelete,
@@ -477,6 +513,7 @@ namespace WarehouseManagment.Services
                     OldValues = ToJson(BuildAuditValues(order, null, null))
                 });
 
+                _dbContext.ProductionOrderMaterials.RemoveRange(order.Materials);
                 _dbContext.ProductionOrders.Remove(order);
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -694,6 +731,9 @@ namespace WarehouseManagment.Services
                 CancellationReason = order.CancellationReason,
                 CancelledOn = order.CancelledOn,
                 CancelledByUserId = order.CancelledByUserId,
+                MaterialsTransferredOn = order.MaterialsTransferredOn,
+                MaterialsTransferredByUserId = order.MaterialsTransferredByUserId,
+                MaterialsTransferDocumentNumber = order.MaterialsTransferDocumentNumber,
                 ProgressPercent = CalculateProgress(order),
                 Operations = order.Operations
                     .OrderBy(x => x.Sequence)

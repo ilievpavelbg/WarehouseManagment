@@ -163,6 +163,24 @@ namespace WarehouseManagment.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> GenerateMaterialSnapshot(int id)
+        {
+            try
+            {
+                await _productionOrderService.GenerateMaterialSnapshotAsync(id);
+                TempData["SuccessMessage"] = "Материалните изисквания са генерирани успешно.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Production order material snapshot generation failed. Id: {Id}", id);
+                TempData["ErrorMessage"] = GetFriendlyError(ex);
+            }
+
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Cancel(ProductionOrderCancelModel model)
         {
             if (!ModelState.IsValid)

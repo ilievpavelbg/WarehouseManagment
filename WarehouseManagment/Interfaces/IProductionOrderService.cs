@@ -24,6 +24,8 @@ namespace WarehouseManagment.Interfaces
 
         Task StartAsync(int id);
 
+        Task GenerateMaterialSnapshotAsync(int id);
+
         Task CancelAsync(ProductionOrderCancelModel model);
 
         Task DeleteAsync(int id);

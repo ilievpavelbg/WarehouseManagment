@@ -39,6 +39,8 @@ namespace WarehouseManagment.Data
         public DbSet<ProductRoutingStep> ProductRoutingSteps { get; set; }
         public DbSet<ProductionOrder> ProductionOrders { get; set; } = null!;
         public DbSet<ProductionOrderOperation> ProductionOrderOperations { get; set; } = null!;
+        public DbSet<ProductionOrderMaterial> ProductionOrderMaterials { get; set; } = null!;
+        public DbSet<ProductionOrderMaterialAllocation> ProductionOrderMaterialAllocations { get; set; } = null!;
         public DbSet<ProductionWorkEntry> ProductionWorkEntries { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -563,6 +565,119 @@ namespace WarehouseManagment.Data
                 .HasOne(x => x.ProductRoutingStep)
                 .WithMany()
                 .HasForeignKey(x => x.ProductRoutingStepId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrderMaterial>()
+                .HasIndex(x => new { x.ProductionOrderId, x.MaterialId });
+
+            builder.Entity<ProductionOrderMaterial>()
+                .Property(x => x.QuantityPerUnitSnapshot)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductionOrderMaterial>()
+                .Property(x => x.WastePercentSnapshot)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductionOrderMaterial>()
+                .Property(x => x.RequiredQuantity)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductionOrderMaterial>()
+                .Property(x => x.ReservedQuantity)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductionOrderMaterial>()
+                .Property(x => x.TransferredQuantity)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductionOrderMaterial>()
+                .Property(x => x.ConsumedQuantity)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductionOrderMaterial>()
+                .Property(x => x.ReturnedQuantity)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductionOrderMaterial>()
+                .HasOne(x => x.ProductionOrder)
+                .WithMany(x => x.Materials)
+                .HasForeignKey(x => x.ProductionOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrderMaterial>()
+                .HasOne(x => x.BillOfMaterialLine)
+                .WithMany()
+                .HasForeignKey(x => x.BillOfMaterialLineId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrderMaterial>()
+                .HasOne(x => x.Material)
+                .WithMany()
+                .HasForeignKey(x => x.MaterialId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrderMaterial>()
+                .HasOne(x => x.UnitOfMeasure)
+                .WithMany()
+                .HasForeignKey(x => x.UnitOfMeasureId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrderMaterialAllocation>()
+                .HasIndex(x => x.ProductionOrderMaterialId);
+
+            builder.Entity<ProductionOrderMaterialAllocation>()
+                .HasIndex(x => x.InventoryMovementId);
+
+            builder.Entity<ProductionOrderMaterialAllocation>()
+                .Property(x => x.Quantity)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductionOrderMaterialAllocation>()
+                .HasOne(x => x.ProductionOrderMaterial)
+                .WithMany(x => x.Allocations)
+                .HasForeignKey(x => x.ProductionOrderMaterialId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrderMaterialAllocation>()
+                .HasOne(x => x.MaterialBatch)
+                .WithMany()
+                .HasForeignKey(x => x.MaterialBatchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrderMaterialAllocation>()
+                .HasOne(x => x.SourceMaterialStock)
+                .WithMany()
+                .HasForeignKey(x => x.SourceMaterialStockId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrderMaterialAllocation>()
+                .HasOne(x => x.SourceWarehouse)
+                .WithMany()
+                .HasForeignKey(x => x.SourceWarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrderMaterialAllocation>()
+                .HasOne(x => x.SourceWarehouseLocation)
+                .WithMany()
+                .HasForeignKey(x => x.SourceWarehouseLocationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrderMaterialAllocation>()
+                .HasOne(x => x.DestinationWarehouse)
+                .WithMany()
+                .HasForeignKey(x => x.DestinationWarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrderMaterialAllocation>()
+                .HasOne(x => x.DestinationWarehouseLocation)
+                .WithMany()
+                .HasForeignKey(x => x.DestinationWarehouseLocationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductionOrderMaterialAllocation>()
+                .HasOne(x => x.InventoryMovement)
+                .WithMany()
+                .HasForeignKey(x => x.InventoryMovementId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<ProductionWorkEntry>()

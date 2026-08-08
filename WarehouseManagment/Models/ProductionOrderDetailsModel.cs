@@ -58,6 +58,14 @@ namespace WarehouseManagment.Models
 
         public decimal ProgressPercent { get; set; }
 
+        public DateTime? MaterialsTransferredOn { get; set; }
+
+        public string? MaterialsTransferredByUserId { get; set; }
+
+        public string? MaterialsTransferDocumentNumber { get; set; }
+
+        public ProductionMaterialReadinessModel? MaterialReadiness { get; set; }
+
         public List<ProductionOrderOperationModel> Operations { get; set; } = new List<ProductionOrderOperationModel>();
     }
 }

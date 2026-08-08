@@ -2,6 +2,8 @@
 
 @{
     ViewData["Title"] = "Производствена поръчка";
+    var materialReadiness = Model.MaterialReadiness;
+    var canStart = Model.Status == ProductionOrderStatus.Released && materialReadiness?.IsReady == true && materialReadiness.IsTransferred == false;
 }
 
 <h1 class="text-center">@Model.OrderNumber</h1>
@@ -68,7 +70,7 @@
     </div>
     <div class="col-lg-6">
         <div class="card h-100">
-            <div class="card-header">История / timestamps</div>
+            <div class="card-header">История</div>
             <div class="card-body">
                 <dl class="row mb-0">
                     <dt class="col-sm-5">Планиран старт</dt><dd class="col-sm-7">@(Model.PlannedStartDate?.ToString("dd.MM.yyyy") ?? "-")</dd>
@@ -91,61 +93,177 @@
     </div>
 </div>
 
-<h5>Производствени операции</h5>
-<table class="table table-striped table-bordered">
-    <thead>
-        <tr>
-            <th>Последователност</th>
-            <th>Операция</th>
-            <th>Роля</th>
-            <th>План</th>
-            <th>Налични</th>
-            <th>Завършени</th>
-            <th>Брак</th>
-            <th>Статус</th>
-            <th>Прогрес</th>
-            <th>Последен отчет</th>
-            <th>Последен работник</th>
-            <th>Стандартно време</th>
-            <th>Действия</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var operation in Model.Operations)
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Материали за производство</span>
+        @if (materialReadiness != null)
         {
-            <tr>
-                <td>@operation.Sequence</td>
-                <td>@operation.OperationName</td>
-                <td>@operation.RequiredRole</td>
-                <td>@operation.PlannedQuantity.ToString("N4")</td>
-                <td>@operation.AvailableQuantity.ToString("N4")</td>
-                <td>@operation.CompletedQuantity.ToString("N4")</td>
-                <td>@operation.RejectedQuantity.ToString("N4")</td>
-                <td><span class="badge @ProductionOrderDisplayHelper.OperationStatusCss(operation.Status)">@ProductionOrderDisplayHelper.OperationStatusText(operation.Status)</span></td>
-                <td style="min-width: 160px;">
-                    <div class="progress">
-                        <div class="progress-bar" role="progressbar" style="width: @operation.ProgressPercent.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)%;" aria-valuenow="@operation.ProgressPercent.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)" aria-valuemin="0" aria-valuemax="100">
-                            @operation.ProgressPercent.ToString("N0")%
-                        </div>
-                    </div>
-                    @if (operation.Status == ProductionOrderOperationStatus.Ready || operation.Status == ProductionOrderOperationStatus.InProgress)
-                    {
-                        <span class="badge bg-warning text-dark mt-1">Активна операция</span>
-                    }
-                </td>
-                <td>@(operation.LastReportDate?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
-                <td>@(operation.LastReportingWorker ?? "-")</td>
-                <td>@(operation.StandardTimeMinutes?.ToString() ?? "-")</td>
-                <td>
-                    @if (operation.AvailableQuantity > 0 && (operation.Status == ProductionOrderOperationStatus.Ready || operation.Status == ProductionOrderOperationStatus.InProgress))
-                    {
-                        <a class="btn btn-sm btn-outline-success" asp-controller="ProductionWork" asp-action="Report" asp-route-id="@operation.Id">Отчет</a>
-                    }
-                </td>
-            </tr>
+            <span class="badge @materialReadiness.SummaryCssClass">@materialReadiness.SummaryStatus</span>
         }
-    </tbody>
-</table>
+    </div>
+    <div class="card-body">
+        @if (materialReadiness == null)
+        {
+            <div class="alert alert-info mb-0">Няма информация за материална готовност.</div>
+        }
+        else
+        {
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <strong>Източник:</strong> @(materialReadiness.SourceWarehouse ?? "Основен склад за материали не е зададен")
+                </div>
+                <div class="col-md-6">
+                    <strong>Дестинация:</strong> @(materialReadiness.DestinationWarehouse ?? "Склад производство / НЗП не е зададен")
+                </div>
+            </div>
+
+            <div class="alert @(materialReadiness.IsReady ? "alert-success" : "alert-warning")">@materialReadiness.Message</div>
+
+            @if (materialReadiness.IsTransferred)
+            {
+                <dl class="row">
+                    <dt class="col-sm-3">PMT документ</dt><dd class="col-sm-9">@(materialReadiness.TransferDocumentNumber ?? "-")</dd>
+                    <dt class="col-sm-3">Дата на прехвърляне</dt><dd class="col-sm-9">@(materialReadiness.TransferredOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</dd>
+                    <dt class="col-sm-3">Потребител</dt><dd class="col-sm-9">@(materialReadiness.TransferredByUserId ?? "-")</dd>
+                </dl>
+            }
+
+            @if (materialReadiness.CanGenerateSnapshot)
+            {
+                <form asp-action="GenerateMaterialSnapshot" asp-route-id="@Model.Id" method="post" class="mb-3">
+                    <button type="submit" class="btn btn-outline-primary" onclick="return confirm('Да генерирам ли материалните изисквания по замразената разходна норма на поръчката?');">Генерирай материални изисквания</button>
+                </form>
+            }
+
+            @if (materialReadiness.Rows.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped table-bordered align-middle">
+                        <thead>
+                            <tr>
+                                <th>Материал</th>
+                                <th class="text-end">Нужно</th>
+                                <th class="text-end">Налично</th>
+                                <th class="text-end">Недостиг</th>
+                                <th>Мерна единица</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in materialReadiness.Rows)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@row.MaterialCode</strong><br />
+                                        <span>@row.MaterialName</span>
+                                    </td>
+                                    <td class="text-end">@row.OutstandingQuantity.ToString("N4")</td>
+                                    <td class="text-end">@row.AvailableQuantity.ToString("N4")</td>
+                                    <td class="text-end">@row.ShortageQuantity.ToString("N4")</td>
+                                    <td>@row.Unit</td>
+                                    <td><span class="badge @row.StatusCssClass">@row.StatusText</span></td>
+                                </tr>
+                                @if (row.Allocations.Any())
+                                {
+                                    <tr>
+                                        <td colspan="6">
+                                            <details>
+                                                <summary>Разпределения по партиди и локации</summary>
+                                                <table class="table table-sm table-bordered mt-2 mb-0">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Източник</th>
+                                                            <th>Локация</th>
+                                                            <th>Дестинация</th>
+                                                            <th>Партида</th>
+                                                            <th>Lot</th>
+                                                            <th class="text-end">Количество</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var allocation in row.Allocations)
+                                                        {
+                                                            <tr>
+                                                                <td>@allocation.SourceWarehouse</td>
+                                                                <td>@allocation.SourceLocation</td>
+                                                                <td>@allocation.DestinationWarehouse</td>
+                                                                <td>@(allocation.BatchNumber ?? "-")</td>
+                                                                <td>@(allocation.LotNumber ?? "-")</td>
+                                                                <td class="text-end">@allocation.Quantity.ToString("N4")</td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </details>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<h5>Производствени операции</h5>
+<div class="table-responsive">
+    <table class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>Последователност</th>
+                <th>Операция</th>
+                <th>Роля</th>
+                <th>План</th>
+                <th>Налични</th>
+                <th>Завършени</th>
+                <th>Брак</th>
+                <th>Статус</th>
+                <th>Прогрес</th>
+                <th>Последен отчет</th>
+                <th>Последен работник</th>
+                <th>Стандартно време</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var operation in Model.Operations)
+            {
+                <tr>
+                    <td>@operation.Sequence</td>
+                    <td>@operation.OperationName</td>
+                    <td>@operation.RequiredRole</td>
+                    <td>@operation.PlannedQuantity.ToString("N4")</td>
+                    <td>@operation.AvailableQuantity.ToString("N4")</td>
+                    <td>@operation.CompletedQuantity.ToString("N4")</td>
+                    <td>@operation.RejectedQuantity.ToString("N4")</td>
+                    <td><span class="badge @ProductionOrderDisplayHelper.OperationStatusCss(operation.Status)">@ProductionOrderDisplayHelper.OperationStatusText(operation.Status)</span></td>
+                    <td style="min-width: 160px;">
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: @operation.ProgressPercent.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)%;" aria-valuenow="@operation.ProgressPercent.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)" aria-valuemin="0" aria-valuemax="100">
+                                @operation.ProgressPercent.ToString("N0")%
+                            </div>
+                        </div>
+                        @if (operation.Status == ProductionOrderOperationStatus.Ready || operation.Status == ProductionOrderOperationStatus.InProgress)
+                        {
+                            <span class="badge bg-warning text-dark mt-1">Активна операция</span>
+                        }
+                    </td>
+                    <td>@(operation.LastReportDate?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                    <td>@(operation.LastReportingWorker ?? "-")</td>
+                    <td>@(operation.StandardTimeMinutes?.ToString() ?? "-")</td>
+                    <td>
+                        @if (operation.AvailableQuantity > 0 && (operation.Status == ProductionOrderOperationStatus.Ready || operation.Status == ProductionOrderOperationStatus.InProgress))
+                        {
+                            <a class="btn btn-sm btn-outline-success" asp-controller="ProductionWork" asp-action="Report" asp-route-id="@operation.Id">Отчет</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
 
 <h5>История на отчетена работа</h5>
 @if (!Model.Operations.Any(x => x.WorkHistory.Any()))
@@ -154,38 +272,40 @@
 }
 else
 {
-    <table class="table table-striped table-bordered">
-        <thead>
-            <tr>
-                <th>Дата/час</th>
-                <th>Операция</th>
-                <th>Работник</th>
-                <th>Завършено</th>
-                <th>Брак</th>
-                <th>Начало</th>
-                <th>Край</th>
-                <th>Бележки</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var operation in Model.Operations)
-            {
-                foreach (var entry in operation.WorkHistory)
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>Дата/час</th>
+                    <th>Операция</th>
+                    <th>Работник</th>
+                    <th>Завършено</th>
+                    <th>Брак</th>
+                    <th>Начало</th>
+                    <th>Край</th>
+                    <th>Бележки</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var operation in Model.Operations)
                 {
-                    <tr>
-                        <td>@entry.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
-                        <td>@operation.OperationName</td>
-                        <td>@(string.IsNullOrWhiteSpace(entry.Worker) ? "-" : entry.Worker)</td>
-                        <td>@entry.ReportedCompletedQuantity.ToString("N4")</td>
-                        <td>@entry.ReportedRejectedQuantity.ToString("N4")</td>
-                        <td>@(entry.WorkStartedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
-                        <td>@(entry.WorkEndedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
-                        <td>@(entry.Notes ?? "-")</td>
-                    </tr>
+                    foreach (var entry in operation.WorkHistory)
+                    {
+                        <tr>
+                            <td>@entry.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
+                            <td>@operation.OperationName</td>
+                            <td>@(string.IsNullOrWhiteSpace(entry.Worker) ? "-" : entry.Worker)</td>
+                            <td>@entry.ReportedCompletedQuantity.ToString("N4")</td>
+                            <td>@entry.ReportedRejectedQuantity.ToString("N4")</td>
+                            <td>@(entry.WorkStartedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                            <td>@(entry.WorkEndedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                            <td>@(entry.Notes ?? "-")</td>
+                        </tr>
+                    }
                 }
-            }
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    </div>
 }
 
 <div class="mb-3">
@@ -203,7 +323,7 @@ else
     @if (Model.Status == ProductionOrderStatus.Released)
     {
         <form asp-action="Start" asp-route-id="@Model.Id" method="post" class="d-inline">
-            <button type="submit" class="btn btn-outline-success" onclick="return confirm('Да стартирам ли производствената поръчка?');">Стартирай</button>
+            <button type="submit" class="btn btn-outline-success" disabled="@(!canStart)" onclick="return confirm('Да стартирам ли производствената поръчка и да прехвърля материалите към НЗП?');">Стартирай</button>
         </form>
         <a class="btn btn-outline-danger" asp-action="Cancel" asp-route-id="@Model.Id">Отмени</a>
     }

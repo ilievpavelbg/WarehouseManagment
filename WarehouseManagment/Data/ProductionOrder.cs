@@ -102,7 +102,17 @@ namespace WarehouseManagment.Data
         [StringLength(500)]
         public string? CancellationReason { get; set; }
 
+        public DateTime? MaterialsTransferredOn { get; set; }
+
+        [StringLength(450)]
+        public string? MaterialsTransferredByUserId { get; set; }
+
+        [StringLength(100)]
+        public string? MaterialsTransferDocumentNumber { get; set; }
+
         public List<ProductionOrderOperation> Operations { get; set; } = new List<ProductionOrderOperation>();
+
+        public List<ProductionOrderMaterial> Materials { get; set; } = new List<ProductionOrderMaterial>();
 
         public byte[] RowVersion { get; set; } = Array.Empty<byte>();
     }

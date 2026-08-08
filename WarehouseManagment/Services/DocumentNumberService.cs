@@ -87,6 +87,7 @@ namespace WarehouseManagment.Services
                 DocumentType.MaterialTransfer => "TR",
                 DocumentType.StockAdjustment => "ADJ",
                 DocumentType.ProductionOrder => "PO",
+                DocumentType.ProductionMaterialTransfer => "PMT",
                 _ => throw new InvalidOperationException("Invalid document type.")
             };
         }
