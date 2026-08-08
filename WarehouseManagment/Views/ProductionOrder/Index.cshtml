@@ -37,14 +37,7 @@
             <option value="">Всички</option>
             @foreach (ProductionOrderStatus status in Enum.GetValues(typeof(ProductionOrderStatus)))
             {
-                if (Model.Filter.Status == status)
-                {
-                    <option value="@status" selected>@ProductionOrderDisplayHelper.StatusText(status)</option>
-                }
-                else
-                {
-                    <option value="@status">@ProductionOrderDisplayHelper.StatusText(status)</option>
-                }
+                <option value="@status" selected="@(Model.Filter.Status == status)">@ProductionOrderDisplayHelper.StatusText(status)</option>
             }
         </select>
     </div>
@@ -59,7 +52,7 @@
     <div class="col-md-1 d-flex align-items-end">
         <div class="form-check">
             <input asp-for="Filter.OverdueOnly" name="OverdueOnly" class="form-check-input" />
-            <label class="form-check-label">Само просрочени</label>
+            <label class="form-check-label">Просрочени</label>
         </div>
     </div>
     <div class="col-12">
@@ -70,71 +63,69 @@
 
 @if (!Model.Rows.Any())
 {
-    <div class="alert alert-info">Няма намерени производствени поръчки.</div>
+    <div class="alert alert-info">Няма намерени производствени поръчки по избраните критерии.</div>
 }
 else
 {
-    <table class="table table-striped table-bordered align-middle">
-        <thead>
-            <tr>
-                <th>Поръчка</th>
-                <th>Артикул</th>
-                <th>Планирано количество</th>
-                <th>Мерна единица</th>
-                <th>Планиран старт</th>
-                <th>Планиран край</th>
-                <th>Статус</th>
-                <th>Прогрес</th>
-                <th>Действия</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var row in Model.Rows)
-            {
+    <div class="table-responsive production-table-scroll">
+        <table class="table table-striped table-bordered align-middle">
+            <thead>
                 <tr>
-                    <td>
-                        @row.OrderNumber
-                        @if (row.IsOverdue)
-                        {
-                            <span class="badge bg-danger ms-1">Просрочена</span>
-                        }
-                    </td>
-                    <td>@row.ProductDisplayName</td>
-                    <td>@row.PlannedQuantity.ToString("N4")</td>
-                    <td>@row.UnitOfMeasure</td>
-                    <td>@(row.PlannedStartDate?.ToString("dd.MM.yyyy") ?? "-")</td>
-                    <td>@(row.PlannedEndDate?.ToString("dd.MM.yyyy") ?? "-")</td>
-                    <td><span class="badge @ProductionOrderDisplayHelper.StatusCss(row.Status)">@ProductionOrderDisplayHelper.StatusText(row.Status)</span></td>
-                    <td>@row.ProgressPercent.ToString("N2")%</td>
-                    <td class="text-nowrap">
-                        <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@row.Id">Преглед</a>
-                        @if (row.Status == ProductionOrderStatus.Planned)
-                        {
-                            <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@row.Id">Редакция</a>
-                            <form asp-action="Release" asp-route-id="@row.Id" method="post" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('Да освободя ли поръчката за производство?');">Освободи</button>
-                            </form>
-                            <a class="btn btn-sm btn-outline-danger" asp-action="Cancel" asp-route-id="@row.Id">Отмени</a>
-                            <form asp-action="Delete" asp-route-id="@row.Id" method="post" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Изтриването е необратимо. Сигурни ли сте?');">Изтрий</button>
-                            </form>
-                        }
-                        else if (row.Status == ProductionOrderStatus.Released)
-                        {
-                            <form asp-action="Start" asp-route-id="@row.Id" method="post" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('Да стартирам ли производствената поръчка?');">Стартирай</button>
-                            </form>
-                            <a class="btn btn-sm btn-outline-danger" asp-action="Cancel" asp-route-id="@row.Id">Отмени</a>
-                        }
-                        else if (row.Status == ProductionOrderStatus.InProgress)
-                        {
-                            <a class="btn btn-sm btn-outline-danger" asp-action="Cancel" asp-route-id="@row.Id">Отмени</a>
-                        }
-                    </td>
+                    <th>Поръчка</th>
+                    <th>Артикул</th>
+                    <th class="text-end">Планирано количество</th>
+                    <th>Мерна единица</th>
+                    <th>Планиран старт</th>
+                    <th>Планиран край</th>
+                    <th class="text-center">Статус</th>
+                    <th>Прогрес</th>
+                    <th>Действия</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    <tr>
+                        <td>
+                            @row.OrderNumber
+                            @if (row.IsOverdue)
+                            {
+                                <span class="badge bg-danger ms-1">Просрочена</span>
+                            }
+                        </td>
+                        <td>@row.ProductDisplayName</td>
+                        <td class="text-end">@row.PlannedQuantity.ToString("N4")</td>
+                        <td>@row.UnitOfMeasure</td>
+                        <td>@(row.PlannedStartDate?.ToString("dd.MM.yyyy") ?? "-")</td>
+                        <td>@(row.PlannedEndDate?.ToString("dd.MM.yyyy") ?? "-")</td>
+                        <td class="text-center"><span class="badge @ProductionOrderDisplayHelper.StatusCss(row.Status)">@ProductionOrderDisplayHelper.StatusText(row.Status)</span></td>
+                        <td style="min-width: 150px;">
+                            <div class="progress production-progress">
+                                <div class="progress-bar @ProductionOrderDisplayHelper.StatusCss(row.Status)" role="progressbar" style="width: @row.ProgressPercent.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)%;">
+                                    @row.ProgressPercent.ToString("N0")%
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-nowrap">
+                            <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@row.Id">Преглед</a>
+                            <a class="btn btn-sm btn-outline-secondary @(row.Status == ProductionOrderStatus.Planned ? string.Empty : "disabled")" asp-action="Edit" asp-route-id="@row.Id">Редакция</a>
+                            <form asp-action="Release" asp-route-id="@row.Id" method="post" class="d-inline js-safe-submit">
+                                <button type="submit" class="btn btn-sm btn-outline-primary" disabled="@(row.Status != ProductionOrderStatus.Planned)" data-loading-text="Освобождаване..." onclick="return confirm('Да освободя ли поръчката за производство?');">Освободи</button>
+                            </form>
+                            <form asp-action="Start" asp-route-id="@row.Id" method="post" class="d-inline js-safe-submit">
+                                <button type="submit" class="btn btn-sm btn-outline-success" disabled="@(row.Status != ProductionOrderStatus.Released)" data-loading-text="Стартиране..." onclick="return confirm('Да стартирам ли производствената поръчка?');">Старт</button>
+                            </form>
+                            <a class="btn btn-sm btn-outline-success @(row.Status == ProductionOrderStatus.ProductionCompleted ? string.Empty : "disabled")" asp-action="Finalize" asp-route-id="@row.Id">Приключи</a>
+                            <a class="btn btn-sm btn-outline-danger @(row.Status == ProductionOrderStatus.Planned || row.Status == ProductionOrderStatus.Released || row.Status == ProductionOrderStatus.InProgress ? string.Empty : "disabled")" asp-action="Cancel" asp-route-id="@row.Id">Отмени</a>
+                            <form asp-action="Delete" asp-route-id="@row.Id" method="post" class="d-inline js-safe-submit">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" disabled="@(row.Status != ProductionOrderStatus.Planned)" data-loading-text="Изтриване..." onclick="return confirm('Изтриването е необратимо. Сигурни ли сте?');">Изтрий</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 }
 
 @if (Model.TotalPages > 1)
@@ -150,4 +141,24 @@ else
             </li>
         </ul>
     </nav>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('form.js-safe-submit').forEach(function (form) {
+                form.addEventListener('submit', function () {
+                    const button = form.querySelector('button[type="submit"]');
+                    if (!button || button.disabled) {
+                        return;
+                    }
+                    const loadingText = button.getAttribute('data-loading-text') || 'Обработка...';
+                    setTimeout(function () {
+                        button.disabled = true;
+                        button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>' + loadingText;
+                    }, 0);
+                });
+            });
+        });
+    </script>
 }

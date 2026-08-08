@@ -8,10 +8,10 @@ namespace WarehouseManagment.Models
             {
                 ProductionOrderStatus.Draft => "Чернова",
                 ProductionOrderStatus.Planned => "Планирана",
-                ProductionOrderStatus.Released => "Освободена за производство",
-                ProductionOrderStatus.InProgress => "В процес",
+                ProductionOrderStatus.Released => "Освободена",
+                ProductionOrderStatus.InProgress => "В производство",
                 ProductionOrderStatus.Paused => "На пауза",
-                ProductionOrderStatus.ProductionCompleted => "Производството е завършено",
+                ProductionOrderStatus.ProductionCompleted => "Очаква приключване",
                 ProductionOrderStatus.Completed => "Завършена",
                 ProductionOrderStatus.Cancelled => "Отменена",
                 _ => status.ToString()
@@ -22,12 +22,12 @@ namespace WarehouseManagment.Models
         {
             return status switch
             {
-                ProductionOrderStatus.Planned => "bg-info text-dark",
-                ProductionOrderStatus.Released => "bg-primary",
-                ProductionOrderStatus.InProgress => "bg-warning text-dark",
-                ProductionOrderStatus.ProductionCompleted => "bg-info text-dark",
-                ProductionOrderStatus.Cancelled => "bg-danger",
-                ProductionOrderStatus.Completed => "bg-success",
+                ProductionOrderStatus.Planned => "production-badge-planned",
+                ProductionOrderStatus.Released => "production-badge-released",
+                ProductionOrderStatus.InProgress => "production-badge-progress",
+                ProductionOrderStatus.ProductionCompleted => "production-badge-waiting",
+                ProductionOrderStatus.Completed => "production-badge-completed",
+                ProductionOrderStatus.Cancelled => "production-badge-cancelled",
                 _ => "bg-secondary"
             };
         }
@@ -65,9 +65,9 @@ namespace WarehouseManagment.Models
                 ProductionOrderOperationStatus.Locked => "bg-secondary",
                 ProductionOrderOperationStatus.Pending => "bg-info text-dark",
                 ProductionOrderOperationStatus.Ready => "bg-primary",
-                ProductionOrderOperationStatus.InProgress => "bg-warning text-dark",
-                ProductionOrderOperationStatus.Completed => "bg-success",
-                ProductionOrderOperationStatus.Cancelled => "bg-danger",
+                ProductionOrderOperationStatus.InProgress => "production-badge-progress",
+                ProductionOrderOperationStatus.Completed => "production-badge-completed",
+                ProductionOrderOperationStatus.Cancelled => "production-badge-cancelled",
                 _ => "bg-secondary"
             };
         }
