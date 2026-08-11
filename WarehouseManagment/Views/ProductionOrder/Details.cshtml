@@ -171,7 +171,7 @@
                     <dt class="col-sm-5">Артикул</dt><dd class="col-sm-7">@Model.ProductDisplayName</dd>
                     <dt class="col-sm-5">Размер / вариант</dt><dd class="col-sm-7">@(string.IsNullOrWhiteSpace(Model.ProductVariant) ? "-" : Model.ProductVariant)</dd>
                     <dt class="col-sm-5">Производствено име</dt><dd class="col-sm-7">@Model.ProductionName</dd>
-                    <dt class="col-sm-5">Планирано количество</dt><dd class="col-sm-7">@Model.PlannedQuantity.ToString("N4") @Model.UnitOfMeasure</dd>
+                    <dt class="col-sm-5">Планирано количество</dt><dd class="col-sm-7">@QuantityDisplayFormatter.Format(Model.PlannedQuantity, Model.UnitOfMeasure, true)</dd>
                     <dt class="col-sm-5">Приоритет</dt><dd class="col-sm-7">@ProductionOrderDisplayHelper.PriorityText(Model.Priority)</dd>
                     <dt class="col-sm-5">Статус</dt><dd class="col-sm-7"><span class="badge @ProductionOrderDisplayHelper.StatusCss(Model.Status)">@ProductionOrderDisplayHelper.StatusText(Model.Status)</span></dd>
                     <dt class="col-sm-5">Бележки</dt><dd class="col-sm-7">@(Model.Notes ?? "-")</dd>
@@ -309,9 +309,9 @@
                                         <strong>@row.MaterialCode</strong><br />
                                         <span>@row.MaterialName</span>
                                     </td>
-                                    <td class="text-end">@row.OutstandingQuantity.ToString("N4")</td>
-                                    <td class="text-end">@row.AvailableQuantity.ToString("N4")</td>
-                                    <td class="text-end @(hasShortage ? "text-danger fw-bold" : string.Empty)">@row.ShortageQuantity.ToString("N4")</td>
+                                    <td class="text-end">@QuantityDisplayFormatter.Format(row.OutstandingQuantity, row.Unit)</td>
+                                    <td class="text-end">@QuantityDisplayFormatter.Format(row.AvailableQuantity, row.Unit)</td>
+                                    <td class="text-end @(hasShortage ? "text-danger fw-bold" : string.Empty)">@QuantityDisplayFormatter.Format(row.ShortageQuantity, row.Unit)</td>
                                     <td>@row.Unit</td>
                                     <td class="text-center"><span class="badge @(hasShortage ? "bg-danger" : "bg-success")">@row.StatusText</span></td>
                                 </tr>
@@ -343,7 +343,7 @@
                                                                 <td>@allocation.DestinationWarehouse</td>
                                                                 <td>@(allocation.BatchNumber ?? "-")</td>
                                                                 <td>@(allocation.LotNumber ?? "-")</td>
-                                                                <td class="text-end">@allocation.Quantity.ToString("N4")</td>
+                                                                <td class="text-end">@QuantityDisplayFormatter.Format(allocation.Quantity, row.Unit, true)</td>
                                                             </tr>
                                                         }
                                                     </tbody>
@@ -392,11 +392,11 @@
                         {
                             <tr>
                                 <td>@row.MaterialDisplayName</td>
-                                <td class="text-end">@row.RequiredQuantity.ToString("N4")</td>
-                                <td class="text-end">@row.TransferredQuantity.ToString("N4")</td>
-                                <td class="text-end">@row.ConsumedQuantity.ToString("N4")</td>
-                                <td class="text-end">@row.ReturnedQuantity.ToString("N4")</td>
-                                <td class="text-end">@row.RemainingInWip.ToString("N4")</td>
+                                <td class="text-end">@QuantityDisplayFormatter.Format(row.RequiredQuantity, row.Unit)</td>
+                                <td class="text-end">@QuantityDisplayFormatter.Format(row.TransferredQuantity, row.Unit)</td>
+                                <td class="text-end">@QuantityDisplayFormatter.Format(row.ConsumedQuantity, row.Unit)</td>
+                                <td class="text-end">@QuantityDisplayFormatter.Format(row.ReturnedQuantity, row.Unit)</td>
+                                <td class="text-end">@QuantityDisplayFormatter.Format(row.RemainingInWip, row.Unit)</td>
                                 <td>@row.Unit</td>
                             </tr>
                         }
@@ -464,7 +464,7 @@
                 </dd>
                 <dt class="col-sm-3">Артикул</dt><dd class="col-sm-9">@Model.FinishedGoodsReceipt.ProductDisplayName</dd>
                 <dt class="col-sm-3">Размер / вариант</dt><dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.FinishedGoodsReceipt.Size) ? "-" : Model.FinishedGoodsReceipt.Size)</dd>
-                <dt class="col-sm-3">Количество</dt><dd class="col-sm-9">@Model.FinishedGoodsReceipt.Quantity</dd>
+                <dt class="col-sm-3">Количество</dt><dd class="col-sm-9">@QuantityDisplayFormatter.Format(Model.FinishedGoodsReceipt.Quantity, Model.UnitOfMeasure, true)</dd>
                 <dt class="col-sm-3">Склад</dt><dd class="col-sm-9">@Model.FinishedGoodsReceipt.Warehouse</dd>
                 <dt class="col-sm-3">Дата</dt><dd class="col-sm-9">@Model.FinishedGoodsReceipt.CreatedOn.ToString("dd.MM.yyyy HH:mm")</dd>
                 <dt class="col-sm-3">Потребител</dt><dd class="col-sm-9">@(Model.FinishedGoodsReceipt.CreatedByUserName ?? "-")</dd>
@@ -500,10 +500,10 @@
                     <td>@operation.Sequence</td>
                     <td>@operation.OperationName</td>
                     <td>@ProductionOrderDisplayHelper.RoleText(operation.RequiredRole)</td>
-                    <td class="text-end">@operation.PlannedQuantity.ToString("N4")</td>
-                    <td class="text-end">@operation.AvailableQuantity.ToString("N4")</td>
-                    <td class="text-end">@operation.CompletedQuantity.ToString("N4")</td>
-                    <td class="text-end">@operation.RejectedQuantity.ToString("N4")</td>
+                    <td class="text-end">@QuantityDisplayFormatter.Format(operation.PlannedQuantity, Model.UnitOfMeasure)</td>
+                    <td class="text-end">@QuantityDisplayFormatter.Format(operation.AvailableQuantity, Model.UnitOfMeasure)</td>
+                    <td class="text-end">@QuantityDisplayFormatter.Format(operation.CompletedQuantity, Model.UnitOfMeasure)</td>
+                    <td class="text-end">@QuantityDisplayFormatter.Format(operation.RejectedQuantity, Model.UnitOfMeasure)</td>
                     <td class="text-center"><span class="badge @ProductionOrderDisplayHelper.OperationStatusCss(operation.Status)">@ProductionOrderDisplayHelper.OperationStatusText(operation.Status)</span></td>
                     <td style="min-width: 170px;">
                         <div class="progress production-progress">
@@ -516,7 +516,10 @@
                     <td>@(operation.LastReportingWorker ?? "-")</td>
                     <td class="text-end">@(operation.StandardTimeMinutes?.ToString() ?? "-")</td>
                     <td>
-                        <a class="btn btn-sm btn-outline-success @(operation.AvailableQuantity > 0 && (operation.Status == ProductionOrderOperationStatus.Ready || operation.Status == ProductionOrderOperationStatus.InProgress) ? string.Empty : "disabled")" asp-controller="ProductionWork" asp-action="Report" asp-route-id="@operation.Id">Отчет</a>
+                        @if (Model.Status != ProductionOrderStatus.Completed && operation.Status != ProductionOrderOperationStatus.Completed)
+                        {
+                            <a class="btn btn-sm btn-outline-success @(operation.AvailableQuantity > 0 && (operation.Status == ProductionOrderOperationStatus.Ready || operation.Status == ProductionOrderOperationStatus.InProgress) ? string.Empty : "disabled")" asp-controller="ProductionWork" asp-action="Report" asp-route-id="@operation.Id">Отчет</a>
+                        }
                     </td>
                 </tr>
             }
@@ -554,8 +557,8 @@ else
                             <td>@entry.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
                             <td>@operation.OperationName</td>
                             <td>@(string.IsNullOrWhiteSpace(entry.Worker) ? "-" : entry.Worker)</td>
-                            <td class="text-end">@entry.ReportedCompletedQuantity.ToString("N4")</td>
-                            <td class="text-end">@entry.ReportedRejectedQuantity.ToString("N4")</td>
+                            <td class="text-end">@QuantityDisplayFormatter.Format(entry.ReportedCompletedQuantity, Model.UnitOfMeasure)</td>
+                            <td class="text-end">@QuantityDisplayFormatter.Format(entry.ReportedRejectedQuantity, Model.UnitOfMeasure)</td>
                             <td>@(entry.WorkStartedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
                             <td>@(entry.WorkEndedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
                             <td>@(entry.Notes ?? "-")</td>
@@ -570,25 +573,28 @@ else
 <div class="production-actions mb-3">
     <a class="btn btn-secondary" asp-action="Index">Назад</a>
 
-    <a class="btn btn-outline-secondary @(Model.Status == ProductionOrderStatus.Planned ? string.Empty : "disabled")" asp-action="Edit" asp-route-id="@Model.Id">Редакция</a>
+    @if (Model.Status != ProductionOrderStatus.Completed)
+    {
+        <a class="btn btn-outline-secondary @(Model.Status == ProductionOrderStatus.Planned ? string.Empty : "disabled")" asp-action="Edit" asp-route-id="@Model.Id">Редакция</a>
 
-    <form asp-action="Release" asp-route-id="@Model.Id" method="post" class="d-inline js-safe-submit">
-        <button type="submit" class="btn btn-outline-primary" disabled="@(Model.Status != ProductionOrderStatus.Planned)" data-loading-text="Освобождаване..." onclick="return confirm('Да освободя ли поръчката за производство?');">Освободи</button>
-    </form>
+        <form asp-action="Release" asp-route-id="@Model.Id" method="post" class="d-inline js-safe-submit">
+            <button type="submit" class="btn btn-outline-primary" disabled="@(Model.Status != ProductionOrderStatus.Planned)" data-loading-text="Освобождаване..." onclick="return confirm('Да освободя ли поръчката за производство?');">Освободи</button>
+        </form>
 
-    <form asp-action="Start" asp-route-id="@Model.Id" method="post" class="d-inline js-safe-submit">
-        <span title="@(canStart ? string.Empty : "Липсват необходими материали или материалите вече са прехвърлени")" data-bs-toggle="tooltip">
-            <button type="submit" class="btn btn-outline-success" disabled="@(!canStart)" data-loading-text="Стартиране..." onclick="return confirm('Да стартирам ли производствената поръчка и да прехвърля материалите към НЗП?');">Стартирай</button>
-        </span>
-    </form>
+        <form asp-action="Start" asp-route-id="@Model.Id" method="post" class="d-inline js-safe-submit">
+            <span title="@(canStart ? string.Empty : "Липсват необходими материали или материалите вече са прехвърлени")" data-bs-toggle="tooltip">
+                <button type="submit" class="btn btn-outline-success" disabled="@(!canStart)" data-loading-text="Стартиране..." onclick="return confirm('Да стартирам ли производствената поръчка и да прехвърля материалите към НЗП?');">Стартирай</button>
+            </span>
+        </form>
 
-    <a class="btn btn-outline-success @(Model.Status == ProductionOrderStatus.ProductionCompleted ? string.Empty : "disabled")" asp-action="Finalize" asp-route-id="@Model.Id">Финално приключване</a>
+        <a class="btn btn-outline-success @(Model.Status == ProductionOrderStatus.ProductionCompleted ? string.Empty : "disabled")" asp-action="Finalize" asp-route-id="@Model.Id">Финално приключване</a>
 
-    <a class="btn btn-outline-danger @(Model.Status == ProductionOrderStatus.Planned || Model.Status == ProductionOrderStatus.Released || Model.Status == ProductionOrderStatus.InProgress ? string.Empty : "disabled")" asp-action="Cancel" asp-route-id="@Model.Id">Отмени</a>
+        <a class="btn btn-outline-danger @(Model.Status == ProductionOrderStatus.Planned || Model.Status == ProductionOrderStatus.Released || Model.Status == ProductionOrderStatus.InProgress ? string.Empty : "disabled")" asp-action="Cancel" asp-route-id="@Model.Id">Отмени</a>
 
-    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline js-safe-submit">
-        <button type="submit" class="btn btn-outline-danger" disabled="@(Model.Status != ProductionOrderStatus.Planned)" data-loading-text="Изтриване..." onclick="return confirm('Изтриването е необратимо. Сигурни ли сте?');">Изтрий</button>
-    </form>
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline js-safe-submit">
+            <button type="submit" class="btn btn-outline-danger" disabled="@(Model.Status != ProductionOrderStatus.Planned)" data-loading-text="Изтриване..." onclick="return confirm('Изтриването е необратимо. Сигурни ли сте?');">Изтрий</button>
+        </form>
+    }
 </div>
 
 @section Scripts {
