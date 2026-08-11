@@ -10,6 +10,8 @@ namespace WarehouseManagment.Models
 
         public List<string> EntityTypes { get; set; } = new List<string>();
 
+        public Dictionary<string, string> EntityTypeLabels { get; set; } = new Dictionary<string, string>();
+
         public int TotalItems { get; set; }
 
         public int TotalPages => Filter.PageSize <= 0

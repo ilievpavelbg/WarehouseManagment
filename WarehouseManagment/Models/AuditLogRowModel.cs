@@ -12,7 +12,13 @@ namespace WarehouseManagment.Models
 
         public string EntityType { get; set; } = string.Empty;
 
+        public string EntityTypeName { get; set; } = string.Empty;
+
         public string EntityDocument { get; set; } = string.Empty;
+
+        public string DocumentNumber { get; set; } = string.Empty;
+
+        public bool HasProductionDocument { get; set; }
 
         public string Description { get; set; } = string.Empty;
 

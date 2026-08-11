@@ -12,7 +12,13 @@ namespace WarehouseManagment.Models
 
         public string ActionTypeName { get; set; } = string.Empty;
 
+        public string RawActionType { get; set; } = string.Empty;
+
         public string EntityType { get; set; } = string.Empty;
+
+        public string EntityTypeName { get; set; } = string.Empty;
+
+        public string RawEntityType { get; set; } = string.Empty;
 
         public string EntityId { get; set; } = string.Empty;
 
@@ -25,5 +31,13 @@ namespace WarehouseManagment.Models
         public string NewValues { get; set; } = string.Empty;
 
         public string IpAddress { get; set; } = string.Empty;
+
+        public bool HasProductionDocument { get; set; }
+
+        public bool HasProductionOrderLink { get; set; }
+
+        public List<AuditValueDisplayModel> OldValueRows { get; set; } = new List<AuditValueDisplayModel>();
+
+        public List<AuditValueDisplayModel> NewValueRows { get; set; } = new List<AuditValueDisplayModel>();
     }
 }

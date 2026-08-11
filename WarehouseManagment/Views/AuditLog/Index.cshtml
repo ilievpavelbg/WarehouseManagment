@@ -30,7 +30,7 @@
                 <option value="">Всички</option>
                 @foreach (var actionType in Model.ActionTypes)
                 {
-                    <option value="@actionType">@GetActionLabel(actionType)</option>
+                    <option value="@actionType">@AuditDisplayHelper.ActionLabel(actionType)</option>
                 }
             </select>
         </div>
@@ -40,7 +40,7 @@
                 <option value="">Всички</option>
                 @foreach (var entityType in Model.EntityTypes)
                 {
-                    <option value="@entityType">@entityType</option>
+                    <option value="@entityType">@Model.EntityTypeLabels[entityType]</option>
                 }
             </select>
         </div>
@@ -55,41 +55,54 @@
     </div>
 </form>
 
-<table class="table table-striped table-sm align-middle">
-    <thead>
-        <tr>
-            <th>Дата</th>
-            <th>Потребител</th>
-            <th>Действие</th>
-            <th>Тип обект</th>
-            <th>Обект / документ</th>
-            <th>Описание</th>
-            <th>IP адрес</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var log in Model.Logs)
-        {
-            <tr>
-                <td>@log.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
-                <td>@log.UserName</td>
-                <td>@log.ActionTypeName</td>
-                <td>@log.EntityType</td>
-                <td>@log.EntityDocument</td>
-                <td>@log.Description</td>
-                <td>@log.IpAddress</td>
-                <td>
-                    <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@log.Id">Детайли</a>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
-
 @if (!Model.Logs.Any())
 {
     <div class="alert alert-warning">Няма намерени записи.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Потребител</th>
+                    <th>Действие</th>
+                    <th>Обект</th>
+                    <th>Документ</th>
+                    <th>Описание</th>
+                    <th>IP адрес</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var log in Model.Logs)
+                {
+                    <tr>
+                        <td>@log.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>@log.UserName</td>
+                        <td>@log.ActionTypeName</td>
+                        <td>@log.EntityTypeName</td>
+                        <td>
+                            @if (log.HasProductionDocument)
+                            {
+                                <a asp-controller="ProductionDocuments" asp-action="ViewDocument" asp-route-documentNumber="@log.DocumentNumber">@log.DocumentNumber</a>
+                            }
+                            else
+                            {
+                                @log.EntityDocument
+                            }
+                        </td>
+                        <td>@log.Description</td>
+                        <td>@log.IpAddress</td>
+                        <td>
+                            <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@log.Id">Детайли</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 }
 
 <nav aria-label="Audit log pagination">
@@ -111,23 +124,3 @@
         }
     </ul>
 </nav>
-
-@functions {
-    private static string GetActionLabel(AuditActionType actionType)
-    {
-        return actionType switch
-        {
-            AuditActionType.Create => "Създаване",
-            AuditActionType.Update => "Редакция",
-            AuditActionType.Delete => "Изтриване",
-            AuditActionType.Receive => "Приемане",
-            AuditActionType.Transfer => "Преместване",
-            AuditActionType.Adjustment => "Корекция",
-            AuditActionType.SettingsChange => "Промяна настройки",
-            AuditActionType.Import => "Импорт",
-            AuditActionType.Login => "Вход",
-            AuditActionType.Logout => "Изход",
-            _ => actionType.ToString()
-        };
-    }
-}

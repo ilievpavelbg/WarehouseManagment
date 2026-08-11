@@ -25,20 +25,38 @@ namespace WarehouseManagment.Services
                 .Skip((filter.Page - 1) * filter.PageSize)
                 .Take(filter.PageSize)
                 .ToListAsync();
-            var logs = auditLogs.Select(x => new AuditLogRowModel
+
+            var users = await GetUserDisplayNamesAsync(auditLogs.Select(x => x.UserId));
+            var logs = auditLogs.Select(x =>
                 {
-                    Id = x.Id,
-                    CreatedOn = x.CreatedOn,
-                    UserName = x.UserName ?? "Система",
-                    ActionTypeName = GetActionTypeName(x.ActionType),
-                    EntityType = x.EntityType,
-                    EntityDocument = string.IsNullOrWhiteSpace(x.DocumentNumber)
-                        ? x.EntityType
-                        : x.DocumentNumber,
-                    Description = x.Description,
-                    IpAddress = x.IpAddress ?? string.Empty
+                    var userName = ResolveUserName(x.UserId, x.UserName, users);
+                    var documentNumber = x.DocumentNumber ?? string.Empty;
+
+                    return new AuditLogRowModel
+                    {
+                        Id = x.Id,
+                        CreatedOn = x.CreatedOn,
+                        UserName = userName,
+                        ActionTypeName = AuditDisplayHelper.ActionLabel(x.ActionType),
+                        EntityType = x.EntityType,
+                        EntityTypeName = AuditDisplayHelper.EntityLabel(x.EntityType),
+                        EntityDocument = string.IsNullOrWhiteSpace(documentNumber)
+                            ? AuditDisplayHelper.EntityLabel(x.EntityType)
+                            : documentNumber,
+                        DocumentNumber = documentNumber,
+                        HasProductionDocument = AuditDisplayHelper.IsProductionDocument(documentNumber),
+                        Description = x.Description,
+                        IpAddress = AuditDisplayHelper.FormatIpAddress(x.IpAddress)
+                    };
                 })
                 .ToList();
+
+            var entityTypes = await _dbContext.AuditLogs
+                .AsNoTracking()
+                .Select(x => x.EntityType)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
 
             return new AuditLogIndexModel
             {
@@ -46,12 +64,8 @@ namespace WarehouseManagment.Services
                 Logs = logs,
                 TotalItems = totalItems,
                 ActionTypes = Enum.GetValues<AuditActionType>().ToList(),
-                EntityTypes = await _dbContext.AuditLogs
-                    .AsNoTracking()
-                    .Select(x => x.EntityType)
-                    .Distinct()
-                    .OrderBy(x => x)
-                    .ToListAsync()
+                EntityTypes = entityTypes,
+                EntityTypeLabels = entityTypes.ToDictionary(x => x, AuditDisplayHelper.EntityLabel)
             };
         }
 
@@ -66,21 +80,64 @@ namespace WarehouseManagment.Services
                 return null;
             }
 
+            var users = await GetUserDisplayNamesAsync(new[] { log.UserId });
+            var documentNumber = log.DocumentNumber ?? string.Empty;
+            var entityId = log.EntityId?.ToString() ?? string.Empty;
+
             return new AuditLogDetailsModel
             {
                 Id = log.Id,
                 CreatedOn = log.CreatedOn,
                 UserId = log.UserId ?? string.Empty,
-                UserName = log.UserName ?? "Система",
-                ActionTypeName = GetActionTypeName(log.ActionType),
-                EntityType = log.EntityType,
-                EntityId = log.EntityId?.ToString() ?? string.Empty,
-                DocumentNumber = log.DocumentNumber ?? string.Empty,
+                UserName = ResolveUserName(log.UserId, log.UserName, users),
+                ActionTypeName = AuditDisplayHelper.ActionLabel(log.ActionType),
+                RawActionType = log.ActionType.ToString(),
+                EntityType = AuditDisplayHelper.EntityLabel(log.EntityType),
+                EntityTypeName = AuditDisplayHelper.EntityLabel(log.EntityType),
+                RawEntityType = log.EntityType,
+                EntityId = entityId,
+                DocumentNumber = documentNumber,
                 Description = log.Description,
                 OldValues = log.OldValues ?? string.Empty,
                 NewValues = log.NewValues ?? string.Empty,
-                IpAddress = log.IpAddress ?? string.Empty
+                OldValueRows = AuditDisplayHelper.ParseValues(log.OldValues),
+                NewValueRows = AuditDisplayHelper.ParseValues(log.NewValues),
+                IpAddress = AuditDisplayHelper.FormatIpAddress(log.IpAddress),
+                HasProductionDocument = AuditDisplayHelper.IsProductionDocument(documentNumber),
+                HasProductionOrderLink = string.Equals(log.EntityType, "ProductionOrder", StringComparison.OrdinalIgnoreCase)
+                    && log.EntityId.HasValue
+                    && log.EntityId.Value <= int.MaxValue
             };
+        }
+
+        private async Task<Dictionary<string, string>> GetUserDisplayNamesAsync(IEnumerable<string?> userIds)
+        {
+            var ids = userIds
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .ToList();
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.UserName ?? x.Email ?? string.Empty);
+        }
+
+        private static string ResolveUserName(string? userId, string? snapshotUserName, IReadOnlyDictionary<string, string> users)
+        {
+            if (!string.IsNullOrWhiteSpace(snapshotUserName))
+            {
+                return snapshotUserName;
+            }
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return "Система";
+            }
+
+            return users.TryGetValue(userId, out var userName) && !string.IsNullOrWhiteSpace(userName)
+                ? userName
+                : AuditDisplayHelper.UnknownUser;
         }
 
         private static IQueryable<AuditLog> ApplyFilters(IQueryable<AuditLog> query, AuditLogFilterModel filter)
@@ -134,24 +191,6 @@ namespace WarehouseManagment.Services
             {
                 filter.PageSize = 25;
             }
-        }
-
-        public static string GetActionTypeName(AuditActionType actionType)
-        {
-            return actionType switch
-            {
-                AuditActionType.Create => "Създаване",
-                AuditActionType.Update => "Редакция",
-                AuditActionType.Delete => "Изтриване",
-                AuditActionType.Receive => "Приемане",
-                AuditActionType.Transfer => "Преместване",
-                AuditActionType.Adjustment => "Корекция",
-                AuditActionType.SettingsChange => "Промяна настройки",
-                AuditActionType.Import => "Импорт",
-                AuditActionType.Login => "Вход",
-                AuditActionType.Logout => "Изход",
-                _ => actionType.ToString()
-            };
         }
     }
 }
