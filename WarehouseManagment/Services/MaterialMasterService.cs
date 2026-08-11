@@ -14,15 +14,18 @@ namespace WarehouseManagment.Services
         private readonly IRepository _repository;
         private readonly IMaterialStockService _materialStockService;
         private readonly IAuditLogService _auditLogService;
+        private readonly IStockStatusService _stockStatusService;
 
         public MaterialMasterService(
             IRepository repository,
             IMaterialStockService materialStockService,
-            IAuditLogService auditLogService)
+            IAuditLogService auditLogService,
+            IStockStatusService stockStatusService)
         {
             _repository = repository;
             _materialStockService = materialStockService;
             _auditLogService = auditLogService;
+            _stockStatusService = stockStatusService;
         }
 
         public async Task<List<Material>> GetMaterialsAsync()
@@ -86,8 +89,13 @@ namespace WarehouseManagment.Services
 
             if (lowStockOnly)
             {
+                var lowStockMaterialIds = (await _stockStatusService.GetMaterialStockSummariesAsync(activeOnly))
+                    .Where(x => x.Status == MaterialStockStatus.BelowMinimum || x.Status == MaterialStockStatus.OutOfStock)
+                    .Select(x => x.MaterialId)
+                    .ToHashSet();
+
                 rows = rows
-                    .Where(x => x.MinimumStock > 0 && x.CurrentStock <= x.MinimumStock)
+                    .Where(x => lowStockMaterialIds.Contains(x.Id))
                     .ToList();
             }
 

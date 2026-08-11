@@ -85,7 +85,8 @@ else
                     <th>Материал</th>
                     <th>Категория</th>
                     <th>Мерна единица</th>
-                    <th>Текуща наличност</th>
+                    <th>Основен склад</th>
+                    <th>Наличност</th>
                     <th>Минимална наличност</th>
                     <th>Недостиг</th>
                     <th>Статус</th>
@@ -102,6 +103,7 @@ else
                         <td>@row.MaterialName</td>
                         <td>@row.CategoryName</td>
                         <td>@row.UnitOfMeasureName</td>
+                        <td>@(string.IsNullOrWhiteSpace(row.ReplenishmentWarehouseName) ? "Не е зададен" : row.ReplenishmentWarehouseName)</td>
                         <td>@row.TotalCurrentStock.ToString("N4")</td>
                         <td>@row.MinimumStock.ToString("N4")</td>
                         <td>@row.Shortage.ToString("N4")</td>

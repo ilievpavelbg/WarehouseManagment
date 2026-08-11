@@ -201,6 +201,21 @@ namespace WarehouseManagment.Services
             return stocks.Select(stock =>
             {
                 var summary = stockSummaries[stock.MaterialId];
+                var isDefaultMaterialWarehouse = summary.IsReplenishmentWarehouseConfigured
+                    && summary.ReplenishmentWarehouseId == stock.WarehouseId;
+                var status = isDefaultMaterialWarehouse || !summary.IsReplenishmentWarehouseConfigured
+                    ? summary.Status
+                    : MaterialStockStatus.Ok;
+                var statusName = isDefaultMaterialWarehouse || !summary.IsReplenishmentWarehouseConfigured
+                    ? summary.StatusName
+                    : "НЗП / друг склад";
+                var statusCssClass = isDefaultMaterialWarehouse || !summary.IsReplenishmentWarehouseConfigured
+                    ? summary.StatusCssClass
+                    : "bg-info text-dark";
+                var sortPriority = isDefaultMaterialWarehouse || !summary.IsReplenishmentWarehouseConfigured
+                    ? summary.SortPriority
+                    : 4;
+
                 return new StockInquiryRowModel
                 {
                     MaterialId = stock.MaterialId,
@@ -208,16 +223,19 @@ namespace WarehouseManagment.Services
                     MaterialName = stock.Material.Name,
                     CategoryName = stock.Material.MaterialCategory?.Name ?? string.Empty,
                     UnitOfMeasureName = stock.Material.UnitOfMeasure?.Name ?? string.Empty,
+                    WarehouseId = stock.WarehouseId,
                     WarehouseName = FormatWarehouse(stock.Warehouse),
                     WarehouseLocationName = FormatLocation(stock.WarehouseLocation),
                     BatchNumber = stock.MaterialBatch?.BatchNumber ?? string.Empty,
                     LotNumber = stock.MaterialBatch?.LotNumber ?? string.Empty,
                     Quantity = stock.Quantity,
                     MinimumStock = stock.Material.MinimumStock,
-                    Status = summary.Status,
-                    StatusName = summary.StatusName,
-                    StatusCssClass = summary.StatusCssClass,
-                    SortPriority = summary.SortPriority,
+                    ReplenishmentWarehouseQuantity = summary.TotalQuantity,
+                    IsDefaultMaterialWarehouse = isDefaultMaterialWarehouse,
+                    Status = status,
+                    StatusName = statusName,
+                    StatusCssClass = statusCssClass,
+                    SortPriority = sortPriority,
                     LastUpdatedOn = stock.LastUpdatedOn
                 };
             }).ToList();

@@ -51,7 +51,8 @@ namespace WarehouseManagment.Services
                 "Материал",
                 "Категория",
                 "Мерна единица",
-                "Текуща наличност",
+                "Основен склад",
+                "Наличност в основен склад",
                 "Минимална наличност",
                 "Недостиг",
                 "Статус",
@@ -73,16 +74,17 @@ namespace WarehouseManagment.Services
                 worksheet.Cells[excelRow, 2].Value = row.MaterialName;
                 worksheet.Cells[excelRow, 3].Value = row.CategoryName;
                 worksheet.Cells[excelRow, 4].Value = row.UnitOfMeasureName;
-                worksheet.Cells[excelRow, 5].Value = row.TotalCurrentStock;
-                worksheet.Cells[excelRow, 5].Style.Numberformat.Format = "0.0000";
-                worksheet.Cells[excelRow, 6].Value = row.MinimumStock;
+                worksheet.Cells[excelRow, 5].Value = row.ReplenishmentWarehouseName;
+                worksheet.Cells[excelRow, 6].Value = row.TotalCurrentStock;
                 worksheet.Cells[excelRow, 6].Style.Numberformat.Format = "0.0000";
-                worksheet.Cells[excelRow, 7].Value = row.Shortage;
+                worksheet.Cells[excelRow, 7].Value = row.MinimumStock;
                 worksheet.Cells[excelRow, 7].Style.Numberformat.Format = "0.0000";
-                worksheet.Cells[excelRow, 8].Value = row.StatusName;
-                worksheet.Cells[excelRow, 9].Value = row.PreferredSupplierName;
-                worksheet.Cells[excelRow, 10].Value = row.SuggestedReplenishmentQuantity;
-                worksheet.Cells[excelRow, 10].Style.Numberformat.Format = "0.0000";
+                worksheet.Cells[excelRow, 8].Value = row.Shortage;
+                worksheet.Cells[excelRow, 8].Style.Numberformat.Format = "0.0000";
+                worksheet.Cells[excelRow, 9].Value = row.StatusName;
+                worksheet.Cells[excelRow, 10].Value = row.PreferredSupplierName;
+                worksheet.Cells[excelRow, 11].Value = row.SuggestedReplenishmentQuantity;
+                worksheet.Cells[excelRow, 11].Style.Numberformat.Format = "0.0000";
             }
 
             if (worksheet.Dimension != null)
@@ -151,7 +153,7 @@ namespace WarehouseManagment.Services
 
         private static LowStockRowModel BuildRow(MaterialStockSummaryModel summary, Material material)
         {
-            var shortage = summary.MinimumStock - summary.TotalQuantity;
+            var shortage = Math.Max(0, summary.MinimumStock - summary.TotalQuantity);
             return new LowStockRowModel
             {
                 MaterialId = material.Id,
@@ -159,6 +161,7 @@ namespace WarehouseManagment.Services
                 MaterialName = material.Name,
                 CategoryName = material.MaterialCategory?.Name ?? string.Empty,
                 UnitOfMeasureName = material.UnitOfMeasure?.Name ?? string.Empty,
+                ReplenishmentWarehouseName = summary.ReplenishmentWarehouseName,
                 TotalCurrentStock = summary.TotalQuantity,
                 MinimumStock = summary.MinimumStock,
                 Shortage = shortage,

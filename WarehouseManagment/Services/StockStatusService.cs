@@ -61,8 +61,12 @@ namespace WarehouseManagment.Services
                 return MaterialStockStatus.OutOfStock;
             }
 
-            var totalQuantity = await GetMaterialTotalStockAsync(materialId);
-            return CalculateStatus(totalQuantity, material.MinimumStock);
+            var defaultWarehouse = await GetDefaultMaterialWarehouseAsync();
+            var replenishmentQuantity = defaultWarehouse == null
+                ? 0
+                : await GetMaterialStockInWarehouseAsync(materialId, defaultWarehouse.Id);
+
+            return CalculateReplenishmentStatus(replenishmentQuantity, material.MinimumStock);
         }
 
         public async Task<IReadOnlyCollection<int>> GetMaterialIdsBelowMinimumAsync()
@@ -104,21 +108,25 @@ namespace WarehouseManagment.Services
                 })
                 .ToListAsync();
 
-            var stockTotals = await _dbContext.MaterialStocks
-                .AsNoTracking()
-                .GroupBy(x => x.MaterialId)
-                .Select(x => new
-                {
-                    MaterialId = x.Key,
-                    Quantity = x.Sum(s => s.Quantity)
-                })
-                .ToDictionaryAsync(x => x.MaterialId, x => x.Quantity);
+            var defaultWarehouse = await GetDefaultMaterialWarehouseAsync();
+            var stockTotals = defaultWarehouse == null
+                ? new Dictionary<int, decimal>()
+                : await _dbContext.MaterialStocks
+                    .AsNoTracking()
+                    .Where(x => x.WarehouseId == defaultWarehouse.Id)
+                    .GroupBy(x => x.MaterialId)
+                    .Select(x => new
+                    {
+                        MaterialId = x.Key,
+                        Quantity = x.Sum(s => s.Quantity)
+                    })
+                    .ToDictionaryAsync(x => x.MaterialId, x => x.Quantity);
 
             return materials.Select(material =>
             {
-                stockTotals.TryGetValue(material.Id, out var totalQuantity);
-                var status = CalculateStatus(totalQuantity, material.MinimumStock);
-                var display = GetStatusDisplay(status);
+                stockTotals.TryGetValue(material.Id, out var replenishmentQuantity);
+                var status = CalculateReplenishmentStatus(replenishmentQuantity, material.MinimumStock);
+                var display = GetStatusDisplay(status, defaultWarehouse != null);
 
                 return new MaterialStockSummaryModel
                 {
@@ -126,7 +134,10 @@ namespace WarehouseManagment.Services
                     MaterialCode = material.Code,
                     MaterialName = material.Name,
                     MinimumStock = material.MinimumStock,
-                    TotalQuantity = totalQuantity,
+                    TotalQuantity = replenishmentQuantity,
+                    ReplenishmentWarehouseId = defaultWarehouse?.Id,
+                    ReplenishmentWarehouseName = FormatWarehouse(defaultWarehouse),
+                    IsReplenishmentWarehouseConfigured = defaultWarehouse != null,
                     Status = status,
                     StatusName = display.Name,
                     StatusCssClass = display.CssClass,
@@ -135,14 +146,41 @@ namespace WarehouseManagment.Services
             }).ToList();
         }
 
-        private static MaterialStockStatus CalculateStatus(decimal totalQuantity, decimal minimumStock)
+        private async Task<decimal> GetMaterialStockInWarehouseAsync(int materialId, int warehouseId)
         {
-            if (totalQuantity <= 0)
+            return await _dbContext.MaterialStocks
+                .AsNoTracking()
+                .Where(x => x.MaterialId == materialId && x.WarehouseId == warehouseId)
+                .Select(x => (decimal?)x.Quantity)
+                .SumAsync() ?? 0;
+        }
+
+        private async Task<Warehouse?> GetDefaultMaterialWarehouseAsync()
+        {
+            var settings = await _dbContext.WarehouseSettings
+                .AsNoTracking()
+                .Include(x => x.DefaultMaterialWarehouse)
+                .OrderBy(x => x.Id)
+                .FirstOrDefaultAsync();
+
+            return settings?.DefaultMaterialWarehouseId == null
+                ? null
+                : settings.DefaultMaterialWarehouse;
+        }
+
+        private static MaterialStockStatus CalculateReplenishmentStatus(decimal replenishmentQuantity, decimal minimumStock)
+        {
+            if (minimumStock <= 0)
+            {
+                return MaterialStockStatus.Ok;
+            }
+
+            if (replenishmentQuantity <= 0)
             {
                 return MaterialStockStatus.OutOfStock;
             }
 
-            if (minimumStock > 0 && totalQuantity < minimumStock)
+            if (replenishmentQuantity < minimumStock)
             {
                 return MaterialStockStatus.BelowMinimum;
             }
@@ -150,14 +188,24 @@ namespace WarehouseManagment.Services
             return MaterialStockStatus.Ok;
         }
 
-        private static (string Name, string CssClass, int SortPriority) GetStatusDisplay(MaterialStockStatus status)
+        private static (string Name, string CssClass, int SortPriority) GetStatusDisplay(MaterialStockStatus status, bool isDefaultWarehouseConfigured)
         {
+            if (!isDefaultWarehouseConfigured)
+            {
+                return ("Основен склад за материали не е зададен", "bg-warning text-dark", 0);
+            }
+
             return status switch
             {
-                MaterialStockStatus.OutOfStock => ("Няма наличност", "bg-secondary", 1),
+                MaterialStockStatus.OutOfStock => ("Няма наличност в основния склад", "bg-secondary", 1),
                 MaterialStockStatus.BelowMinimum => ("Под минимум", "bg-danger", 2),
                 _ => ("OK", "bg-success", 3)
             };
+        }
+
+        private static string FormatWarehouse(Warehouse? warehouse)
+        {
+            return warehouse == null ? string.Empty : $"{warehouse.Code} - {warehouse.Name}";
         }
     }
 }

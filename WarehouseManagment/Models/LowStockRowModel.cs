@@ -12,6 +12,8 @@ namespace WarehouseManagment.Models
 
         public string UnitOfMeasureName { get; set; } = string.Empty;
 
+        public string ReplenishmentWarehouseName { get; set; } = string.Empty;
+
         public decimal TotalCurrentStock { get; set; }
 
         public decimal MinimumStock { get; set; }

@@ -12,6 +12,8 @@ namespace WarehouseManagment.Models
 
         public string UnitOfMeasureName { get; set; } = string.Empty;
 
+        public int WarehouseId { get; set; }
+
         public string WarehouseName { get; set; } = string.Empty;
 
         public string WarehouseLocationName { get; set; } = string.Empty;
@@ -23,6 +25,10 @@ namespace WarehouseManagment.Models
         public decimal Quantity { get; set; }
 
         public decimal MinimumStock { get; set; }
+
+        public decimal ReplenishmentWarehouseQuantity { get; set; }
+
+        public bool IsDefaultMaterialWarehouse { get; set; }
 
         public MaterialStockStatus Status { get; set; }
 

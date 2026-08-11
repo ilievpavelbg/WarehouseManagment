@@ -12,6 +12,12 @@ namespace WarehouseManagment.Models
 
         public decimal TotalQuantity { get; set; }
 
+        public int? ReplenishmentWarehouseId { get; set; }
+
+        public string ReplenishmentWarehouseName { get; set; } = string.Empty;
+
+        public bool IsReplenishmentWarehouseConfigured { get; set; }
+
         public MaterialStockStatus Status { get; set; }
 
         public string StatusName { get; set; } = string.Empty;
