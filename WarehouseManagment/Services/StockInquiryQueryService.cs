@@ -177,17 +177,18 @@ namespace WarehouseManagment.Services
         {
             if (filter.ZeroStockOnly && filter.LowStockOnly)
             {
-                return rows.Where(x => x.Status == MaterialStockStatus.OutOfStock || x.Status == MaterialStockStatus.BelowMinimum);
+                return rows.Where(x => x.IsDefaultMaterialWarehouse &&
+                    (x.Status == MaterialStockStatus.OutOfStock || x.Status == MaterialStockStatus.BelowMinimum));
             }
 
             if (filter.ZeroStockOnly)
             {
-                return rows.Where(x => x.Status == MaterialStockStatus.OutOfStock);
+                return rows.Where(x => x.IsDefaultMaterialWarehouse && x.Status == MaterialStockStatus.OutOfStock);
             }
 
             if (filter.LowStockOnly)
             {
-                return rows.Where(x => x.Status == MaterialStockStatus.BelowMinimum);
+                return rows.Where(x => x.IsDefaultMaterialWarehouse && x.Status == MaterialStockStatus.BelowMinimum);
             }
 
             return rows;
@@ -201,20 +202,7 @@ namespace WarehouseManagment.Services
             return stocks.Select(stock =>
             {
                 var summary = stockSummaries[stock.MaterialId];
-                var isDefaultMaterialWarehouse = summary.IsReplenishmentWarehouseConfigured
-                    && summary.ReplenishmentWarehouseId == stock.WarehouseId;
-                var status = isDefaultMaterialWarehouse || !summary.IsReplenishmentWarehouseConfigured
-                    ? summary.Status
-                    : MaterialStockStatus.Ok;
-                var statusName = isDefaultMaterialWarehouse || !summary.IsReplenishmentWarehouseConfigured
-                    ? summary.StatusName
-                    : "НЗП / друг склад";
-                var statusCssClass = isDefaultMaterialWarehouse || !summary.IsReplenishmentWarehouseConfigured
-                    ? summary.StatusCssClass
-                    : "bg-info text-dark";
-                var sortPriority = isDefaultMaterialWarehouse || !summary.IsReplenishmentWarehouseConfigured
-                    ? summary.SortPriority
-                    : 4;
+                var positionStatus = _stockStatusService.GetPositionStatus(summary, stock.WarehouseId);
 
                 return new StockInquiryRowModel
                 {
@@ -231,11 +219,11 @@ namespace WarehouseManagment.Services
                     Quantity = stock.Quantity,
                     MinimumStock = stock.Material.MinimumStock,
                     ReplenishmentWarehouseQuantity = summary.TotalQuantity,
-                    IsDefaultMaterialWarehouse = isDefaultMaterialWarehouse,
-                    Status = status,
-                    StatusName = statusName,
-                    StatusCssClass = statusCssClass,
-                    SortPriority = sortPriority,
+                    IsDefaultMaterialWarehouse = positionStatus.IsDefaultMaterialWarehouse,
+                    Status = positionStatus.Status,
+                    StatusName = positionStatus.StatusName,
+                    StatusCssClass = positionStatus.StatusCssClass,
+                    SortPriority = positionStatus.SortPriority,
                     LastUpdatedOn = stock.LastUpdatedOn
                 };
             }).ToList();

@@ -35,7 +35,7 @@ namespace WarehouseManagment.Services
             var summaries = await _stockStatusService.GetMaterialStockSummariesAsync(false);
             var summary = summaries.First(x => x.MaterialId == material.Id);
             var positions = await GetPositionsAsync(material.Id, summary);
-            var stockByWarehouse = await GetStockByWarehouseAsync(material.Id);
+            var stockByWarehouse = await GetStockByWarehouseAsync(material.Id, summary);
             var movementQuery = ApplyMovementFilters(BaseMovementQuery(material.Id), filter);
             var totalMovementItems = await movementQuery.CountAsync();
             var movements = await movementQuery
@@ -82,28 +82,40 @@ namespace WarehouseManagment.Services
                 .ThenBy(x => x.MaterialBatch == null ? string.Empty : x.MaterialBatch.BatchNumber)
                 .ToListAsync();
 
-            return stocks.Select(stock => new MaterialStockCardPositionModel
+            return stocks.Select(stock =>
             {
-                WarehouseName = FormatWarehouse(stock.Warehouse),
-                LocationName = FormatLocation(stock.WarehouseLocation),
-                BatchNumber = stock.MaterialBatch?.BatchNumber ?? string.Empty,
-                LotNumber = stock.MaterialBatch?.LotNumber ?? string.Empty,
-                Quantity = stock.Quantity,
-                LastUpdatedOn = stock.LastUpdatedOn,
-                StatusName = summary.StatusName,
-                StatusCssClass = summary.StatusCssClass
+                var positionStatus = _stockStatusService.GetPositionStatus(summary, stock.WarehouseId);
+
+                return new MaterialStockCardPositionModel
+                {
+                    WarehouseName = FormatWarehouse(stock.Warehouse),
+                    LocationName = FormatLocation(stock.WarehouseLocation),
+                    BatchNumber = stock.MaterialBatch?.BatchNumber ?? string.Empty,
+                    LotNumber = stock.MaterialBatch?.LotNumber ?? string.Empty,
+                    Quantity = stock.Quantity,
+                    LastUpdatedOn = stock.LastUpdatedOn,
+                    StatusName = positionStatus.StatusName,
+                    StatusCssClass = positionStatus.StatusCssClass
+                };
             }).ToList();
         }
 
-        private async Task<List<MaterialStockCardWarehouseModel>> GetStockByWarehouseAsync(int materialId)
+        private async Task<List<MaterialStockCardWarehouseModel>> GetStockByWarehouseAsync(int materialId, MaterialStockSummaryModel summary)
         {
             var warehouseStocks = await _stockStatusService.GetMaterialStockByWarehouseAsync(materialId);
-            return warehouseStocks.Select(stock => new MaterialStockCardWarehouseModel
+            return warehouseStocks.Select(stock =>
             {
-                WarehouseName = string.IsNullOrWhiteSpace(stock.WarehouseCode)
-                    ? stock.WarehouseName
-                    : $"{stock.WarehouseCode} - {stock.WarehouseName}",
-                Quantity = stock.Quantity
+                var positionStatus = _stockStatusService.GetPositionStatus(summary, stock.WarehouseId);
+
+                return new MaterialStockCardWarehouseModel
+                {
+                    WarehouseName = string.IsNullOrWhiteSpace(stock.WarehouseCode)
+                        ? stock.WarehouseName
+                        : $"{stock.WarehouseCode} - {stock.WarehouseName}",
+                    Quantity = stock.Quantity,
+                    StatusName = positionStatus.StatusName,
+                    StatusCssClass = positionStatus.StatusCssClass
+                };
             }).ToList();
         }
 

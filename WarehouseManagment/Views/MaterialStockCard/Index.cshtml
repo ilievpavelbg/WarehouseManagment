@@ -21,7 +21,7 @@
             <div class="col-md-3 mb-2"><strong>Доставчик:</strong> @Model.SupplierName</div>
             <div class="col-md-3 mb-2"><strong>Обща наличност:</strong> @Model.TotalCurrentStock.ToString("N4")</div>
             <div class="col-md-3 mb-2"><strong>Минимална наличност:</strong> @Model.MinimumStock.ToString("N4")</div>
-            <div class="col-md-3 mb-2"><strong>Статус:</strong> <span class="badge @Model.StatusCssClass">@Model.StatusName</span></div>
+            <div class="col-md-3 mb-2"><strong>Статус основен склад:</strong> <span class="badge @Model.StatusCssClass">@Model.StatusName</span></div>
             <div class="col-md-3 mb-2"><strong>Стандартна цена:</strong> @Model.StandardCost.ToString("N4")</div>
             <div class="col-md-3 mb-2"><strong>Активен:</strong> @(Model.IsActive ? "Да" : "Не")</div>
         </div>
@@ -53,6 +53,7 @@
                             <th>Партида</th>
                             <th>Lot номер</th>
                             <th>Количество</th>
+                            <th>Статус</th>
                             <th>Последна промяна</th>
                             <th>Статус</th>
                         </tr>
@@ -100,6 +101,7 @@
                             <tr>
                                 <td>@warehouseStock.WarehouseName</td>
                                 <td>@warehouseStock.Quantity.ToString("N4")</td>
+                                <td><span class="badge @warehouseStock.StatusCssClass">@warehouseStock.StatusName</span></td>
                             </tr>
                         }
                     </tbody>

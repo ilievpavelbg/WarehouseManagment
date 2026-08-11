@@ -61,7 +61,8 @@ namespace WarehouseManagment.Services
                 return MaterialStockStatus.OutOfStock;
             }
 
-            var defaultWarehouse = await GetDefaultMaterialWarehouseAsync();
+            var settings = await GetWarehouseSettingsAsync();
+            var defaultWarehouse = settings?.DefaultMaterialWarehouse;
             var replenishmentQuantity = defaultWarehouse == null
                 ? 0
                 : await GetMaterialStockInWarehouseAsync(materialId, defaultWarehouse.Id);
@@ -108,7 +109,8 @@ namespace WarehouseManagment.Services
                 })
                 .ToListAsync();
 
-            var defaultWarehouse = await GetDefaultMaterialWarehouseAsync();
+            var settings = await GetWarehouseSettingsAsync();
+            var defaultWarehouse = settings?.DefaultMaterialWarehouse;
             var stockTotals = defaultWarehouse == null
                 ? new Dictionary<int, decimal>()
                 : await _dbContext.MaterialStocks
@@ -126,7 +128,7 @@ namespace WarehouseManagment.Services
             {
                 stockTotals.TryGetValue(material.Id, out var replenishmentQuantity);
                 var status = CalculateReplenishmentStatus(replenishmentQuantity, material.MinimumStock);
-                var display = GetStatusDisplay(status, defaultWarehouse != null);
+                var display = GetReplenishmentStatusDisplay(status, defaultWarehouse != null);
 
                 return new MaterialStockSummaryModel
                 {
@@ -138,12 +140,63 @@ namespace WarehouseManagment.Services
                     ReplenishmentWarehouseId = defaultWarehouse?.Id,
                     ReplenishmentWarehouseName = FormatWarehouse(defaultWarehouse),
                     IsReplenishmentWarehouseConfigured = defaultWarehouse != null,
+                    WipWarehouseId = settings?.DefaultWipWarehouseId,
                     Status = status,
                     StatusName = display.Name,
                     StatusCssClass = display.CssClass,
                     SortPriority = display.SortPriority
                 };
             }).ToList();
+        }
+
+        public StockPositionStatusDisplayModel GetPositionStatus(MaterialStockSummaryModel summary, int warehouseId)
+        {
+            if (!summary.IsReplenishmentWarehouseConfigured)
+            {
+                return new StockPositionStatusDisplayModel
+                {
+                    Status = summary.Status,
+                    StatusCode = "ConfigurationMissing",
+                    StatusName = summary.StatusName,
+                    StatusCssClass = summary.StatusCssClass,
+                    SortPriority = summary.SortPriority
+                };
+            }
+
+            if (summary.ReplenishmentWarehouseId == warehouseId)
+            {
+                return new StockPositionStatusDisplayModel
+                {
+                    Status = summary.Status,
+                    StatusCode = summary.Status.ToString(),
+                    StatusName = summary.StatusName,
+                    StatusCssClass = summary.StatusCssClass,
+                    SortPriority = summary.SortPriority,
+                    IsDefaultMaterialWarehouse = true
+                };
+            }
+
+            if (summary.WipWarehouseId == warehouseId)
+            {
+                return new StockPositionStatusDisplayModel
+                {
+                    Status = MaterialStockStatus.Ok,
+                    StatusCode = "Wip",
+                    StatusName = "НЗП",
+                    StatusCssClass = "bg-info text-dark",
+                    SortPriority = 4,
+                    IsWipWarehouse = true
+                };
+            }
+
+            return new StockPositionStatusDisplayModel
+            {
+                Status = MaterialStockStatus.Ok,
+                StatusCode = "OtherWarehouse",
+                StatusName = "Друг склад",
+                StatusCssClass = "bg-secondary",
+                SortPriority = 5
+            };
         }
 
         private async Task<decimal> GetMaterialStockInWarehouseAsync(int materialId, int warehouseId)
@@ -155,17 +208,14 @@ namespace WarehouseManagment.Services
                 .SumAsync() ?? 0;
         }
 
-        private async Task<Warehouse?> GetDefaultMaterialWarehouseAsync()
+        private async Task<WarehouseSettings?> GetWarehouseSettingsAsync()
         {
-            var settings = await _dbContext.WarehouseSettings
+            return await _dbContext.WarehouseSettings
                 .AsNoTracking()
                 .Include(x => x.DefaultMaterialWarehouse)
+                .Include(x => x.DefaultWipWarehouse)
                 .OrderBy(x => x.Id)
                 .FirstOrDefaultAsync();
-
-            return settings?.DefaultMaterialWarehouseId == null
-                ? null
-                : settings.DefaultMaterialWarehouse;
         }
 
         private static MaterialStockStatus CalculateReplenishmentStatus(decimal replenishmentQuantity, decimal minimumStock)
@@ -188,7 +238,7 @@ namespace WarehouseManagment.Services
             return MaterialStockStatus.Ok;
         }
 
-        private static (string Name, string CssClass, int SortPriority) GetStatusDisplay(MaterialStockStatus status, bool isDefaultWarehouseConfigured)
+        private static (string Name, string CssClass, int SortPriority) GetReplenishmentStatusDisplay(MaterialStockStatus status, bool isDefaultWarehouseConfigured)
         {
             if (!isDefaultWarehouseConfigured)
             {

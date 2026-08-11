@@ -18,6 +18,8 @@ namespace WarehouseManagment.Models
 
         public bool IsReplenishmentWarehouseConfigured { get; set; }
 
+        public int? WipWarehouseId { get; set; }
+
         public MaterialStockStatus Status { get; set; }
 
         public string StatusName { get; set; } = string.Empty;

@@ -15,5 +15,7 @@ namespace WarehouseManagment.Interfaces
         Task<IReadOnlyCollection<int>> GetMaterialIdsOutOfStockAsync();
 
         Task<IReadOnlyList<MaterialStockSummaryModel>> GetMaterialStockSummariesAsync(bool activeMaterialsOnly = true);
+
+        StockPositionStatusDisplayModel GetPositionStatus(MaterialStockSummaryModel summary, int warehouseId);
     }
 }
