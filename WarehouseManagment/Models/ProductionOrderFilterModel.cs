@@ -8,6 +8,10 @@ namespace WarehouseManagment.Models
 
         public ProductionOrderStatus? Status { get; set; }
 
+        public DateTime? DateFrom { get; set; }
+
+        public DateTime? DateTo { get; set; }
+
         public DateTime? PlannedDateFrom { get; set; }
 
         public DateTime? PlannedDateTo { get; set; }

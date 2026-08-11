@@ -33,6 +33,10 @@ namespace WarehouseManagment.Services
 
         public async Task<ProductionOrderIndexModel> GetIndexAsync(ProductionOrderFilterModel filter)
         {
+            filter.PlannedDateFrom ??= filter.DateFrom;
+            filter.PlannedDateTo ??= filter.DateTo;
+            filter.DateFrom = filter.PlannedDateFrom;
+            filter.DateTo = filter.PlannedDateTo;
             filter.Page = filter.Page < 1 ? 1 : filter.Page;
 
             var query = _dbContext.ProductionOrders

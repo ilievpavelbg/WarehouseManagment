@@ -1,5 +1,4 @@
 @model ProductionOrderIndexModel
-@using Microsoft.AspNetCore.Mvc.Rendering
 
 @{
     ViewData["Title"] = "Производствени поръчки";
@@ -20,38 +19,43 @@
     <a class="btn btn-primary" asp-action="Create">Нова производствена поръчка</a>
 </div>
 
-<form method="get" class="row g-2 mb-3">
+<form asp-controller="ProductionOrder" asp-action="Index" method="get" class="row g-2 mb-3">
     <div class="col-md-2">
         <label class="form-label">Поръчка</label>
-        <input asp-for="Filter.OrderNumber" name="OrderNumber" class="form-control" />
+        <input type="text" name="OrderNumber" value="@Model.Filter.OrderNumber" class="form-control" />
     </div>
     <div class="col-md-3">
         <label class="form-label">Артикул</label>
-        <select asp-for="Filter.ProductId" name="ProductId" class="form-select" asp-items="@(new SelectList(Model.Products, "Id", "Text", Model.Filter.ProductId))">
+        <select name="ProductId" class="form-select">
             <option value="">Всички</option>
+            @foreach (var product in Model.Products)
+            {
+                <option value="@product.Id" selected="@(Model.Filter.ProductId == product.Id)">@product.Text</option>
+            }
         </select>
     </div>
     <div class="col-md-2">
         <label class="form-label">Статус</label>
-        <select asp-for="Filter.Status" name="Status" class="form-select">
+        <select name="Status" class="form-select">
             <option value="">Всички</option>
             @foreach (ProductionOrderStatus status in Enum.GetValues(typeof(ProductionOrderStatus)))
             {
-                <option value="@status" selected="@(Model.Filter.Status == status)">@ProductionOrderDisplayHelper.StatusText(status)</option>
+                <option value="@((int)status)" selected="@(Model.Filter.Status == status)">@ProductionOrderDisplayHelper.StatusText(status)</option>
             }
         </select>
     </div>
     <div class="col-md-2">
         <label class="form-label">Дата от</label>
-        <input asp-for="Filter.PlannedDateFrom" name="PlannedDateFrom" type="date" class="form-control" />
+        <input type="date" name="DateFrom" value="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")" class="form-control" />
     </div>
     <div class="col-md-2">
         <label class="form-label">Дата до</label>
-        <input asp-for="Filter.PlannedDateTo" name="PlannedDateTo" type="date" class="form-control" />
+        <input type="date" name="DateTo" value="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")" class="form-control" />
     </div>
     <div class="col-md-1 d-flex align-items-end">
         <div class="form-check">
-            <input asp-for="Filter.OverdueOnly" name="OverdueOnly" class="form-check-input" />
+            <input type="checkbox" name="OverdueOnly" value="true" class="form-check-input" checked="@Model.Filter.OverdueOnly" />
+            <input type="hidden" name="OverdueOnly" value="false" />
             <label class="form-check-label">Просрочени</label>
         </div>
     </div>
@@ -133,11 +137,11 @@ else
     <nav>
         <ul class="pagination">
             <li class="page-item @(Model.Page <= 1 ? "disabled" : string.Empty)">
-                <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-orderNumber="@Model.Filter.OrderNumber" asp-route-productId="@Model.Filter.ProductId" asp-route-status="@Model.Filter.Status" asp-route-plannedDateFrom="@Model.Filter.PlannedDateFrom?.ToString("yyyy-MM-dd")" asp-route-plannedDateTo="@Model.Filter.PlannedDateTo?.ToString("yyyy-MM-dd")" asp-route-overdueOnly="@Model.Filter.OverdueOnly">Назад</a>
+                <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-orderNumber="@Model.Filter.OrderNumber" asp-route-productId="@Model.Filter.ProductId" asp-route-status="@((int?)Model.Filter.Status)" asp-route-dateFrom="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")" asp-route-dateTo="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")" asp-route-overdueOnly="@Model.Filter.OverdueOnly">Назад</a>
             </li>
             <li class="page-item disabled"><span class="page-link">@Model.Page / @Model.TotalPages</span></li>
             <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : string.Empty)">
-                <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-orderNumber="@Model.Filter.OrderNumber" asp-route-productId="@Model.Filter.ProductId" asp-route-status="@Model.Filter.Status" asp-route-plannedDateFrom="@Model.Filter.PlannedDateFrom?.ToString("yyyy-MM-dd")" asp-route-plannedDateTo="@Model.Filter.PlannedDateTo?.ToString("yyyy-MM-dd")" asp-route-overdueOnly="@Model.Filter.OverdueOnly">Напред</a>
+                <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-orderNumber="@Model.Filter.OrderNumber" asp-route-productId="@Model.Filter.ProductId" asp-route-status="@((int?)Model.Filter.Status)" asp-route-dateFrom="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")" asp-route-dateTo="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")" asp-route-overdueOnly="@Model.Filter.OverdueOnly">Напред</a>
             </li>
         </ul>
     </nav>
