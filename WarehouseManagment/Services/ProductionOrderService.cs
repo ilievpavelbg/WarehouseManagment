@@ -281,6 +281,7 @@ namespace WarehouseManagment.Services
 
             var model = ToDetailsModel(order);
             model.MaterialReadiness = await _productionMaterialService.GetReadinessAsync(id);
+            await PopulateUserDisplayNamesAsync(model);
             return model;
         }
 
@@ -611,6 +612,50 @@ namespace WarehouseManagment.Services
                 .Include(x => x.Materials)
                 .Include(x => x.Operations)
                     .ThenInclude(x => x.WorkEntries);
+        }
+
+        private async Task PopulateUserDisplayNamesAsync(ProductionOrderDetailsModel model)
+        {
+            var userIds = new[]
+                {
+                    model.MaterialReadiness?.TransferredByUserId,
+                    model.FinishedGoodsReceipt?.CreatedByUserId,
+                    model.CreatedByUserId,
+                    model.StartedByUserId,
+                    model.CompletedByUserId,
+                    model.CancelledByUserId,
+                    model.ProductionFinalizedByUserId
+                }
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .ToList();
+
+            var users = await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => userIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.UserName ?? x.Email ?? string.Empty);
+
+            if (model.MaterialReadiness != null)
+            {
+                model.MaterialReadiness.TransferredByUserName = ResolveUserName(model.MaterialReadiness.TransferredByUserId, users);
+            }
+
+            if (model.FinishedGoodsReceipt != null)
+            {
+                model.FinishedGoodsReceipt.CreatedByUserName = ResolveUserName(model.FinishedGoodsReceipt.CreatedByUserId, users);
+            }
+        }
+
+        private static string ResolveUserName(string? userId, IReadOnlyDictionary<string, string> users)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return "Неизвестен потребител";
+            }
+
+            return users.TryGetValue(userId, out var userName) && !string.IsNullOrWhiteSpace(userName)
+                ? userName
+                : "Неизвестен потребител";
         }
 
         private async Task<ProductionOrderReadinessModel> GetReadinessAsync(int productId, int? productInventoryId)

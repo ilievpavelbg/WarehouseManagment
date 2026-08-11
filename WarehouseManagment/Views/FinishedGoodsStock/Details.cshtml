@@ -37,17 +37,19 @@
                             <th>Дата</th>
                             <th>Производствена поръчка</th>
                             <th>Склад</th>
+                            <th>Потребител</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var receipt in Model.RecentReceipts)
                         {
                             <tr>
-                                <td>@receipt.DocumentNumber</td>
+                                <td><a asp-controller="ProductionDocuments" asp-action="ViewDocument" asp-route-documentNumber="@receipt.DocumentNumber">@receipt.DocumentNumber</a></td>
                                 <td class="text-end">@QuantityDisplayFormatter.Format(receipt.Quantity, Model.UnitOfMeasureName)</td>
                                 <td>@receipt.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
                                 <td>@receipt.ProductionOrderNumber</td>
                                 <td>@receipt.WarehouseName</td>
+                                <td>@receipt.UserName</td>
                             </tr>
                         }
                     </tbody>

@@ -100,7 +100,7 @@ namespace WarehouseManagment.Services
                 throw new ArgumentException("Размерът / вариантът не е намерен.", nameof(productInventoryId));
             }
 
-            var recentReceipts = await _dbContext.ProductionFinishedGoodsReceipts
+            var receiptRows = await _dbContext.ProductionFinishedGoodsReceipts
                 .AsNoTracking()
                 .Include(x => x.ProductionOrder)
                 .Include(x => x.Warehouse)
@@ -114,9 +114,16 @@ namespace WarehouseManagment.Services
                     Quantity = x.Quantity,
                     CreatedOn = x.CreatedOn,
                     ProductionOrderNumber = x.ProductionOrder.OrderNumber,
-                    WarehouseName = x.Warehouse.Code + " - " + x.Warehouse.Name
+                    WarehouseName = x.Warehouse.Code + " - " + x.Warehouse.Name,
+                    UserName = x.CreatedByUserId ?? string.Empty
                 })
                 .ToListAsync();
+
+            var users = await GetUserDisplayNamesAsync(receiptRows.Select(x => x.UserName));
+            foreach (var receipt in receiptRows)
+            {
+                receipt.UserName = ResolveUserName(receipt.UserName, users);
+            }
 
             return new FinishedGoodsStockDetailsModel
             {
@@ -127,7 +134,7 @@ namespace WarehouseManagment.Services
                 Quantity = inventory.Quantity,
                 UnitOfMeasureName = PieceUnit,
                 FinishedGoodsWarehouseName = await GetFinishedGoodsWarehouseNameAsync(),
-                RecentReceipts = recentReceipts
+                RecentReceipts = receiptRows
             };
         }
 
@@ -212,6 +219,31 @@ namespace WarehouseManagment.Services
             {
                 filter.PageSize = 25;
             }
+        }
+
+        private async Task<Dictionary<string, string>> GetUserDisplayNamesAsync(IEnumerable<string?> userIds)
+        {
+            var ids = userIds
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .ToList();
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.UserName ?? x.Email ?? string.Empty);
+        }
+
+        private static string ResolveUserName(string? userId, IReadOnlyDictionary<string, string> users)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return "Неизвестен потребител";
+            }
+
+            return users.TryGetValue(userId, out var userName) && !string.IsNullOrWhiteSpace(userName)
+                ? userName
+                : "Неизвестен потребител";
         }
     }
 }

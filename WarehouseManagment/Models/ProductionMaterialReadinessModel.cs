@@ -28,6 +28,8 @@ namespace WarehouseManagment.Models
 
         public string? TransferredByUserId { get; set; }
 
+        public string? TransferredByUserName { get; set; }
+
         public List<ProductionMaterialRequirementRowModel> Rows { get; set; } = new List<ProductionMaterialRequirementRowModel>();
     }
 }

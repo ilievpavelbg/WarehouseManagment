@@ -11,5 +11,7 @@ namespace WarehouseManagment.Models
         public string ProductionOrderNumber { get; set; } = string.Empty;
 
         public string WarehouseName { get; set; } = string.Empty;
+
+        public string UserName { get; set; } = string.Empty;
     }
 }

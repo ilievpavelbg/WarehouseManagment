@@ -1,0 +1,143 @@
+@model ProductionDocumentModel
+
+@{
+    ViewData["Title"] = Model.Title;
+    var isFgr = Model.DocumentType == ProductionDocumentPrefix.FinishedGoodsReceipt;
+}
+
+<style>
+    .document-sheet {
+        background: #fff;
+    }
+
+    .document-meta dt {
+        font-weight: 600;
+    }
+
+    @@media print {
+        header,
+        footer,
+        .document-actions {
+            display: none !important;
+        }
+
+        body {
+            background: #fff !important;
+        }
+
+        .container {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        .document-sheet {
+            border: 0 !important;
+            box-shadow: none !important;
+        }
+
+        .table {
+            page-break-inside: auto;
+        }
+
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+    }
+</style>
+
+<div class="document-actions mb-3">
+    <button type="button" class="btn btn-primary" onclick="window.print()">Печат</button>
+    <a class="btn btn-outline-secondary" asp-controller="ProductionOrder" asp-action="Details" asp-route-id="@Model.ProductionOrderId">Назад</a>
+    <a class="btn btn-outline-info" asp-controller="AuditLog" asp-action="Index" asp-route-DocumentNumber="@Model.DocumentNumber">Одит</a>
+</div>
+
+<div class="card document-sheet">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+            <div>
+                <div class="text-muted">Warehouse Managment VETEIDA</div>
+                <h1 class="h3 mb-0">@Model.Title</h1>
+            </div>
+            <div class="text-end">
+                <div class="text-muted">Документ</div>
+                <div class="h4 mb-0">@Model.DocumentNumber</div>
+            </div>
+        </div>
+
+        <dl class="row document-meta">
+            <dt class="col-sm-3">Производствена поръчка</dt>
+            <dd class="col-sm-9">
+                <a class="document-actions" asp-controller="ProductionOrder" asp-action="Details" asp-route-id="@Model.ProductionOrderId">@Model.ProductionOrderNumber</a>
+                <span class="d-none d-print-inline">@Model.ProductionOrderNumber</span>
+            </dd>
+            <dt class="col-sm-3">Дата</dt><dd class="col-sm-9">@(Model.Date?.ToString("dd.MM.yyyy HH:mm") ?? "-")</dd>
+            <dt class="col-sm-3">Потребител</dt><dd class="col-sm-9">@Model.UserName</dd>
+
+            @if (Model.DocumentType == ProductionDocumentPrefix.ProductionMaterialTransfer)
+            {
+                <dt class="col-sm-3">Склад източник</dt><dd class="col-sm-9">@Model.SourceWarehouse</dd>
+                <dt class="col-sm-3">Дестинация / НЗП</dt><dd class="col-sm-9">@Model.DestinationWarehouse</dd>
+            }
+            else if (Model.DocumentType == ProductionDocumentPrefix.ProductionMaterialConsumption)
+            {
+                <dt class="col-sm-3">Склад НЗП</dt><dd class="col-sm-9">@Model.SourceWarehouse</dd>
+            }
+            else if (isFgr)
+            {
+                <dt class="col-sm-3">Склад готова продукция</dt><dd class="col-sm-9">@Model.DestinationWarehouse</dd>
+                <dt class="col-sm-3">Артикул</dt><dd class="col-sm-9">@Model.ProductName</dd>
+                <dt class="col-sm-3">SKU</dt><dd class="col-sm-9">@Model.ProductSku</dd>
+                <dt class="col-sm-3">Размер / вариант</dt><dd class="col-sm-9">@Model.Size</dd>
+                <dt class="col-sm-3">Количество</dt><dd class="col-sm-9">@QuantityDisplayFormatter.Format(Model.Quantity, Model.UnitOfMeasure, true)</dd>
+            }
+        </dl>
+
+        @if (!isFgr)
+        {
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Код</th>
+                            <th>Материал</th>
+                            <th>Партида / Lot</th>
+                            @if (Model.DocumentType == ProductionDocumentPrefix.ProductionMaterialTransfer)
+                            {
+                                <th>Източник локация</th>
+                                <th>Дестинация локация</th>
+                            }
+                            <th class="text-end">Количество</th>
+                            <th>Мерна единица</th>
+                            @if (Model.DocumentType == ProductionDocumentPrefix.ProductionMaterialConsumption)
+                            {
+                                <th>Референция</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in Model.Lines)
+                        {
+                            <tr>
+                                <td>@line.MaterialCode</td>
+                                <td>@line.MaterialName</td>
+                                <td>@line.BatchLotDisplay</td>
+                                @if (Model.DocumentType == ProductionDocumentPrefix.ProductionMaterialTransfer)
+                                {
+                                    <td>@line.SourceLocation</td>
+                                    <td>@line.DestinationLocation</td>
+                                }
+                                <td class="text-end">@QuantityDisplayFormatter.Format(line.Quantity, line.UnitOfMeasure)</td>
+                                <td>@line.UnitOfMeasure</td>
+                                @if (Model.DocumentType == ProductionDocumentPrefix.ProductionMaterialConsumption)
+                                {
+                                    <td>@(string.IsNullOrWhiteSpace(line.Reference) ? "-" : line.Reference)</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

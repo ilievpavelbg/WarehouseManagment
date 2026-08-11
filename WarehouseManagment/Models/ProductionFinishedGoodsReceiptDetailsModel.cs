@@ -9,5 +9,6 @@ namespace WarehouseManagment.Models
         public string DocumentNumber { get; set; } = string.Empty;
         public DateTime CreatedOn { get; set; }
         public string? CreatedByUserId { get; set; }
+        public string? CreatedByUserName { get; set; }
     }
 }

@@ -265,7 +265,8 @@
                     <dd class="col-sm-9">
                         @if (!string.IsNullOrWhiteSpace(materialReadiness.TransferDocumentNumber))
                         {
-                            <a asp-controller="AuditLog" asp-action="Index" asp-route-DocumentNumber="@materialReadiness.TransferDocumentNumber">@materialReadiness.TransferDocumentNumber</a>
+                            <a asp-controller="ProductionDocuments" asp-action="ViewDocument" asp-route-documentNumber="@materialReadiness.TransferDocumentNumber">@materialReadiness.TransferDocumentNumber</a>
+                            <a class="btn btn-sm btn-outline-info ms-2" asp-controller="AuditLog" asp-action="Index" asp-route-DocumentNumber="@materialReadiness.TransferDocumentNumber">Одит</a>
                         }
                         else
                         {
@@ -273,7 +274,7 @@
                         }
                     </dd>
                     <dt class="col-sm-3">Дата на прехвърляне</dt><dd class="col-sm-9">@(materialReadiness.TransferredOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</dd>
-                    <dt class="col-sm-3">Потребител</dt><dd class="col-sm-9">@(materialReadiness.TransferredByUserId ?? "-")</dd>
+                    <dt class="col-sm-3">Потребител</dt><dd class="col-sm-9">@(materialReadiness.TransferredByUserName ?? "-")</dd>
                 </dl>
             }
 
@@ -414,7 +415,8 @@
             <dd class="col-sm-9">
                 @if (!string.IsNullOrWhiteSpace(Model.MaterialsTransferDocumentNumber))
                 {
-                    <a asp-controller="AuditLog" asp-action="Index" asp-route-DocumentNumber="@Model.MaterialsTransferDocumentNumber">@Model.MaterialsTransferDocumentNumber</a>
+                    <a asp-controller="ProductionDocuments" asp-action="ViewDocument" asp-route-documentNumber="@Model.MaterialsTransferDocumentNumber">@Model.MaterialsTransferDocumentNumber</a>
+                    <a class="btn btn-sm btn-outline-info ms-2" asp-controller="AuditLog" asp-action="Index" asp-route-DocumentNumber="@Model.MaterialsTransferDocumentNumber">Одит</a>
                 }
                 else
                 {
@@ -425,7 +427,8 @@
             <dd class="col-sm-9">
                 @if (!string.IsNullOrWhiteSpace(Model.MaterialConsumptionDocumentNumber))
                 {
-                    <a asp-controller="AuditLog" asp-action="Index" asp-route-DocumentNumber="@Model.MaterialConsumptionDocumentNumber">@Model.MaterialConsumptionDocumentNumber</a>
+                    <a asp-controller="ProductionDocuments" asp-action="ViewDocument" asp-route-documentNumber="@Model.MaterialConsumptionDocumentNumber">@Model.MaterialConsumptionDocumentNumber</a>
+                    <a class="btn btn-sm btn-outline-info ms-2" asp-controller="AuditLog" asp-action="Index" asp-route-DocumentNumber="@Model.MaterialConsumptionDocumentNumber">Одит</a>
                 }
                 else
                 {
@@ -436,7 +439,8 @@
             <dd class="col-sm-9">
                 @if (!string.IsNullOrWhiteSpace(Model.FinishedGoodsReceiptDocumentNumber))
                 {
-                    <a asp-controller="AuditLog" asp-action="Index" asp-route-DocumentNumber="@Model.FinishedGoodsReceiptDocumentNumber">@Model.FinishedGoodsReceiptDocumentNumber</a>
+                    <a asp-controller="ProductionDocuments" asp-action="ViewDocument" asp-route-documentNumber="@Model.FinishedGoodsReceiptDocumentNumber">@Model.FinishedGoodsReceiptDocumentNumber</a>
+                    <a class="btn btn-sm btn-outline-info ms-2" asp-controller="AuditLog" asp-action="Index" asp-route-DocumentNumber="@Model.FinishedGoodsReceiptDocumentNumber">Одит</a>
                 }
                 else
                 {
@@ -454,13 +458,16 @@
         <div class="card-body">
             <dl class="row mb-0">
                 <dt class="col-sm-3">Документ</dt>
-                <dd class="col-sm-9"><a asp-controller="AuditLog" asp-action="Index" asp-route-DocumentNumber="@Model.FinishedGoodsReceipt.DocumentNumber">@Model.FinishedGoodsReceipt.DocumentNumber</a></dd>
+                <dd class="col-sm-9">
+                    <a asp-controller="ProductionDocuments" asp-action="ViewDocument" asp-route-documentNumber="@Model.FinishedGoodsReceipt.DocumentNumber">@Model.FinishedGoodsReceipt.DocumentNumber</a>
+                    <a class="btn btn-sm btn-outline-info ms-2" asp-controller="AuditLog" asp-action="Index" asp-route-DocumentNumber="@Model.FinishedGoodsReceipt.DocumentNumber">Одит</a>
+                </dd>
                 <dt class="col-sm-3">Артикул</dt><dd class="col-sm-9">@Model.FinishedGoodsReceipt.ProductDisplayName</dd>
                 <dt class="col-sm-3">Размер / вариант</dt><dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.FinishedGoodsReceipt.Size) ? "-" : Model.FinishedGoodsReceipt.Size)</dd>
                 <dt class="col-sm-3">Количество</dt><dd class="col-sm-9">@Model.FinishedGoodsReceipt.Quantity</dd>
                 <dt class="col-sm-3">Склад</dt><dd class="col-sm-9">@Model.FinishedGoodsReceipt.Warehouse</dd>
                 <dt class="col-sm-3">Дата</dt><dd class="col-sm-9">@Model.FinishedGoodsReceipt.CreatedOn.ToString("dd.MM.yyyy HH:mm")</dd>
-                <dt class="col-sm-3">Потребител</dt><dd class="col-sm-9">@(Model.FinishedGoodsReceipt.CreatedByUserId ?? "-")</dd>
+                <dt class="col-sm-3">Потребител</dt><dd class="col-sm-9">@(Model.FinishedGoodsReceipt.CreatedByUserName ?? "-")</dd>
             </dl>
         </div>
     </div>
