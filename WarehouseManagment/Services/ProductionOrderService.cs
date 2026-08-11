@@ -42,8 +42,9 @@ namespace WarehouseManagment.Services
 
             if (!string.IsNullOrWhiteSpace(filter.OrderNumber))
             {
-                var orderNumber = filter.OrderNumber.Trim();
-                query = query.Where(x => x.OrderNumber.Contains(orderNumber));
+                filter.OrderNumber = filter.OrderNumber.Trim();
+                var orderNumber = filter.OrderNumber.ToUpper();
+                query = query.Where(x => x.OrderNumber.ToUpper().Contains(orderNumber));
             }
 
             if (filter.ProductId.HasValue && filter.ProductId.Value > 0)
@@ -58,12 +59,14 @@ namespace WarehouseManagment.Services
 
             if (filter.PlannedDateFrom.HasValue)
             {
-                query = query.Where(x => x.PlannedStartDate >= filter.PlannedDateFrom.Value || x.PlannedEndDate >= filter.PlannedDateFrom.Value);
+                var dateFrom = filter.PlannedDateFrom.Value.Date;
+                query = query.Where(x => x.PlannedStartDate.HasValue && x.PlannedStartDate.Value >= dateFrom);
             }
 
             if (filter.PlannedDateTo.HasValue)
             {
-                query = query.Where(x => x.PlannedStartDate <= filter.PlannedDateTo.Value || x.PlannedEndDate <= filter.PlannedDateTo.Value);
+                var dateToExclusive = filter.PlannedDateTo.Value.Date.AddDays(1);
+                query = query.Where(x => x.PlannedStartDate.HasValue && x.PlannedStartDate.Value < dateToExclusive);
             }
 
             if (filter.OverdueOnly)
