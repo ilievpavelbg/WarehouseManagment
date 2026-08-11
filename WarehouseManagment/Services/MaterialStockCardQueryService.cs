@@ -34,7 +34,7 @@ namespace WarehouseManagment.Services
 
             var summaries = await _stockStatusService.GetMaterialStockSummariesAsync(false);
             var summary = summaries.First(x => x.MaterialId == material.Id);
-            var positions = await GetPositionsAsync(material.Id, summary);
+            var positions = await GetPositionsAsync(material.Id, summary, filter.ShowZeroPositions);
             var stockByWarehouse = await GetStockByWarehouseAsync(material.Id, summary);
             var movementQuery = ApplyMovementFilters(BaseMovementQuery(material.Id), filter);
             var totalMovementItems = await movementQuery.CountAsync();
@@ -69,14 +69,21 @@ namespace WarehouseManagment.Services
             };
         }
 
-        private async Task<List<MaterialStockCardPositionModel>> GetPositionsAsync(int materialId, MaterialStockSummaryModel summary)
+        private async Task<List<MaterialStockCardPositionModel>> GetPositionsAsync(int materialId, MaterialStockSummaryModel summary, bool showZeroPositions)
         {
-            var stocks = await _dbContext.MaterialStocks
+            var query = _dbContext.MaterialStocks
                 .AsNoTracking()
                 .Include(x => x.Warehouse)
                 .Include(x => x.WarehouseLocation)
                 .Include(x => x.MaterialBatch)
-                .Where(x => x.MaterialId == materialId)
+                .Where(x => x.MaterialId == materialId);
+
+            if (!showZeroPositions)
+            {
+                query = query.Where(x => x.Quantity > 0);
+            }
+
+            var stocks = await query
                 .OrderBy(x => x.Warehouse.Code)
                 .ThenBy(x => x.WarehouseLocation == null ? string.Empty : x.WarehouseLocation.Code)
                 .ThenBy(x => x.MaterialBatch == null ? string.Empty : x.MaterialBatch.BatchNumber)

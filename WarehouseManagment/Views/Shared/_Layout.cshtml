@@ -18,7 +18,7 @@
     @{
         var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
         var salesControllers = new[] { "Product", "Sale", "Courier" };
-        var wmsControllers = new[] { "Warehouse", "WarehouseSettings", "Material", "StockInquiry", "LowStock", "InventoryMovement", "AuditLog" };
+        var wmsControllers = new[] { "Warehouse", "WarehouseSettings", "Material", "StockInquiry", "FinishedGoodsStock", "LowStock", "InventoryMovement", "AuditLog" };
         var masterDataControllers = new[] { "MaterialCategory", "UnitOfMeasure", "Supplier" };
         var productionControllers = new[] { "ProductionOrder", "ProductionWork", "ProductionProfile", "CostComponent", "ProductCostCalculation", "BillOfMaterials", "ProductionOperation", "ProductRouting" };
         var adminControllers = new[] { "UserRoles" };
@@ -97,6 +97,7 @@
                                         }
                                         <li><a class="dropdown-item" asp-area="" asp-controller="Material" asp-action="Index">Материали</a></li>
                                         <li><a class="dropdown-item" asp-area="" asp-controller="StockInquiry" asp-action="Index">Наличности</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="FinishedGoodsStock" asp-action="Index">Готова продукция</a></li>
                                         @if (canViewLowStock)
                                         {
                                             <li><a class="dropdown-item" asp-area="" asp-controller="LowStock" asp-action="Index">Под минимум</a></li>

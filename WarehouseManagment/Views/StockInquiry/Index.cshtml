@@ -155,8 +155,8 @@ else
                         <td>@stock.WarehouseLocationName</td>
                         <td>@stock.BatchNumber</td>
                         <td>@stock.LotNumber</td>
-                        <td>@stock.Quantity.ToString("N4")</td>
-                        <td>@stock.MinimumStock.ToString("N4")</td>
+                        <td>@QuantityDisplayFormatter.Format(stock.Quantity, stock.UnitOfMeasureName, true)</td>
+                        <td>@QuantityDisplayFormatter.Format(stock.MinimumStock, stock.UnitOfMeasureName, true)</td>
                         <td><span class="badge @stock.StatusCssClass">@stock.StatusName</span></td>
                         <td><a class="btn btn-sm btn-outline-info" asp-controller="MaterialStockCard" asp-action="Index" asp-route-id="@stock.MaterialId">Картон</a></td>
                     </tr>

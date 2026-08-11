@@ -27,7 +27,7 @@
         </div>
         <div class="col-md-3 mb-3">
             <label class="form-label">Количество</label>
-            <input value="@Model.PlannedQuantity.ToString("N4") @Model.UnitOfMeasure" class="form-control" readonly />
+            <input value="@QuantityDisplayFormatter.Format(Model.PlannedQuantity, Model.UnitOfMeasure, true)" class="form-control" readonly />
         </div>
         <div class="col-md-3 mb-3">
             <label asp-for="PlannedStartDate" class="form-label">Планиран старт</label>

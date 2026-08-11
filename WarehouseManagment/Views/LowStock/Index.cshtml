@@ -104,12 +104,12 @@ else
                         <td>@row.CategoryName</td>
                         <td>@row.UnitOfMeasureName</td>
                         <td>@(string.IsNullOrWhiteSpace(row.ReplenishmentWarehouseName) ? "Не е зададен" : row.ReplenishmentWarehouseName)</td>
-                        <td>@row.TotalCurrentStock.ToString("N4")</td>
-                        <td>@row.MinimumStock.ToString("N4")</td>
-                        <td>@row.Shortage.ToString("N4")</td>
+                        <td>@QuantityDisplayFormatter.Format(row.TotalCurrentStock, row.UnitOfMeasureName, true)</td>
+                        <td>@QuantityDisplayFormatter.Format(row.MinimumStock, row.UnitOfMeasureName, true)</td>
+                        <td>@QuantityDisplayFormatter.Format(row.Shortage, row.UnitOfMeasureName, true)</td>
                         <td><span class="badge @row.StatusCssClass">@row.StatusName</span></td>
                         <td>@row.PreferredSupplierName</td>
-                        <td>@row.SuggestedReplenishmentQuantity.ToString("N4")</td>
+                        <td>@QuantityDisplayFormatter.Format(row.SuggestedReplenishmentQuantity, row.UnitOfMeasureName, true)</td>
                         <td><a class="btn btn-sm btn-outline-info" asp-controller="MaterialStockCard" asp-action="Index" asp-route-id="@row.MaterialId">Картон</a></td>
                     </tr>
                 }

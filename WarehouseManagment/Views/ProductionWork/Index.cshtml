@@ -40,7 +40,7 @@
         <div class="card h-100 border-info">
             <div class="card-body">
                 <div class="text-muted small">Налично за работа</div>
-                <div class="fs-3 fw-bold">@Model.TotalAvailableQuantity.ToString("N4")</div>
+                <div class="fs-3 fw-bold">@QuantityDisplayFormatter.Format(Model.TotalAvailableQuantity, "бр")</div>
             </div>
         </div>
     </div>
@@ -48,7 +48,7 @@
         <div class="card h-100 border-success">
             <div class="card-body">
                 <div class="text-muted small">Завършено днес</div>
-                <div class="fs-3 fw-bold">@Model.CompletedToday.ToString("N4")</div>
+                <div class="fs-3 fw-bold">@QuantityDisplayFormatter.Format(Model.CompletedToday, "бр")</div>
             </div>
         </div>
     </div>
@@ -56,7 +56,7 @@
         <div class="card h-100 border-danger">
             <div class="card-body">
                 <div class="text-muted small">Брак днес</div>
-                <div class="fs-3 fw-bold">@Model.RejectedToday.ToString("N4")</div>
+                <div class="fs-3 fw-bold">@QuantityDisplayFormatter.Format(Model.RejectedToday, "бр")</div>
             </div>
         </div>
     </div>
@@ -125,10 +125,10 @@ else
                         <td>@row.ProductDisplayName</td>
                         <td>@row.OperationName</td>
                         <td>@ProductionOrderDisplayHelper.RoleText(row.RequiredRole)</td>
-                        <td class="text-end">@row.PlannedQuantity.ToString("N4") @row.UnitOfMeasure</td>
-                        <td class="text-end">@row.AvailableQuantity.ToString("N4") @row.UnitOfMeasure</td>
-                        <td class="text-end">@row.CompletedQuantity.ToString("N4") @row.UnitOfMeasure</td>
-                        <td class="text-end">@row.RejectedQuantity.ToString("N4") @row.UnitOfMeasure</td>
+                        <td class="text-end">@QuantityDisplayFormatter.Format(row.PlannedQuantity, row.UnitOfMeasure, true)</td>
+                        <td class="text-end">@QuantityDisplayFormatter.Format(row.AvailableQuantity, row.UnitOfMeasure, true)</td>
+                        <td class="text-end">@QuantityDisplayFormatter.Format(row.CompletedQuantity, row.UnitOfMeasure, true)</td>
+                        <td class="text-end">@QuantityDisplayFormatter.Format(row.RejectedQuantity, row.UnitOfMeasure, true)</td>
                         <td>@(row.PlannedEndDate?.ToString("dd.MM.yyyy") ?? "-")</td>
                         <td class="text-center"><span class="badge @ProductionOrderDisplayHelper.OperationStatusCss(row.Status)">@ProductionOrderDisplayHelper.OperationStatusText(row.Status)</span></td>
                         <td class="text-nowrap">

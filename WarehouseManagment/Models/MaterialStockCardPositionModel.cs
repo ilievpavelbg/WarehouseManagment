@@ -10,6 +10,11 @@ namespace WarehouseManagment.Models
 
         public string LotNumber { get; set; } = string.Empty;
 
+        public string BatchLotDisplay
+            => string.IsNullOrWhiteSpace(BatchNumber) && string.IsNullOrWhiteSpace(LotNumber)
+                ? "-"
+                : string.Join(" / ", new[] { BatchNumber, LotNumber }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
         public decimal Quantity { get; set; }
 
         public DateTime LastUpdatedOn { get; set; }

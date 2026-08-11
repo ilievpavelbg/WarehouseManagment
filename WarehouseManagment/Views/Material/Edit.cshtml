@@ -12,7 +12,7 @@
 }
 
 <div class="alert alert-secondary">
-    <div><strong>Текуща обща наличност:</strong> @Model.CurrentTotalStock.ToString("N4") @Model.UnitOfMeasureName</div>
+    <div><strong>Текуща обща наличност:</strong> @QuantityDisplayFormatter.Format(Model.CurrentTotalStock, Model.UnitOfMeasureName, true)</div>
     <div>Наличността не се редактира от този екран. Използвайте отделната корекция на наличност.</div>
     <div class="mt-2">
         <a class="btn btn-sm btn-outline-warning" asp-controller="Material" asp-action="AdjustStock" asp-route-id="@Model.Id">Корекция наличност</a>

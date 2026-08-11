@@ -148,10 +148,10 @@ else
                     <td>@material.Name</td>
                     <td>@material.CategoryName</td>
                     <td>@material.SupplierName</td>
-                    <td>@material.CurrentStock.ToString("N4") @material.UnitOfMeasureName</td>
+                    <td>@QuantityDisplayFormatter.Format(material.CurrentStock, material.UnitOfMeasureName, true)</td>
                     <td>@material.UnitOfMeasureName</td>
                     <td>@material.StandardCost.ToString("N4")</td>
-                    <td>@material.MinimumStock.ToString("N4")</td>
+                    <td>@QuantityDisplayFormatter.Format(material.MinimumStock, material.UnitOfMeasureName)</td>
                     <td>@(material.IsBatchTracked ? "Да" : "Не")</td>
                     <td>@(material.IsActive ? "Да" : "Не")</td>
                     <td>

@@ -94,7 +94,7 @@ else
                             }
                         </td>
                         <td>@row.ProductDisplayName</td>
-                        <td class="text-end">@row.PlannedQuantity.ToString("N4")</td>
+                        <td class="text-end">@QuantityDisplayFormatter.Format(row.PlannedQuantity, row.UnitOfMeasure)</td>
                         <td>@row.UnitOfMeasure</td>
                         <td>@(row.PlannedStartDate?.ToString("dd.MM.yyyy") ?? "-")</td>
                         <td>@(row.PlannedEndDate?.ToString("dd.MM.yyyy") ?? "-")</td>

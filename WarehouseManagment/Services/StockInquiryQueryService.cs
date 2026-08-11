@@ -99,10 +99,8 @@ namespace WarehouseManagment.Services
                 worksheet.Cells[excelRow, 6].Value = row.WarehouseLocationName;
                 worksheet.Cells[excelRow, 7].Value = row.BatchNumber;
                 worksheet.Cells[excelRow, 8].Value = row.LotNumber;
-                worksheet.Cells[excelRow, 9].Value = row.Quantity;
-                worksheet.Cells[excelRow, 9].Style.Numberformat.Format = "0.0000";
-                worksheet.Cells[excelRow, 10].Value = row.MinimumStock;
-                worksheet.Cells[excelRow, 10].Style.Numberformat.Format = "0.0000";
+                worksheet.Cells[excelRow, 9].Value = QuantityDisplayFormatter.Format(row.Quantity, row.UnitOfMeasureName, true);
+                worksheet.Cells[excelRow, 10].Value = QuantityDisplayFormatter.Format(row.MinimumStock, row.UnitOfMeasureName, true);
                 worksheet.Cells[excelRow, 11].Value = row.StatusName;
             }
 

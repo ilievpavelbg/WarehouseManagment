@@ -8,7 +8,7 @@
 
 <div class="alert alert-secondary">
     <div><strong>Материал:</strong> @Model.MaterialCode - @Model.MaterialName</div>
-    <div><strong>Обща наличност:</strong> @Model.CurrentTotalStock.ToString("N4") @Model.UnitOfMeasureName</div>
+    <div><strong>Обща наличност:</strong> @QuantityDisplayFormatter.Format(Model.CurrentTotalStock, Model.UnitOfMeasureName, true)</div>
 </div>
 
 <form asp-controller="Material" asp-action="Transfer" method="post">
@@ -31,7 +31,7 @@
                         : string.IsNullOrWhiteSpace(stock.MaterialBatch.LotNumber)
                             ? $"Партида {stock.MaterialBatch.BatchNumber}"
                             : $"Партида {stock.MaterialBatch.BatchNumber} / Lot {stock.MaterialBatch.LotNumber}";
-                    var quantityLabel = stock.Quantity.ToString("N4");
+                    var quantityLabel = QuantityDisplayFormatter.Format(stock.Quantity, Model.UnitOfMeasureName);
                     <option value="@stock.Id">@stock.Warehouse.Code - @stock.Warehouse.Name / @locationLabel / @batchLabel / Наличност @quantityLabel @Model.UnitOfMeasureName</option>
                 }
             </select>

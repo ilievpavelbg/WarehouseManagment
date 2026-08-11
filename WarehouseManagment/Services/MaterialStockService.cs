@@ -191,7 +191,7 @@ namespace WarehouseManagment.Services
                     EntityType = "Material",
                     EntityId = preparedModel.MaterialId,
                     DocumentNumber = documentNumber,
-                    Description = $"Приет материал {preparedModel.MaterialCode} - {preparedModel.MaterialName}, количество {preparedModel.ReceivedQuantity:N4} {preparedModel.UnitOfMeasureName}.",
+                    Description = $"Приет материал {preparedModel.MaterialCode} - {preparedModel.MaterialName}, количество {QuantityDisplayFormatter.Format(preparedModel.ReceivedQuantity, preparedModel.UnitOfMeasureName, true)}.",
                     OldValues = ToJson(new { Quantity = oldQuantity }),
                     NewValues = ToJson(new { Quantity = stock.Quantity, preparedModel.WarehouseId, preparedModel.WarehouseLocationId, MaterialBatchId = materialBatch?.Id })
                 });
@@ -361,7 +361,7 @@ namespace WarehouseManagment.Services
                     EntityType = "Material",
                     EntityId = preparedModel.MaterialId,
                     DocumentNumber = documentNumber,
-                    Description = $"Преместен материал {preparedModel.MaterialCode} - {preparedModel.MaterialName}, количество {preparedModel.Quantity:N4} {preparedModel.UnitOfMeasureName}.",
+                    Description = $"Преместен материал {preparedModel.MaterialCode} - {preparedModel.MaterialName}, количество {QuantityDisplayFormatter.Format(preparedModel.Quantity, preparedModel.UnitOfMeasureName, true)}.",
                     OldValues = ToJson(new
                     {
                         SourceQuantity = sourceOldQuantity,

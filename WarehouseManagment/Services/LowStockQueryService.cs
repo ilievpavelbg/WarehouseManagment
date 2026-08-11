@@ -75,16 +75,12 @@ namespace WarehouseManagment.Services
                 worksheet.Cells[excelRow, 3].Value = row.CategoryName;
                 worksheet.Cells[excelRow, 4].Value = row.UnitOfMeasureName;
                 worksheet.Cells[excelRow, 5].Value = row.ReplenishmentWarehouseName;
-                worksheet.Cells[excelRow, 6].Value = row.TotalCurrentStock;
-                worksheet.Cells[excelRow, 6].Style.Numberformat.Format = "0.0000";
-                worksheet.Cells[excelRow, 7].Value = row.MinimumStock;
-                worksheet.Cells[excelRow, 7].Style.Numberformat.Format = "0.0000";
-                worksheet.Cells[excelRow, 8].Value = row.Shortage;
-                worksheet.Cells[excelRow, 8].Style.Numberformat.Format = "0.0000";
+                worksheet.Cells[excelRow, 6].Value = QuantityDisplayFormatter.Format(row.TotalCurrentStock, row.UnitOfMeasureName, true);
+                worksheet.Cells[excelRow, 7].Value = QuantityDisplayFormatter.Format(row.MinimumStock, row.UnitOfMeasureName, true);
+                worksheet.Cells[excelRow, 8].Value = QuantityDisplayFormatter.Format(row.Shortage, row.UnitOfMeasureName, true);
                 worksheet.Cells[excelRow, 9].Value = row.StatusName;
                 worksheet.Cells[excelRow, 10].Value = row.PreferredSupplierName;
-                worksheet.Cells[excelRow, 11].Value = row.SuggestedReplenishmentQuantity;
-                worksheet.Cells[excelRow, 11].Style.Numberformat.Format = "0.0000";
+                worksheet.Cells[excelRow, 11].Value = QuantityDisplayFormatter.Format(row.SuggestedReplenishmentQuantity, row.UnitOfMeasureName, true);
             }
 
             if (worksheet.Dimension != null)

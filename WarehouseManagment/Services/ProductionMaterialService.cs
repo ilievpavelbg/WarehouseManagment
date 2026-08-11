@@ -317,7 +317,7 @@ namespace WarehouseManagment.Services
                     material.Status = available <= 0
                         ? ProductionOrderMaterialStatus.Shortage
                         : ProductionOrderMaterialStatus.Shortage;
-                    throw new InvalidOperationException($"Недостатъчна наличност за материал {material.MaterialCodeSnapshot}. Нужно: {outstanding:N4} {material.UnitNameSnapshot}, налично: {available:N4} {material.UnitNameSnapshot}.");
+                    throw new InvalidOperationException($"Недостатъчна наличност за материал {material.MaterialCodeSnapshot}. Нужно: {QuantityDisplayFormatter.Format(outstanding, material.UnitNameSnapshot, true)}, налично: {QuantityDisplayFormatter.Format(available, material.UnitNameSnapshot, true)}.");
                 }
 
                 var remaining = outstanding;

@@ -1,0 +1,60 @@
+@model FinishedGoodsStockDetailsModel
+
+@{
+    ViewData["Title"] = "Детайли готова продукция";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+
+<div class="card mb-3">
+    <div class="card-header">Артикул</div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Код / SKU</dt><dd class="col-sm-9">@Model.ProductSku</dd>
+            <dt class="col-sm-3">Артикул</dt><dd class="col-sm-9">@Model.ProductName</dd>
+            <dt class="col-sm-3">Размер / вариант</dt><dd class="col-sm-9">@Model.Size</dd>
+            <dt class="col-sm-3">Текуща наличност</dt><dd class="col-sm-9">@QuantityDisplayFormatter.Format(Model.Quantity, Model.UnitOfMeasureName, true)</dd>
+            <dt class="col-sm-3">Склад готова продукция</dt><dd class="col-sm-9">@Model.FinishedGoodsWarehouseName</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">Последни FGR приемания</div>
+    <div class="card-body">
+        @if (!Model.RecentReceipts.Any())
+        {
+            <p>Няма FGR приемания за този размер / вариант.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>FGR документ</th>
+                            <th class="text-end">Количество</th>
+                            <th>Дата</th>
+                            <th>Производствена поръчка</th>
+                            <th>Склад</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var receipt in Model.RecentReceipts)
+                        {
+                            <tr>
+                                <td>@receipt.DocumentNumber</td>
+                                <td class="text-end">@QuantityDisplayFormatter.Format(receipt.Quantity, Model.UnitOfMeasureName)</td>
+                                <td>@receipt.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
+                                <td>@receipt.ProductionOrderNumber</td>
+                                <td>@receipt.WarehouseName</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<a class="btn btn-secondary" asp-controller="FinishedGoodsStock" asp-action="Index">Назад</a>

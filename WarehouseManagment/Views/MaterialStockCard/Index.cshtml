@@ -19,8 +19,8 @@
             <div class="col-md-3 mb-2"><strong>Категория:</strong> @Model.CategoryName</div>
             <div class="col-md-3 mb-2"><strong>Мерна единица:</strong> @Model.UnitOfMeasureName</div>
             <div class="col-md-3 mb-2"><strong>Доставчик:</strong> @Model.SupplierName</div>
-            <div class="col-md-3 mb-2"><strong>Обща наличност:</strong> @Model.TotalCurrentStock.ToString("N4")</div>
-            <div class="col-md-3 mb-2"><strong>Минимална наличност:</strong> @Model.MinimumStock.ToString("N4")</div>
+            <div class="col-md-3 mb-2"><strong>Обща наличност:</strong> @QuantityDisplayFormatter.Format(Model.TotalCurrentStock, Model.UnitOfMeasureName, true)</div>
+            <div class="col-md-3 mb-2"><strong>Минимална наличност:</strong> @QuantityDisplayFormatter.Format(Model.MinimumStock, Model.UnitOfMeasureName, true)</div>
             <div class="col-md-3 mb-2"><strong>Статус основен склад:</strong> <span class="badge @Model.StatusCssClass">@Model.StatusName</span></div>
             <div class="col-md-3 mb-2"><strong>Стандартна цена:</strong> @Model.StandardCost.ToString("N4")</div>
             <div class="col-md-3 mb-2"><strong>Активен:</strong> @(Model.IsActive ? "Да" : "Не")</div>
@@ -38,6 +38,19 @@
 <div class="card mb-3">
     <div class="card-header">Текущи складови позиции</div>
     <div class="card-body">
+        <form asp-controller="MaterialStockCard" asp-action="Index" asp-route-id="@Model.MaterialId" method="get" class="mb-3">
+            <input type="hidden" name="DateFrom" value="@dateFromValue" />
+            <input type="hidden" name="DateTo" value="@dateToValue" />
+            <input type="hidden" name="WarehouseId" value="@Model.Filter.WarehouseId" />
+            <input type="hidden" name="MovementType" value="@Model.Filter.MovementType" />
+            <input type="hidden" name="BatchOrLot" value="@Model.Filter.BatchOrLot" />
+            <input type="hidden" name="Page" value="@Model.Filter.Page" />
+            <input type="hidden" name="PageSize" value="@Model.Filter.PageSize" />
+            <div class="form-check">
+                <input id="ShowZeroPositions" name="ShowZeroPositions" value="true" class="form-check-input" type="checkbox" checked="@Model.Filter.ShowZeroPositions" onchange="this.form.submit()" />
+                <label for="ShowZeroPositions" class="form-check-label">Покажи нулеви позиции</label>
+            </div>
+        </form>
         @if (!Model.Positions.Any())
         {
             <p>Няма текущи складови позиции.</p>
@@ -50,10 +63,8 @@
                         <tr>
                             <th>Склад</th>
                             <th>Локация</th>
-                            <th>Партида</th>
-                            <th>Lot номер</th>
+                            <th>Партида / Lot</th>
                             <th>Количество</th>
-                            <th>Статус</th>
                             <th>Последна промяна</th>
                             <th>Статус</th>
                         </tr>
@@ -64,9 +75,8 @@
                             <tr>
                                 <td>@position.WarehouseName</td>
                                 <td>@position.LocationName</td>
-                                <td>@position.BatchNumber</td>
-                                <td>@position.LotNumber</td>
-                                <td>@position.Quantity.ToString("N4")</td>
+                                <td>@position.BatchLotDisplay</td>
+                                <td>@QuantityDisplayFormatter.Format(position.Quantity, Model.UnitOfMeasureName, true)</td>
                                 <td>@position.LastUpdatedOn.ToString("dd.MM.yyyy HH:mm")</td>
                                 <td><span class="badge @position.StatusCssClass">@position.StatusName</span></td>
                             </tr>
@@ -93,6 +103,7 @@
                         <tr>
                             <th>Склад</th>
                             <th>Количество</th>
+                            <th>Статус</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -100,7 +111,7 @@
                         {
                             <tr>
                                 <td>@warehouseStock.WarehouseName</td>
-                                <td>@warehouseStock.Quantity.ToString("N4")</td>
+                                <td>@QuantityDisplayFormatter.Format(warehouseStock.Quantity, Model.UnitOfMeasureName, true)</td>
                                 <td><span class="badge @warehouseStock.StatusCssClass">@warehouseStock.StatusName</span></td>
                             </tr>
                         }
@@ -160,6 +171,7 @@
                 </div>
                 <div class="col-md-10 mb-2">
                     <input type="hidden" name="Page" value="1" />
+                    <input type="hidden" name="ShowZeroPositions" value="@Model.Filter.ShowZeroPositions" />
                     <button type="submit" class="btn btn-primary">Филтрирай</button>
                     <a class="btn btn-outline-secondary" asp-controller="MaterialStockCard" asp-action="Index" asp-route-id="@Model.MaterialId">Изчисти</a>
                 </div>
@@ -197,7 +209,7 @@
                             <tr>
                                 <td>@movement.Date.ToString("dd.MM.yyyy HH:mm")</td>
                                 <td><span class="badge @movement.MovementTypeCssClass">@movement.MovementTypeName</span></td>
-                                <td>@movement.Quantity.ToString("+0.####;-0.####;0")</td>
+                                <td>@QuantityDisplayFormatter.FormatSigned(movement.Quantity, Model.UnitOfMeasureName, true)</td>
                                 <td>@movement.WarehouseName</td>
                                 <td>@movement.WarehouseLocationName</td>
                                 <td>@movement.DestinationWarehouseName</td>
@@ -227,7 +239,8 @@
                        asp-route-DateTo="@dateToValue"
                        asp-route-WarehouseId="@Model.Filter.WarehouseId"
                        asp-route-MovementType="@Model.Filter.MovementType"
-                       asp-route-BatchOrLot="@Model.Filter.BatchOrLot">Назад</a>
+                       asp-route-BatchOrLot="@Model.Filter.BatchOrLot"
+                       asp-route-ShowZeroPositions="@Model.Filter.ShowZeroPositions">Назад</a>
                     <span class="mx-2">Страница @Model.Filter.Page от @Model.TotalMovementPages</span>
                     <a class="btn btn-sm btn-outline-secondary @(Model.Filter.Page >= Model.TotalMovementPages ? "disabled" : string.Empty)"
                        asp-controller="MaterialStockCard"
@@ -239,7 +252,8 @@
                        asp-route-DateTo="@dateToValue"
                        asp-route-WarehouseId="@Model.Filter.WarehouseId"
                        asp-route-MovementType="@Model.Filter.MovementType"
-                       asp-route-BatchOrLot="@Model.Filter.BatchOrLot">Напред</a>
+                       asp-route-BatchOrLot="@Model.Filter.BatchOrLot"
+                       asp-route-ShowZeroPositions="@Model.Filter.ShowZeroPositions">Напред</a>
                 </div>
             </div>
         }

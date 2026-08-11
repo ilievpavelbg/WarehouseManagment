@@ -80,7 +80,7 @@ namespace WarehouseManagment.Services
                 new WmsDashboardKpiModel { Label = "Общо материали", Value = totalMaterials.ToString(), CssClass = "border-primary" },
                 new WmsDashboardKpiModel { Label = "Складове", Value = totalWarehouses.ToString(), CssClass = "border-primary" },
                 new WmsDashboardKpiModel { Label = "Локации", Value = totalLocations.ToString(), CssClass = "border-primary" },
-                new WmsDashboardKpiModel { Label = "Обща наличност", Value = totalStock.ToString("N4"), CssClass = "border-success" },
+                new WmsDashboardKpiModel { Label = "Обща наличност", Value = QuantityDisplayFormatter.Format(totalStock), CssClass = "border-success" },
                 new WmsDashboardKpiModel { Label = "Под минимум", Value = belowMinimumCount.ToString(), CssClass = "border-warning" },
                 new WmsDashboardKpiModel { Label = "Без наличност", Value = outOfStockCount.ToString(), CssClass = "border-danger" },
                 new WmsDashboardKpiModel { Label = "Приемания днес", Value = todayMovements.Count(x => x.MovementType == MovementType.ImportReceipt).ToString(), CssClass = "border-success" },
@@ -110,7 +110,7 @@ namespace WarehouseManagment.Services
             return stocks.Take(8).Select(stock => new WmsDashboardAlertModel
             {
                 Title = title,
-                Text = $"{stock.MaterialCode} - {stock.MaterialName}: {stock.TotalQuantity:N4} / мин. {stock.MinimumStock:N4}",
+                Text = $"{stock.MaterialCode} - {stock.MaterialName}: {QuantityDisplayFormatter.Format(stock.TotalQuantity)} / мин. {QuantityDisplayFormatter.Format(stock.MinimumStock)}",
                 CssClass = cssClass
             }).ToList();
         }
