@@ -16,7 +16,7 @@
         public DateTime SoldDate { get; set; }
         public PaymentMethod PaymentMethod { get; set; }
         public string? Notes { get; set; } = null!;
-        public DateTime CreatedOn { get; set; } = DateTime.Now;
+        public DateTime? CreatedOn { get; set; }
         public string? CreatedByUserId { get; set; }
         public string? CreatedByUserNameSnapshot { get; set; }
         public string? ReversalReason { get; set; }

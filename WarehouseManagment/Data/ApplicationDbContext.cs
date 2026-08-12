@@ -54,7 +54,8 @@ namespace WarehouseManagment.Data
                 .IsUnique();
 
             builder.Entity<Sale>()
-                .HasIndex(x => x.DocumentNumber);
+                .HasIndex(x => x.DocumentNumber)
+                .IsUnique();
 
             builder.Entity<Sale>()
                 .HasIndex(x => x.SoldDate);
@@ -89,7 +90,8 @@ namespace WarehouseManagment.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<Courier>()
-                .HasIndex(x => x.DocumentNumber);
+                .HasIndex(x => x.DocumentNumber)
+                .IsUnique();
 
             builder.Entity<Courier>()
                 .HasIndex(x => x.SendDate);
