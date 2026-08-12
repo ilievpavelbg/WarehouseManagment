@@ -1,0 +1,75 @@
+@model PosSaleDetailsModel
+
+@{
+    ViewData["Title"] = $"POS продажба {Model.DocumentNumber}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>@ViewData["Title"]</h1>
+    <div>
+        <a class="btn btn-outline-secondary" asp-action="Receipt" asp-route-id="@Model.Id">Печат</a>
+        <a class="btn btn-primary" asp-action="Sales">Назад</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <dl class="row">
+            <dt class="col-sm-4">Документ</dt>
+            <dd class="col-sm-8">@Model.DocumentNumber</dd>
+            <dt class="col-sm-4">Дата</dt>
+            <dd class="col-sm-8">@Model.CreatedOn.ToString("dd.MM.yyyy HH:mm")</dd>
+            <dt class="col-sm-4">Оператор</dt>
+            <dd class="col-sm-8">@(Model.OperatorName ?? "-")</dd>
+            <dt class="col-sm-4">Склад</dt>
+            <dd class="col-sm-8">@Model.WarehouseName</dd>
+        </dl>
+    </div>
+    <div class="col-md-6">
+        <dl class="row">
+            <dt class="col-sm-4">Плащане</dt>
+            <dd class="col-sm-8">@Model.PaymentMethod</dd>
+            <dt class="col-sm-4">Статус</dt>
+            <dd class="col-sm-8">@Model.Status</dd>
+            <dt class="col-sm-4">Общо</dt>
+            <dd class="col-sm-8">@Model.Total.ToString("0.00") EUR</dd>
+        </dl>
+    </div>
+</div>
+
+<table class="table table-bordered">
+    <thead class="table-dark">
+        <tr>
+            <th>SKU</th>
+            <th>Артикул</th>
+            <th>Размер</th>
+            <th>Количество</th>
+            <th>Ед. цена</th>
+            <th>Отстъпка</th>
+            <th>Общо</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var line in Model.Lines)
+        {
+            <tr>
+                <td>@line.ProductSKU</td>
+                <td>@line.ProductDescription</td>
+                <td>@line.Size</td>
+                <td>@line.Quantity бр</td>
+                <td>@line.UnitPrice.ToString("0.00") EUR</td>
+                <td>@line.DiscountPercent.ToString("0.##")%</td>
+                <td>@line.LineTotal.ToString("0.00") EUR</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="row justify-content-end">
+    <div class="col-md-4">
+        <div class="d-flex justify-content-between"><span>Междинна сума</span><strong>@Model.Subtotal.ToString("0.00") EUR</strong></div>
+        <div class="d-flex justify-content-between"><span>Отстъпки</span><strong>@Model.DiscountTotal.ToString("0.00") EUR</strong></div>
+        <hr />
+        <div class="d-flex justify-content-between fs-4"><span>Общо</span><strong>@Model.Total.ToString("0.00") EUR</strong></div>
+    </div>
+</div>

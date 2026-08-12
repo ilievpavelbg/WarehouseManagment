@@ -1,0 +1,119 @@
+@model PosSaleIndexModel
+
+@{
+    ViewData["Title"] = "POS продажби";
+    var filter = Model.Filter;
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<form method="get" class="row g-2 align-items-end my-3">
+    <div class="col-md-2">
+        <label class="form-label">Документ</label>
+        <input name="DocumentNumber" value="@filter.DocumentNumber" class="form-control" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">SKU / продукт</label>
+        <input name="ProductSKU" value="@filter.ProductSKU" class="form-control" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Дата от</label>
+        <input name="DateFrom" type="date" value="@filter.DateFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Дата до</label>
+        <input name="DateTo" type="date" value="@filter.DateTo?.ToString("yyyy-MM-dd")" class="form-control" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Оператор</label>
+        <input name="Operator" value="@filter.Operator" class="form-control" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Плащане</label>
+        <select name="PaymentMethod" class="form-select">
+            <option value="">Всички</option>
+            @foreach (var method in Model.PaymentMethods)
+            {
+                <option value="@method" selected="@(filter.PaymentMethod == method)">@method</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Статус</label>
+        <select name="Status" class="form-select">
+            <option value="">Всички</option>
+            @foreach (var status in Model.Statuses)
+            {
+                <option value="@status" selected="@(filter.Status == status)">@status</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-outline-success w-100">Филтрирай</button>
+    </div>
+    <div class="col-md-2">
+        <a asp-action="Sales" class="btn btn-outline-secondary w-100">Изчисти</a>
+    </div>
+</form>
+
+<div class="mb-2 text-muted">Намерени записи: @Model.TotalItems</div>
+
+<table class="table table-striped table-bordered align-middle">
+    <thead class="table-dark">
+        <tr>
+            <th>Документ</th>
+            <th>Дата</th>
+            <th>Оператор</th>
+            <th>Брой артикули</th>
+            <th>Количество</th>
+            <th>Общо</th>
+            <th>Плащане</th>
+            <th>Статус</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var row in Model.Rows)
+        {
+            <tr>
+                <td>@row.DocumentNumber</td>
+                <td>@row.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
+                <td>@(row.OperatorName ?? "-")</td>
+                <td>@row.LineCount</td>
+                <td>@row.TotalQuantity бр</td>
+                <td>@row.Total.ToString("0.00") EUR</td>
+                <td>@row.PaymentMethod</td>
+                <td>
+                    <span class="badge @(row.Status == WarehouseManagment.Data.PosSaleStatus.Completed ? "bg-success" : "bg-danger")">@row.Status</span>
+                </td>
+                <td>
+                    <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@row.Id">Детайли</a>
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Receipt" asp-route-id="@row.Id">Печат</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (Model.TotalPages > 1)
+{
+    <nav>
+        <ul class="pagination">
+            @for (var pageNumber = 1; pageNumber <= Model.TotalPages; pageNumber++)
+            {
+                <li class="page-item @(pageNumber == filter.Page ? "active" : string.Empty)">
+                    <a class="page-link"
+                       asp-action="Sales"
+                       asp-route-Page="@pageNumber"
+                       asp-route-DocumentNumber="@filter.DocumentNumber"
+                       asp-route-ProductSKU="@filter.ProductSKU"
+                       asp-route-DateFrom="@filter.DateFrom?.ToString("yyyy-MM-dd")"
+                       asp-route-DateTo="@filter.DateTo?.ToString("yyyy-MM-dd")"
+                       asp-route-Operator="@filter.Operator"
+                       asp-route-PaymentMethod="@filter.PaymentMethod"
+                       asp-route-Status="@filter.Status">@pageNumber</a>
+                </li>
+            }
+        </ul>
+    </nav>
+}

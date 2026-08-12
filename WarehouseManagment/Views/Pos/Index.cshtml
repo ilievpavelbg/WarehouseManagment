@@ -1,0 +1,299 @@
+@using System.ComponentModel
+@using WarehouseManagment.Data
+@model PosIndexModel
+
+@{
+    ViewData["Title"] = "POS продажба";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">POS продажба</h1>
+    <div class="text-muted">Оператор: @(Model.OperatorName ?? "-")</div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <label class="form-label fw-bold fs-5">Сканирай баркод</label>
+                <form id="scanForm" class="input-group input-group-lg mb-3">
+                    <input id="barcodeInput" class="form-control" autocomplete="off" autofocus placeholder="Баркод" />
+                    <button class="btn btn-success" type="submit">Добави</button>
+                </form>
+
+                <label class="form-label fw-bold">Търсене на артикул</label>
+                <div class="input-group mb-3">
+                    <input id="searchInput" class="form-control" placeholder="SKU, описание или размер" />
+                    <button id="searchButton" class="btn btn-outline-primary" type="button">Търси</button>
+                </div>
+
+                <div id="searchResults" class="list-group small"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h4 class="mb-0">Текуща количка</h4>
+                    <button id="clearCartButton" class="btn btn-outline-secondary btn-sm">Изчисти</button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Артикул</th>
+                                <th>Размер</th>
+                                <th style="width:150px;">Количество</th>
+                                <th>Ед. цена</th>
+                                <th style="width:120px;">Отстъпка</th>
+                                <th>Общо</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cartBody"></tbody>
+                    </table>
+                </div>
+
+                <div id="emptyCart" class="alert alert-info">Количката е празна.</div>
+
+                <div class="row justify-content-end">
+                    <div class="col-md-5">
+                        <div class="border rounded p-3 bg-light">
+                            <div class="d-flex justify-content-between">
+                                <span>Междинна сума</span>
+                                <strong id="subtotal">0.00 EUR</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Отстъпки</span>
+                                <strong id="discountTotal">0.00 EUR</strong>
+                            </div>
+                            <hr />
+                            <div class="d-flex justify-content-between fs-4">
+                                <span>Общо</span>
+                                <strong id="grandTotal">0.00 EUR</strong>
+                            </div>
+
+                            <label class="form-label mt-3">Начин на плащане</label>
+                            <select id="paymentMethod" class="form-select form-select-lg">
+                                @foreach (var method in Model.PaymentMethods)
+                                {
+                                    var member = typeof(PaymentMethod).GetMember(method.ToString())[0];
+                                    var descriptionAttribute = member.GetCustomAttributes(typeof(DescriptionAttribute), false).FirstOrDefault() as DescriptionAttribute;
+                                    var description = descriptionAttribute?.Description ?? method.ToString();
+                                    <option value="@method" selected="@(Model.Cart.PaymentMethod == method)">@description</option>
+                                }
+                            </select>
+
+                            <button id="checkoutButton" class="btn btn-success btn-lg w-100 mt-3">Завърши продажба</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var cart = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Cart));
+
+        $(document).ready(function () {
+            renderCart();
+            $('#barcodeInput').focus();
+
+            $('#scanForm').on('submit', function (event) {
+                event.preventDefault();
+                scanBarcode();
+            });
+
+            $('#searchButton').on('click', searchProducts);
+            $('#searchInput').on('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    searchProducts();
+                }
+            });
+
+            $('#clearCartButton').on('click', function () {
+                $.post('/Pos/Clear', function (response) {
+                    if (response.success) {
+                        cart = response.cart;
+                        renderCart();
+                    }
+                });
+            });
+
+            $('#checkoutButton').on('click', function () {
+                $.ajax({
+                    url: '/Pos/Checkout',
+                    type: 'POST',
+                    data: { paymentMethod: $('#paymentMethod').val() },
+                    success: function (response) {
+                        if (response.success) {
+                            window.location.href = response.redirectUrl;
+                        } else {
+                            alert(response.message || 'Продажбата не беше завършена.');
+                        }
+                    }
+                });
+            });
+        });
+
+        function scanBarcode() {
+            var barcode = $('#barcodeInput').val();
+            if (!barcode) {
+                return;
+            }
+
+            $.ajax({
+                url: '/Pos/Scan',
+                type: 'POST',
+                data: { barcode: barcode },
+                success: function (response) {
+                    if (response.success) {
+                        cart = response.cart;
+                        renderCart();
+                        $('#barcodeInput').val('').focus();
+                    } else {
+                        alert(response.message || 'Баркодът не беше добавен.');
+                        $('#barcodeInput').focus();
+                    }
+                }
+            });
+        }
+
+        function searchProducts() {
+            var search = $('#searchInput').val();
+            $('#searchResults').empty();
+
+            if (!search) {
+                return;
+            }
+
+            $.get('/Pos/Search', { search: search }, function (results) {
+                if (!results.length) {
+                    $('#searchResults').append('<div class="list-group-item">Няма резултати.</div>');
+                    return;
+                }
+
+                $.each(results, function (_, item) {
+                    var row = $('<button type="button" class="list-group-item list-group-item-action">');
+                    row.html('<strong>' + item.productSKU + '</strong> - ' + (item.productDescription || '') +
+                        '<br />Размер: ' + item.size +
+                        ' / Наличност: ' + item.availableStock + ' бр' +
+                        ' / Цена: ' + money(item.unitPrice));
+                    row.on('click', function () {
+                        addLine(item.productInventoryId);
+                    });
+                    $('#searchResults').append(row);
+                });
+            });
+        }
+
+        function addLine(productInventoryId) {
+            $.ajax({
+                url: '/Pos/Add',
+                type: 'POST',
+                data: { productInventoryId: productInventoryId, quantity: 1 },
+                success: function (response) {
+                    if (response.success) {
+                        cart = response.cart;
+                        renderCart();
+                        $('#barcodeInput').focus();
+                    } else {
+                        alert(response.message || 'Артикулът не беше добавен.');
+                    }
+                }
+            });
+        }
+
+        function updateQuantity(productInventoryId, quantity) {
+            $.ajax({
+                url: '/Pos/UpdateQuantity',
+                type: 'POST',
+                data: { productInventoryId: productInventoryId, quantity: quantity },
+                success: function (response) {
+                    if (response.success) {
+                        cart = response.cart;
+                        renderCart();
+                    } else {
+                        alert(response.message);
+                    }
+                }
+            });
+        }
+
+        function updateDiscount(productInventoryId, discountPercent) {
+            $.ajax({
+                url: '/Pos/UpdateDiscount',
+                type: 'POST',
+                data: { productInventoryId: productInventoryId, discountPercent: discountPercent },
+                success: function (response) {
+                    if (response.success) {
+                        cart = response.cart;
+                        renderCart();
+                    } else {
+                        alert(response.message);
+                    }
+                }
+            });
+        }
+
+        function removeLine(productInventoryId) {
+            $.ajax({
+                url: '/Pos/Remove',
+                type: 'POST',
+                data: { productInventoryId: productInventoryId },
+                success: function (response) {
+                    if (response.success) {
+                        cart = response.cart;
+                        renderCart();
+                    }
+                }
+            });
+        }
+
+        function renderCart() {
+            $('#cartBody').empty();
+            var lines = cart.lines || cart.Lines || [];
+            $('#emptyCart').toggle(lines.length === 0);
+            $('#checkoutButton').prop('disabled', lines.length === 0);
+
+            $.each(lines, function (_, line) {
+                var id = line.productInventoryId || line.ProductInventoryId;
+                var quantity = line.quantity || line.Quantity;
+                var row = $('<tr>');
+                row.append('<td><strong>' + value(line.productSKU, line.ProductSKU) + '</strong><br />' + value(line.productDescription, line.ProductDescription) + '</td>');
+                row.append('<td>' + value(line.size, line.Size) + '</td>');
+                row.append('<td><div class="input-group"><button class="btn btn-outline-secondary minus">-</button><input class="form-control text-center qty" type="number" min="1" value="' + quantity + '"><button class="btn btn-outline-secondary plus">+</button></div><small class="text-muted">Наличност ' + value(line.availableStock, line.AvailableStock) + ' бр</small></td>');
+                row.append('<td>' + money(value(line.unitPrice, line.UnitPrice)) + '</td>');
+                row.append('<td><input class="form-control discount" type="number" min="0" max="100" value="' + value(line.discountPercent, line.DiscountPercent) + '"></td>');
+                row.append('<td>' + money(value(line.lineTotal, line.LineTotal)) + '</td>');
+                row.append('<td><button class="btn btn-sm btn-outline-danger remove">Премахни</button></td>');
+
+                row.find('.minus').on('click', function () { updateQuantity(id, quantity - 1); });
+                row.find('.plus').on('click', function () { updateQuantity(id, quantity + 1); });
+                row.find('.qty').on('change', function () { updateQuantity(id, parseInt($(this).val())); });
+                row.find('.discount').on('change', function () { updateDiscount(id, parseFloat($(this).val())); });
+                row.find('.remove').on('click', function () { removeLine(id); });
+
+                $('#cartBody').append(row);
+            });
+
+            $('#subtotal').text(money(value(cart.subtotal, cart.Subtotal)));
+            $('#discountTotal').text(money(value(cart.discountTotal, cart.DiscountTotal)));
+            $('#grandTotal').text(money(value(cart.total, cart.Total)));
+        }
+
+        function value(camel, pascal) {
+            return camel !== undefined ? camel : pascal;
+        }
+
+        function money(value) {
+            return (parseFloat(value || 0)).toFixed(2) + ' EUR';
+        }
+    </script>
+}

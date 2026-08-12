@@ -1,0 +1,81 @@
+@model PosReceiptModel
+
+@{
+    ViewData["Title"] = $"POS документ {Model.DocumentNumber}";
+}
+
+<div class="d-flex justify-content-between mb-3 no-print">
+    <h1>@ViewData["Title"]</h1>
+    <div>
+        <button class="btn btn-primary" onclick="window.print()">Печат</button>
+        <a class="btn btn-success" asp-action="Index">Нова продажба</a>
+        <a class="btn btn-secondary" asp-action="Sales">Продажби</a>
+    </div>
+</div>
+
+<div class="receipt">
+    <h2 class="text-center">VETEIDA</h2>
+    <p class="text-center mb-1">POS вътрешен документ</p>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-3">Документ</dt>
+        <dd class="col-sm-9">@Model.DocumentNumber</dd>
+        <dt class="col-sm-3">Дата</dt>
+        <dd class="col-sm-9">@Model.CreatedOn.ToString("dd.MM.yyyy HH:mm")</dd>
+        <dt class="col-sm-3">Оператор</dt>
+        <dd class="col-sm-9">@(Model.OperatorName ?? "-")</dd>
+        <dt class="col-sm-3">Склад</dt>
+        <dd class="col-sm-9">@Model.WarehouseName</dd>
+        <dt class="col-sm-3">Плащане</dt>
+        <dd class="col-sm-9">@Model.PaymentMethod</dd>
+    </dl>
+
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>SKU</th>
+                <th>Артикул</th>
+                <th>Размер</th>
+                <th class="text-end">Кол.</th>
+                <th class="text-end">Ед. цена</th>
+                <th class="text-end">Отст.</th>
+                <th class="text-end">Общо</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var line in Model.Lines)
+            {
+                <tr>
+                    <td>@line.ProductSKU</td>
+                    <td>@line.ProductDescription</td>
+                    <td>@line.Size</td>
+                    <td class="text-end">@line.Quantity бр</td>
+                    <td class="text-end">@line.UnitPrice.ToString("0.00") EUR</td>
+                    <td class="text-end">@line.DiscountPercent.ToString("0.##")%</td>
+                    <td class="text-end">@line.LineTotal.ToString("0.00") EUR</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="row justify-content-end">
+        <div class="col-sm-5">
+            <div class="d-flex justify-content-between"><span>Междинна сума</span><strong>@Model.Subtotal.ToString("0.00") EUR</strong></div>
+            <div class="d-flex justify-content-between"><span>Отстъпки</span><strong>@Model.DiscountTotal.ToString("0.00") EUR</strong></div>
+            <hr />
+            <div class="d-flex justify-content-between fs-4"><span>Общо</span><strong>@Model.Total.ToString("0.00") EUR</strong></div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @@media print {
+        .no-print, header, footer {
+            display: none !important;
+        }
+
+        .receipt {
+            font-size: 12px;
+        }
+    }
+</style>

@@ -14,6 +14,8 @@ namespace WarehouseManagment.Data
         public DbSet<ProductInventory> ProductInventory { get; set; }
         public DbSet<Sale> Sales { get; set; }
         public DbSet<Courier> Couriers { get; set; }
+        public DbSet<PosSale> PosSales { get; set; }
+        public DbSet<PosSaleLine> PosSaleLines { get; set; }
         public DbSet<LoginHistory> LoginHistories { get; set; }
         public DbSet<Warehouse> Warehouses { get; set; }
         public DbSet<WarehouseZone> WarehouseZones { get; set; }
@@ -126,6 +128,106 @@ namespace WarehouseManagment.Data
                 .HasOne(x => x.Warehouse)
                 .WithMany()
                 .HasForeignKey(x => x.WarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<PosSale>()
+                .HasIndex(x => x.DocumentNumber)
+                .IsUnique();
+
+            builder.Entity<PosSale>()
+                .HasIndex(x => x.CreatedOn);
+
+            builder.Entity<PosSale>()
+                .HasIndex(x => x.CreatedByUserId);
+
+            builder.Entity<PosSale>()
+                .Property(x => x.DocumentNumber)
+                .HasMaxLength(100);
+
+            builder.Entity<PosSale>()
+                .Property(x => x.CreatedByUserId)
+                .HasMaxLength(450);
+
+            builder.Entity<PosSale>()
+                .Property(x => x.CreatedByUserNameSnapshot)
+                .HasMaxLength(256);
+
+            builder.Entity<PosSale>()
+                .Property(x => x.ReversalReason)
+                .HasMaxLength(500);
+
+            builder.Entity<PosSale>()
+                .Property(x => x.ReversedByUserId)
+                .HasMaxLength(450);
+
+            builder.Entity<PosSale>()
+                .Property(x => x.Subtotal)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<PosSale>()
+                .Property(x => x.DiscountTotal)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<PosSale>()
+                .Property(x => x.Total)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<PosSale>()
+                .HasOne(x => x.Warehouse)
+                .WithMany()
+                .HasForeignKey(x => x.WarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<PosSaleLine>()
+                .HasIndex(x => x.PosSaleId);
+
+            builder.Entity<PosSaleLine>()
+                .HasIndex(x => x.ProductInventoryId);
+
+            builder.Entity<PosSaleLine>()
+                .Property(x => x.ProductSKU)
+                .HasMaxLength(128);
+
+            builder.Entity<PosSaleLine>()
+                .Property(x => x.ProductDescriptionSnapshot)
+                .HasMaxLength(500);
+
+            builder.Entity<PosSaleLine>()
+                .Property(x => x.SizeSnapshot)
+                .HasMaxLength(100);
+
+            builder.Entity<PosSaleLine>()
+                .Property(x => x.UnitPrice)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<PosSaleLine>()
+                .Property(x => x.DiscountPercent)
+                .HasColumnType("decimal(9,2)");
+
+            builder.Entity<PosSaleLine>()
+                .Property(x => x.DiscountAmount)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<PosSaleLine>()
+                .Property(x => x.LineTotal)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<PosSaleLine>()
+                .HasOne(x => x.PosSale)
+                .WithMany(x => x.Lines)
+                .HasForeignKey(x => x.PosSaleId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<PosSaleLine>()
+                .HasOne(x => x.Product)
+                .WithMany()
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<PosSaleLine>()
+                .HasOne(x => x.ProductInventory)
+                .WithMany()
+                .HasForeignKey(x => x.ProductInventoryId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<Warehouse>()
