@@ -90,6 +90,8 @@ namespace WarehouseManagment.Services
                 DocumentType.ProductionMaterialTransfer => "PMT",
                 DocumentType.ProductionMaterialConsumption => "PMC",
                 DocumentType.FinishedGoodsReceipt => "FGR",
+                DocumentType.PosSale => "POS",
+                DocumentType.CourierShipment => "CSH",
                 _ => throw new InvalidOperationException("Invalid document type.")
             };
         }

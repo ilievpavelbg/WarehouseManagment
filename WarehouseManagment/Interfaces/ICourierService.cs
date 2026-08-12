@@ -8,6 +8,7 @@ namespace WarehouseManagment.Interfaces
         Task CreateCourierAsync(CourierModel model);
         Task EditCourierAsync(CourierModel model);
         Task<List<Courier>> GetAllCouriersAsync(string? date, string? productSKU);
+        Task<(List<Courier> Couriers, int TotalItems)> GetCouriersReportAsync(CourierReportFilterModel filter);
         Task<int> CreditCourierAsync(int id);
         Task<Courier> GetCourierByIdAsync(int id);
     }

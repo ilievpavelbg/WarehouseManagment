@@ -7,6 +7,8 @@ namespace WarehouseManagment.Constants
         public const string WarehouseOperator = "WarehouseOperator";
         public const string ReadOnly = "ReadOnly";
         public const string ProductionManager = "ProductionManager";
+        public const string SalesManager = "SalesManager";
+        public const string SalesOperator = "SalesOperator";
         public const string Cutter = "Cutter";
         public const string Sewer = "Sewer";
         public const string Finisher = "Finisher";
@@ -18,6 +20,8 @@ namespace WarehouseManagment.Constants
             WarehouseOperator,
             ReadOnly,
             ProductionManager,
+            SalesManager,
+            SalesOperator,
             Cutter,
             Sewer,
             Finisher

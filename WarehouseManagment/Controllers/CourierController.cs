@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OfficeOpenXml;
+using WarehouseManagment.Constants;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
 
 namespace WarehouseManagment.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = ApplicationPolicies.RequireSalesAccess)]
     public class CourierController : Controller
     {
         private readonly IProductInventoryService _productInventoryService;
@@ -14,7 +15,8 @@ namespace WarehouseManagment.Controllers
         private readonly ICourierService _courierService;
         private readonly IFactoryService _factoryService;
 
-        public CourierController(IProductInventoryService productInventoryService,
+        public CourierController(
+            IProductInventoryService productInventoryService,
             IProductService productService,
             ICourierService courierService,
             IFactoryService factoryService)
@@ -24,6 +26,8 @@ namespace WarehouseManagment.Controllers
             _courierService = courierService;
             _factoryService = factoryService;
         }
+
+        [HttpGet]
         public async Task<IActionResult> Index(int barcode)
         {
             var inventory = await _productInventoryService.GetProductInventoryByIdAsync(barcode);
@@ -44,8 +48,9 @@ namespace WarehouseManagment.Controllers
                     .Select(e => e.ErrorMessage)
                     .FirstOrDefault();
 
-                return Json(new { success = false, message = errors });
+                return Json(new { success = false, message = errors ?? "Невалидни данни за куриерска пратка." });
             }
+
             try
             {
                 await _courierService.CreateCourierAsync(model);
@@ -53,10 +58,8 @@ namespace WarehouseManagment.Controllers
             }
             catch (Exception ex)
             {
-
                 return Json(new { success = false, message = ex.Message });
             }
-
         }
 
         [HttpGet]
@@ -74,8 +77,8 @@ namespace WarehouseManagment.Controllers
             return View(model);
         }
 
-        [ValidateAntiForgeryToken]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(CourierModel model)
         {
             try
@@ -85,45 +88,26 @@ namespace WarehouseManagment.Controllers
             }
             catch (Exception ex)
             {
-
                 return Json(new { success = false, message = ex.Message });
             }
-
         }
 
         [HttpGet]
-        public async Task<IActionResult> AllCouriers(string? date, string? productSKU, string? status)
+        public async Task<IActionResult> AllCouriers(CourierReportFilterModel filter)
         {
-            var couriers = await _courierService.GetAllCouriersAsync(date, productSKU);
-            var model = await _factoryService.PrepareCourierListModel(couriers);
+            var result = await _courierService.GetCouriersReportAsync(filter);
+            var rows = await _factoryService.PrepareCourierListModel(result.Couriers);
 
-            if (string.IsNullOrEmpty(status))
+            return View(new CourierReportIndexModel
             {
-                return View(model);
-            }
-            else
-            {
-                List<CourierModel> selectedList;
-
-                if (status == "1")
-                {
-                    selectedList = model;
-                }
-                else if (status == "2")
-                {
-                    selectedList = model.Where(x => x.IsDeleted == false).ToList();
-                }
-                else
-                {
-                    selectedList = model.Where(x => x.IsDeleted == true).ToList();
-                }
-
-                return Json(selectedList);
-            }
-
-
+                Filter = filter,
+                Rows = rows,
+                TotalItems = result.TotalItems
+            });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreditCourier(int id, int quantity)
         {
             try
@@ -134,7 +118,6 @@ namespace WarehouseManagment.Controllers
             }
             catch (Exception ex)
             {
-
                 return Json(new { response = false, message = ex.Message });
             }
         }
@@ -142,8 +125,7 @@ namespace WarehouseManagment.Controllers
         [HttpGet]
         public IActionResult Search(string? date, string? productSKU)
         {
-
-            return RedirectToAction("AllCouriers", new { date, productSKU });
+            return RedirectToAction("AllCouriers", new { DateFrom = date, DateTo = date, ProductSKU = productSKU });
         }
 
         [HttpGet]
@@ -152,30 +134,23 @@ namespace WarehouseManagment.Controllers
             return View();
         }
 
-         public async Task<IActionResult> ExportToExcel(string? date, string? productSKU)
+        [HttpGet]
+        public async Task<IActionResult> ExportToExcel(CourierReportFilterModel filter)
         {
-            var data = await _courierService.GetAllCouriersAsync(date, productSKU);
+            filter.Page = 1;
+            filter.PageSize = 200;
+            var result = await _courierService.GetCouriersReportAsync(filter);
 
-            using (var package = new ExcelPackage())
-            {
-                var worksheet = package.Workbook.Worksheets.Add("SheetName");
-                worksheet.Cells.LoadFromCollection(data, true);
-                worksheet.Cells.AutoFitColumns();
+            using var package = new ExcelPackage();
+            var worksheet = package.Workbook.Worksheets.Add("Куриерски пратки");
+            worksheet.Cells.LoadFromCollection(result.Couriers, true);
+            worksheet.Cells.AutoFitColumns();
 
-                var dateColumn1 = worksheet.Column(9);
-                dateColumn1.Style.Numberformat.Format = "DD.MM.YYYY HH.mm";
+            var fileContents = package.GetAsByteArray();
+            var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            var fileName = "courier-shipments.xlsx";
 
-                var dateColumn2 = worksheet.Column(10);
-                dateColumn2.Style.Numberformat.Format = "DD.MM.YYYY HH.mm";
-
-                var fileContents = package.GetAsByteArray();
-                var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-                var fileName = "export.xlsx";
-
-                return File(fileContents, contentType, fileName);
-            }
-
-            
+            return File(fileContents, contentType, fileName);
         }
     }
 }

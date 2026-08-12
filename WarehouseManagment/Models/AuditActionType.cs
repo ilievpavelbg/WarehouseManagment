@@ -24,6 +24,12 @@ namespace WarehouseManagment.Models
         ProductionMaterialSnapshotCreate = 20,
         ProductionMaterialConsumption = 21,
         FinishedGoodsReceipt = 22,
-        ProductionOrderFinalized = 23
+        ProductionOrderFinalized = 23,
+        PosSaleCreate = 24,
+        PosSaleUpdate = 25,
+        PosSaleReversal = 26,
+        CourierShipmentCreate = 27,
+        CourierShipmentUpdate = 28,
+        CourierShipmentReversal = 29
     }
 }

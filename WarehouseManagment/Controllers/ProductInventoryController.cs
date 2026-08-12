@@ -1,12 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WarehouseManagment.Constants;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
 
 namespace WarehouseManagment.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = ApplicationPolicies.RequireSalesManager)]
     public class ProductInventoryController : Controller
     {
         private readonly IProductInventoryService _productInventoryService;

@@ -5,6 +5,7 @@ namespace WarehouseManagment.Models
     public class SaleModel
     {
         public int Id { get; set; }
+        public string? DocumentNumber { get; set; }
         public int ProductId { get; set; }
         public string ProductSKU { get; set; } = null!;
         public int ProductInventoryId { get; set; }
@@ -20,5 +21,9 @@ namespace WarehouseManagment.Models
         public int Availability { get; set; }
         public string? Notes { get; set; } = null!;
         public int QuantityDifference { get; set; }
+        public string? CreatedByUserNameSnapshot { get; set; }
+        public int? WarehouseId { get; set; }
+        public string? WarehouseName { get; set; }
+        public string? ReversalReason { get; set; }
     }
 }

@@ -10,6 +10,8 @@ namespace WarehouseManagment.Constants
         public const string RequireAuditLogAccess = "RequireAuditLogAccess";
         public const string RequireMasterDataWrite = "RequireMasterDataWrite";
         public const string RequireLowStockReportAccess = "RequireLowStockReportAccess";
+        public const string RequireSalesAccess = "RequireSalesAccess";
+        public const string RequireSalesManager = "RequireSalesManager";
         public const string RequireProductionManager = "RequireProductionManager";
         public const string RequireProductionWorker = "RequireProductionWorker";
         public const string RequireProductionDocumentAccess = "RequireProductionDocumentAccess";

@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OfficeOpenXml;
+using WarehouseManagment.Constants;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
 
 namespace WarehouseManagment.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = ApplicationPolicies.RequireSalesAccess)]
     public class SaleController : Controller
     {
         private readonly IProductInventoryService _productInventoryService;
@@ -14,7 +15,8 @@ namespace WarehouseManagment.Controllers
         private readonly ISaleService _saleService;
         private readonly IFactoryService _factoryService;
 
-        public SaleController(IProductInventoryService productInventoryService,
+        public SaleController(
+            IProductInventoryService productInventoryService,
             IProductService productService,
             ISaleService saleService,
             IFactoryService factoryService)
@@ -24,6 +26,8 @@ namespace WarehouseManagment.Controllers
             _saleService = saleService;
             _factoryService = factoryService;
         }
+
+        [HttpGet]
         public async Task<IActionResult> Index(int barcode)
         {
             var inventory = await _productInventoryService.GetProductInventoryByIdAsync(barcode);
@@ -33,13 +37,42 @@ namespace WarehouseManagment.Controllers
             return Json(new { productData = saleModel });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> Products()
+        {
+            var products = await _productService.GetAllProductsAsync();
+
+            return Json(products
+                .OrderBy(x => x.SKU)
+                .Select(x => new
+                {
+                    id = x.Id,
+                    text = $"{x.SKU} - {x.Description}"
+                }));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Variants(int productId)
+        {
+            var variants = await _productInventoryService.GetProductInventoryByProductIdAsync(productId);
+
+            return Json(variants
+                .OrderBy(x => x.Size)
+                .Select(x => new
+                {
+                    id = x.Id,
+                    text = x.Size.ToString(),
+                    quantity = x.Quantity
+                }));
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(SaleModel model)
         {
             if (!ModelState.IsValid)
             {
-                return Json(new { success = false, message = "Invalid sale data." });
+                return Json(new { success = false, message = "Невалидни данни за продажба." });
             }
 
             try
@@ -49,10 +82,8 @@ namespace WarehouseManagment.Controllers
             }
             catch (Exception ex)
             {
-
                 return Json(new { success = false, message = ex.Message });
             }
-
         }
 
         [HttpGet]
@@ -66,7 +97,6 @@ namespace WarehouseManagment.Controllers
             model.Description = product.Description;
             model.Availability = inventory.Quantity;
             model.ProductInventoryId = inventory.Id;
-            
 
             return View(model);
         }
@@ -82,50 +112,28 @@ namespace WarehouseManagment.Controllers
             }
             catch (Exception ex)
             {
-
                 return Json(new { success = false, message = ex.Message });
             }
-
         }
 
         [HttpGet]
-        public async Task<IActionResult> AllSales(string? date, string? productSKU, string? status)
+        public async Task<IActionResult> AllSales(SaleReportFilterModel filter)
         {
-            var sales = await _saleService.GetAllSalesAsync(date, productSKU);
-            var model = await _factoryService.PrepareSaleListModel(sales);
+            var result = await _saleService.GetSalesReportAsync(filter);
+            var rows = await _factoryService.PrepareSaleListModel(result.Sales);
 
-            if (String.IsNullOrEmpty(status))
+            return View(new SaleReportIndexModel
             {
-                return View(model);
-            }
-            else
-            {
-                List<SaleModel> selectedList;
-
-                if (status == "1")
-                {
-                    selectedList = model;
-                }
-                else if (status == "2")
-                {
-                    selectedList = model.Where(x => x.IsDeleted == false).ToList();
-                }
-                else
-                {
-                    selectedList = model.Where(x => x.IsDeleted == true).ToList();
-                }
-
-                return Json(selectedList);
-            }
-
-            
+                Filter = filter,
+                Rows = rows,
+                TotalItems = result.TotalItems
+            });
         }
 
         [HttpGet]
         public IActionResult Search(string? date, string? productSKU)
         {
-
-            return RedirectToAction("AllSales", new { date, productSKU });
+            return RedirectToAction("AllSales", new { DateFrom = date, DateTo = date, ProductSKU = productSKU });
         }
 
         [HttpGet]
@@ -134,6 +142,8 @@ namespace WarehouseManagment.Controllers
             return View();
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Credit(int id, int quantity)
         {
             try
@@ -144,34 +154,27 @@ namespace WarehouseManagment.Controllers
             }
             catch (Exception ex)
             {
-
                 return Json(new { response = false, message = ex.Message });
             }
         }
 
-        public async Task<IActionResult> ExportToExcel(string? date, string? productSKU)
+        [HttpGet]
+        public async Task<IActionResult> ExportToExcel(SaleReportFilterModel filter)
         {
-            var data = await _saleService.GetAllSalesAsync(date, productSKU);
+            filter.Page = 1;
+            filter.PageSize = 200;
+            var result = await _saleService.GetSalesReportAsync(filter);
 
-            using (var package = new ExcelPackage())
-            {
-                var worksheet = package.Workbook.Worksheets.Add("SheetName");
-                worksheet.Cells.LoadFromCollection(data, true);
-                worksheet.Cells.AutoFitColumns();
+            using var package = new ExcelPackage();
+            var worksheet = package.Workbook.Worksheets.Add("POS продажби");
+            worksheet.Cells.LoadFromCollection(result.Sales, true);
+            worksheet.Cells.AutoFitColumns();
 
-                var dateColumn1 = worksheet.Column(9);
-                dateColumn1.Style.Numberformat.Format = "DD.MM.YYYY HH.mm";
+            var fileContents = package.GetAsByteArray();
+            var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            var fileName = "pos-sales.xlsx";
 
-                var dateColumn2 = worksheet.Column(10);
-                dateColumn2.Style.Numberformat.Format = "DD.MM.YYYY HH.mm";
-
-                var fileContents = package.GetAsByteArray();
-                var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-                var fileName = "export.xlsx";
-
-                return File(fileContents, contentType, fileName);
-            }
-
+            return File(fileContents, contentType, fileName);
         }
     }
 }

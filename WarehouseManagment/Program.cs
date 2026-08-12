@@ -68,6 +68,12 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(ApplicationPolicies.RequireLowStockReportAccess, policy =>
         policy.RequireRole(ApplicationRoles.Administrator, ApplicationRoles.WarehouseManager, ApplicationRoles.ReadOnly));
 
+    options.AddPolicy(ApplicationPolicies.RequireSalesAccess, policy =>
+        policy.RequireRole(ApplicationRoles.Administrator, ApplicationRoles.SalesManager, ApplicationRoles.SalesOperator));
+
+    options.AddPolicy(ApplicationPolicies.RequireSalesManager, policy =>
+        policy.RequireRole(ApplicationRoles.Administrator, ApplicationRoles.SalesManager));
+
     options.AddPolicy(ApplicationPolicies.RequireProductionManager, policy =>
         policy.RequireRole(ApplicationRoles.Administrator, ApplicationRoles.ProductionManager));
 

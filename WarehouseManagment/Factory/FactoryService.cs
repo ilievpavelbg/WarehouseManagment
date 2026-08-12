@@ -23,6 +23,7 @@ namespace WarehouseManagment.Factory
                 var courierModel = new CourierModel()
                 {
                     Id = courier.Id,
+                    DocumentNumber = courier.DocumentNumber,
                     ProductId = courier.ProductId,
                     ProductInventoryId = courier.ProductInventoryId,
                     ProductSKU = courier.ProductSKU,
@@ -36,6 +37,9 @@ namespace WarehouseManagment.Factory
                     ReturnDate = courier.ReturnDate,
                     ShippmentBill = courier.ShippmentBill,
                     Notes = courier.Notes,
+                    CreatedByUserNameSnapshot = courier.CreatedByUserNameSnapshot,
+                    WarehouseId = courier.WarehouseId,
+                    ReversalReason = courier.ReversalReason,
                     
 
                 };
@@ -63,7 +67,7 @@ namespace WarehouseManagment.Factory
                 Quantity = productInventory.Quantity,
                 SendDate = DateTime.Now,
                 Description = product.Description,
-                UnitPrice = (decimal)product.RetailPrice,
+                UnitPrice = product.RetailPrice.HasValue ? (decimal)product.RetailPrice.Value : 0,
                 Size = productInventory.Size.ToString(),
                 Availability = productInventory.Quantity
             };
@@ -142,6 +146,7 @@ namespace WarehouseManagment.Factory
                 var saleModel = new SaleModel()
                 {
                     Id = sale.Id,
+                    DocumentNumber = sale.DocumentNumber,
                     ProductId = sale.ProductId,
                     ProductInventoryId = sale.ProductInventoryId,
                     ProductSKU = sale.ProductSKU,
@@ -152,7 +157,10 @@ namespace WarehouseManagment.Factory
                     SoldDate = sale.SoldDate,
                     PaymentMethod = sale.PaymentMethod,
                     IsDeleted = sale.IsDeleted,
-                    Notes = sale.Notes                   
+                    Notes = sale.Notes,
+                    CreatedByUserNameSnapshot = sale.CreatedByUserNameSnapshot,
+                    WarehouseId = sale.WarehouseId,
+                    ReversalReason = sale.ReversalReason
                 };
 
                 saleModel.Size = await _productInventoryService.GetSizeByInventoryId(sale.ProductInventoryId);
@@ -175,7 +183,7 @@ namespace WarehouseManagment.Factory
                 Quantity = productInventory.Quantity,
                 SoldDate = DateTime.Now,
                 Description = product.Description,
-                UnitPrice = (decimal)product.RetailPrice,
+                UnitPrice = product.RetailPrice.HasValue ? (decimal)product.RetailPrice.Value : 0,
                 Size = productInventory.Size.ToString(),
                 Availability = productInventory.Quantity
 
@@ -189,6 +197,8 @@ namespace WarehouseManagment.Factory
             var model = new SaleModel()
             {
                 ProductId = sale.ProductId,
+                Id = sale.Id,
+                DocumentNumber = sale.DocumentNumber,
                 ProductSKU = sale.ProductSKU,
                 ProductInventoryId = sale.ProductInventoryId,
                 Quantity = sale.Quantity,
@@ -198,7 +208,10 @@ namespace WarehouseManagment.Factory
                 Notes = sale.Notes,
                 PaymentMethod = sale.PaymentMethod,
                 Discount = sale.Discount,
-                TotalPrice = sale.TotalPrice
+                TotalPrice = sale.TotalPrice,
+                CreatedByUserNameSnapshot = sale.CreatedByUserNameSnapshot,
+                WarehouseId = sale.WarehouseId,
+                ReversalReason = sale.ReversalReason
                 
             };
 
@@ -209,15 +222,22 @@ namespace WarehouseManagment.Factory
         {
             var model = new CourierModel()
             {
-                CourierName = nameof(courier.CourierName),
-                CourierPaymentMethod = nameof(courier.CourierPaymentMethod),
+                Id = courier.Id,
+                DocumentNumber = courier.DocumentNumber,
+                CourierName = courier.CourierName.ToString(),
+                CourierPaymentMethod = courier.CourierPaymentMethod.ToString(),
                 Quantity = courier.Quantity,
                 Discount = courier.Discount,
                 Notes = courier.Notes,
                 ShippmentBill = courier.ShippmentBill,
                 UnitPrice = courier.UnitPrice,
-                TotalPrice = courier.UnitPrice,
-                ProductSKU = courier.ProductSKU
+                TotalPrice = courier.TotalPrice,
+                ProductId = courier.ProductId,
+                ProductInventoryId = courier.ProductInventoryId,
+                ProductSKU = courier.ProductSKU,
+                CreatedByUserNameSnapshot = courier.CreatedByUserNameSnapshot,
+                WarehouseId = courier.WarehouseId,
+                ReversalReason = courier.ReversalReason
             };
 
             return model;

@@ -1,75 +1,136 @@
-﻿@model List<SaleModel>
+@model SaleReportIndexModel
 
 @{
-    ViewData["Title"] = "Всички продажби на магазина";
+    ViewData["Title"] = "Отчет POS продажби";
+    var filter = Model.Filter;
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
 
-<a class="btn btn-danger" asp-action="ExportToExcel" asp-controller="Sale">Експорт в Excel</a>
-<div class="col-4 my-5">
-    <form class="d-flex" asp-controller="Sale" asp-action="Search" method="get">
-        <input name="productSKU" class="form-control me-2" placeholder="Въведи SKU номер..." />
-        <input name="date" type="date" class="form-control me-2" />
-        <button type="submit" class="btn btn-outline-success">Търси</button>
-    </form>
-</div>
+<form method="get" asp-action="AllSales" class="row g-2 align-items-end my-4">
+    <div class="col-md-2">
+        <label class="form-label">Документ</label>
+        <input name="DocumentNumber" value="@filter.DocumentNumber" class="form-control" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">SKU / артикул</label>
+        <input name="ProductSKU" value="@filter.ProductSKU" class="form-control" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Размер</label>
+        <select name="Size" class="form-select">
+            <option value="">Всички</option>
+            @foreach (var size in Model.Sizes)
+            {
+                <option value="@size" selected="@(filter.Size == size.ToString())">@size</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Дата от</label>
+        <input name="DateFrom" type="date" value="@filter.DateFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Дата до</label>
+        <input name="DateTo" type="date" value="@filter.DateTo?.ToString("yyyy-MM-dd")" class="form-control" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Плащане</label>
+        <select name="PaymentMethod" class="form-select">
+            <option value="">Всички</option>
+            @foreach (var method in Model.PaymentMethods)
+            {
+                <option value="@method" selected="@(filter.PaymentMethod == method)">@method</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Оператор</label>
+        <input name="Operator" value="@filter.Operator" class="form-control" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Статус</label>
+        <select name="Status" class="form-select">
+            <option value="">Всички</option>
+            <option value="active" selected="@(filter.Status == "active")">Активни</option>
+            <option value="reversed" selected="@(filter.Status == "reversed")">Сторнирани</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-outline-success w-100">Филтрирай</button>
+    </div>
+    <div class="col-md-2">
+        <a asp-action="AllSales" class="btn btn-outline-secondary w-100">Изчисти</a>
+    </div>
+    <div class="col-md-2">
+        <a class="btn btn-danger w-100"
+           asp-action="ExportToExcel"
+           asp-route-DocumentNumber="@filter.DocumentNumber"
+           asp-route-ProductSKU="@filter.ProductSKU"
+           asp-route-Size="@filter.Size"
+           asp-route-DateFrom="@filter.DateFrom?.ToString("yyyy-MM-dd")"
+           asp-route-DateTo="@filter.DateTo?.ToString("yyyy-MM-dd")"
+           asp-route-PaymentMethod="@filter.PaymentMethod"
+           asp-route-Operator="@filter.Operator"
+           asp-route-Status="@filter.Status">Експорт Excel</a>
+    </div>
+</form>
 
-<div class="col-4 mb-3">
-    <select id="saleStatus" class="form-select" aria-label="Default select example">
-        <option selected>Филтрирай по статус на продажба...</option>
-        <option value="2">Активни</option>
-        <option value="1">Всички</option>
-        <option value="3">Кредитирани</option>
-    </select>
-</div>
+<div class="mb-2 text-muted">Намерени записи: @Model.TotalItems</div>
 
-@if (!Model.Any())
+@if (!Model.Rows.Any())
 {
-    <p>Няма намерени резултати !</p>
+    <div class="alert alert-info">Няма намерени продажби.</div>
 }
 else
 {
-
-    <div class="alert alert-success" id="successMessage" role="alert" style="display: none;"></div>
-    <div class="alert alert-danger" id="errorMessage" role="alert" style="display: none;"></div>
-    <div class="col-12">
-        <table class="table table-striped table-bordered">
-            <thead class="thead-dark">
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered align-middle">
+            <thead class="table-dark">
                 <tr>
-                    <th scope="col">Id</th>
-                    <th scope="col">SKU</th>
-                    <th scope="col">Размер</th>
-                    <th scope="col">Дата</th>
-                    <th scope="col">Единична цена</th>
-                    <th scope="col">Обща цена</th>
-                    <th scope="col">Количество</th>
-                    <th scope="col">Отстъпка</th>
-                    <th scope="col">Плащане</th>
-                    <th scope="col">Коментар</th>
+                    <th>Документ</th>
+                    <th>SKU</th>
+                    <th>Размер</th>
+                    <th>Дата</th>
+                    <th>Количество</th>
+                    <th>Ед. цена</th>
+                    <th>Общо</th>
+                    <th>Плащане</th>
+                    <th>Оператор</th>
+                    <th>Статус</th>
+                    <th>Действия</th>
                 </tr>
             </thead>
-            <tbody id="salesTable">
-                @foreach (var item in Model)
+            <tbody>
+                @foreach (var item in Model.Rows)
                 {
                     <tr>
-                        <td>@item.Id</td>
+                        <td>@(item.DocumentNumber ?? "-")</td>
                         <td>@item.ProductSKU</td>
                         <td>@item.Size</td>
-                        <td>@item.SoldDate</td>
-                        <td>@item.UnitPrice</td>
-                        <td>@item.TotalPrice</td>
-                        <td>@item.Quantity</td>
-                        <td>@((int)item.Discount)%</td>
+                        <td>@item.SoldDate.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>@item.Quantity бр</td>
+                        <td>@item.UnitPrice.ToString("0.00") EUR</td>
+                        <td>@item.TotalPrice.ToString("0.00") EUR</td>
                         <td>@item.PaymentMethod</td>
-                        <td width="120">@item.Notes</td>
-                        @if (item.IsDeleted == false)
-                        {
-                            <td align="center">
-                                <a class="btn btn-success edit-btn" data-id="@item.Id">Редактирай</a>
-                                <a class="btn btn-danger delete-btn" data-id="@item.Id" data-quantity="@item.Quantity" data-confirm="Сигурни ли сте че искате да отмените продажбата?">Отмени продажба</a>
-                            </td>
-                        }
+                        <td>@(item.CreatedByUserNameSnapshot ?? "-")</td>
+                        <td>
+                            @if (item.IsDeleted)
+                            {
+                                <span class="badge bg-danger">Сторнирана</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">Активна</span>
+                            }
+                        </td>
+                        <td>
+                            @if (!item.IsDeleted)
+                            {
+                                <a class="btn btn-sm btn-success" asp-action="Edit" asp-route-id="@item.Id">Редакция</a>
+                                <button type="button" class="btn btn-sm btn-danger delete-btn" data-id="@item.Id" data-confirm="Сигурни ли сте, че искате да сторнирате продажбата?">Сторно</button>
+                            }
+                        </td>
                     </tr>
                 }
             </tbody>
@@ -77,95 +138,49 @@ else
     </div>
 }
 
-@section Scripts{
+@if (Model.TotalPages > 1)
+{
+    <nav>
+        <ul class="pagination">
+            @for (var pageNumber = 1; pageNumber <= Model.TotalPages; pageNumber++)
+            {
+                <li class="page-item @(pageNumber == filter.Page ? "active" : string.Empty)">
+                    <a class="page-link"
+                       asp-action="AllSales"
+                       asp-route-Page="@pageNumber"
+                       asp-route-DocumentNumber="@filter.DocumentNumber"
+                       asp-route-ProductSKU="@filter.ProductSKU"
+                       asp-route-Size="@filter.Size"
+                       asp-route-DateFrom="@filter.DateFrom?.ToString("yyyy-MM-dd")"
+                       asp-route-DateTo="@filter.DateTo?.ToString("yyyy-MM-dd")"
+                       asp-route-PaymentMethod="@filter.PaymentMethod"
+                       asp-route-Operator="@filter.Operator"
+                       asp-route-Status="@filter.Status">@pageNumber</a>
+                </li>
+            }
+        </ul>
+    </nav>
+}
+
+@section Scripts {
     <script>
-        $('#saleStatus').on('change', function () {
-            var selectedValue = $(this).val();
+        $(document).on('click', '.delete-btn', function () {
+            if (!confirm($(this).data('confirm'))) {
+                return;
+            }
 
             $.ajax({
-                type: "GET",
-                url: "/Sale/AllSales",
-                data: { status: selectedValue },
-                success: function (data) {
-                    $('#salesTable').empty();
-
-                    // Update the displayed list with the fetched data
-                    $.each(data, function (index, item) {
-                        var formattedDate = moment(item.soldDate).format('DD.MM.YYYY [г.] HH:mm:ss');
-                        var row = '<tr>' +
-                            '<td>' + item.id + '</td>' +
-                            '<td>' + item.productSKU + '</td>' +
-                            '<td>' + item.size + '</td>' +
-                            '<td>' + formattedDate + '</td>' +
-                            '<td>' + item.unitPrice + '</td>' +
-                            '<td>' + item.totalPrice + '</td>' +
-                            '<td>' + item.quantity + '</td>' +
-                            '<td>' + item.discount + '</td>';
- 
-
-                        row += '<td>' + (item.paymentMethod === 0 ? "Брой" : "Карта") + '</td>';
-
-                        var notesValue = item.notes || '';
-                        row += '<td width="120px">' + notesValue + '</td>';
-
-                        if (item.isDeleted == false) {
-                            row += '<td align="center">' +
-                                '<a class="btn btn-success edit-btn" data-id="' + item.Id + '">Редактирай</a>' +
-                                '&nbsp;' +
-                                '<a class="btn btn-danger delete-btn" data-id="' + item.Id + '" data-quantity="' + item.Quantity + '" data-confirm="Сигурни ли сте че искате да отмените продажбата?">Отмени продажба</a>' +
-                                '</td>';
-                        }
-                        row += '</tr>';
-                        $('#salesTable').append(row);
-                    });
-                },
-                error: function () {
-                }
-            })
-        })
-
-        // Delete button
-        $(document).on('click', '.delete-btn', function () {
-            var id = $(this).data('id');
-            var quantity = $(this).data('quantity');
-            var confirmMessage = $(this).data('confirm');
-
-            if (confirm(confirmMessage)) {
-                var negativeQty = -quantity;
-                $.ajax({
-                    type: "POST",
-                    url: "/Sale/Credit",
-                    data: { id: id, quantity: negativeQty },
-                    success: function (response) {
-                        if (response.response === true) {
-                            setTimeout(function () {
-                                window.location.reload();
-                            }, 3000);
-                            $('#successMessage').text("Продажбата е успешно отменена.");
-                            $('#successMessage').show();
-
-                        } else {
-                            if (response.message) {
-                                $('#errorMessage').text("An error occurred while deleting the product: " + response.message);
-                            }
-                            $('#errorMessage').show();
-                            setTimeout(function () {
-                                $('#errorMessage').hide();
-                            }, 3000);
-                        }
-                    },
-                    error: function () {
-
+                type: 'POST',
+                url: '/Sale/Credit',
+                data: { id: $(this).data('id') },
+                success: function (response) {
+                    if (response.response) {
+                        window.location.reload();
+                    } else {
+                        alert(response.message || 'Сторното не беше записано.');
                     }
-                });
-            }
+                }
+            });
         });
-
-        // Edit button
-        $(document).on('click', '.edit-btn', function () {
-            var id = $(this).data('id');
-            window.location.href = '/Sale/Edit/' + id;
-        });
-
     </script>
 }

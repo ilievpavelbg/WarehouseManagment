@@ -80,6 +80,7 @@ namespace WarehouseManagment.Services
                 CreatedOn = createdOn,
                 ReferenceType = model.ReferenceType,
                 ReferenceId = model.ReferenceId,
+                ReferenceNumber = model.ReferenceNumber,
                 UserId = model.UserId ?? GetCurrentUserId(),
                 Notes = notes
             };

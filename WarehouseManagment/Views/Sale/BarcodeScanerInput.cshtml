@@ -1,152 +1,155 @@
-﻿@using System.ComponentModel;
+@using System.ComponentModel
+@using WarehouseManagment.Data
+
 @{
-    ViewData["Title"] = $"Продажба на артикул";
+    ViewData["Title"] = "POS продажба";
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
 
-<div class="row justify-content-between mt-5">
-    <div class="col-4">
-        <form class="d-flex" method="get">
-            <input type="text" id="barcode" name="id" class="form-control me-2" placeholder="Inventory Id" aria-label="Inventory Id" aria-describedby="basic-addon2">
+<div class="row g-3 mb-4">
+    <div class="col-md-5">
+        <label class="form-label">Баркод</label>
+        <form id="barcodeForm" class="d-flex" method="get">
+            <input type="text" id="barcode" class="form-control me-2" placeholder="Сканирай или въведи баркод" autocomplete="off" autofocus>
             <button type="submit" class="btn btn-outline-success">Търси</button>
         </form>
     </div>
-    <div class="col-6 product-container"></div>
+    <div class="col-md-7">
+        <label class="form-label">Ръчен избор</label>
+        <div class="input-group">
+            <select id="manualProduct" class="form-select">
+                <option value="">Избери артикул</option>
+            </select>
+            <select id="manualVariant" class="form-select">
+                <option value="">Размер / вариант</option>
+            </select>
+            <button type="button" id="manualLoad" class="btn btn-outline-primary">Зареди</button>
+        </div>
+    </div>
 </div>
 
+<div class="product-container col-md-8"></div>
 
-
-
-@section Scripts{
+@section Scripts {
     <script>
         $(document).ready(function () {
+            loadProducts();
 
-            $('#barcode').on('input', function () {
-                var scannedBarcode = $(this).val();
+            $('#barcodeForm').on('submit', function (event) {
+                event.preventDefault();
+                loadByBarcode($('#barcode').val());
+            });
+
+            $('#barcode').on('change', function () {
+                loadByBarcode($(this).val());
+            });
+
+            $('#manualProduct').on('change', function () {
+                var productId = $(this).val();
+                $('#manualVariant').empty().append($('<option>').val('').text('Размер / вариант'));
+
+                if (!productId) {
+                    return;
+                }
+
+                $.get('/Sale/Variants', { productId: productId }, function (variants) {
+                    $.each(variants, function (_, item) {
+                        $('#manualVariant').append($('<option>').val(item.id).text(item.text + ' / наличност ' + item.quantity + ' бр'));
+                    });
+                });
+            });
+
+            $('#manualLoad').on('click', function () {
+                var variantId = $('#manualVariant').val();
+
+                if (!variantId) {
+                    alert('Изберете размер / вариант.');
+                    return;
+                }
+
+                loadByBarcode(variantId);
+            });
+
+            function loadProducts() {
+                $.get('/Sale/Products', function (products) {
+                    $.each(products, function (_, item) {
+                        $('#manualProduct').append($('<option>').val(item.id).text(item.text));
+                    });
+                });
+            }
+
+            function loadByBarcode(value) {
+                if (!value) {
+                    return;
+                }
 
                 $.ajax({
                     url: '/Sale/Index',
                     type: 'GET',
-                    data: { barcode: scannedBarcode },
+                    data: { barcode: value },
                     success: function (productData) {
                         $('.product-container').empty();
-                        createProductRow(productData);
-                        document.getElementById('barcode').value = "";
+                        createProductRow(productData.productData);
+                        $('#barcode').val('').focus();
+                    },
+                    error: function () {
+                        alert('Артикулът не е намерен.');
                     }
                 });
-            })
+            }
 
             function createProductRow(productData) {
-                var newRow = $('<div class="product-row">');
-                newRow.append($('<div class="card-description text-center">').text("Артикул - " + productData.productData.productSKU + ' / ' + productData.productData.description + ' / ' + productData.productData.size));
-                newRow.append($('<div class="py-1 card-description text-center">').text("Наличност - " + productData.productData.availability + "бр."));
-                var unitPriceRow = $('<div class="input-group input-group-lg mb-2">');
-                var unitPriceColDescr = $('<span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Единична цена :</span>');
-                var unitPriceInput = $('<input type="number" class="product-unit-price form-control" aria-label="Disabled input example" disabled>').val(productData.productData.unitPrice);
-                unitPriceRow.append(unitPriceColDescr);
-                unitPriceRow.append(unitPriceInput);
-                newRow.append(unitPriceRow);
-                newRow.append(createPaymentMethodDropdown(productData.productData.paymentMethod));
-                var quantityRow = $('<div class="input-group input-group-lg mb-2">');
-                var quantityColDescr = $('<span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Количество :</span>');
-                var quantityInput = $('<input type="number" min="1" max="" class="product-quantity form-control">').val(1).attr('max', productData.productData.availability);
-                quantityRow.append(quantityColDescr);
-                quantityRow.append(quantityInput);
-                newRow.append(quantityRow);
-                newRow.append(createDiscountDropdown(productData.productData.discount));
-                var totalPriceRow = $('<div class="input-group input-group-lg mb-2">');
-                var totalPriceColDescr = $('<span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Тотал цена :</span>');
-                var totalPriceInput = $('<input class="product-total-price form-control" id="TotalPrice" aria-label="Disabled input example" disabled>').val(productData.productData.unitPrice);
-                totalPriceRow.append(totalPriceColDescr);
-                totalPriceRow.append(totalPriceInput);
-                newRow.append(totalPriceRow);
-                var notesRow = $('<div class="input-group input-group-lg mb-2">');
-                var notesColDescr = $('<span class="input-group-text fw-bold" id="inputGroup-sizing-lg">Коментар :</span>');
-                var notesInput = $('<input type="text" class="notes-input form-control">').val("");
-                notesRow.append(notesColDescr);
-                notesRow.append(notesInput);
-                newRow.append(notesRow);
-                var saleButton = $('<div class="text-center"><button class="p-2 sale-button btn btn-outline-success">ОТЧЕТИ ПРОДАЖБА</button></div>');
-                newRow.append(saleButton);
+                var row = $('<div class="card p-3">');
+                row.append($('<h4>').text(productData.productSKU + ' / ' + productData.description + ' / ' + productData.size));
+                row.append($('<div class="mb-2">').text('Наличност: ' + productData.availability + ' бр'));
 
-                function UpdateTotalPriceByDiscount() {
-                    var unitPrice = parseFloat(unitPriceInput.val());
-                    var quantity = parseInt(quantityInput.val());
-                    var discount = parseFloat($('.product-discount option:selected').val());
+                var unitPriceInput = $('<input type="number" class="product-unit-price form-control" disabled>').val(productData.unitPrice);
+                row.append(inputGroup('Единична цена', unitPriceInput));
 
-                    if (isNaN(discount)) {
-                        discount = 0;
-                    }
+                row.append(createPaymentMethodDropdown(productData.paymentMethod));
 
-                    var totalPrice = unitPrice * quantity;
+                var quantityInput = $('<input type="number" min="1" class="product-quantity form-control">')
+                    .val(1)
+                    .attr('max', productData.availability);
+                row.append(inputGroup('Количество', quantityInput));
 
-                    if (discount > 0) {
-                        totalPrice = ((unitPrice - (unitPrice * discount / 100)) * quantity).toFixed(2);
-                    } else {
-                        totalPrice = (unitPrice * quantity).toFixed(2);
-                    }
+                row.append(createDiscountDropdown(productData.discount));
 
-                    $('#TotalPrice').val(totalPrice);
-                }
-                $('.product-container').append(newRow);
-                newRow.find('.product-discount').on('change', UpdateTotalPriceByDiscount);
+                var totalPriceInput = $('<input class="product-total-price form-control" id="TotalPrice" disabled>').val(productData.unitPrice);
+                row.append(inputGroup('Общо', totalPriceInput));
 
-                function UpdateTotalPriceByQuantity() {
-                    var unitPrice = parseFloat(unitPriceInput.val());
-                    var quantity = parseInt(quantityInput.val());
-                    var discount = parseFloat($('.product-discount option:selected').val());
+                var notesInput = $('<input type="text" class="notes-input form-control">');
+                row.append(inputGroup('Коментар', notesInput));
 
-                    if (isNaN(discount)) {
-                        discount = 0;
-                    }
+                var saleButton = $('<button class="btn btn-outline-success fs-5">Запиши POS продажба</button>');
+                row.append($('<div class="text-center">').append(saleButton));
 
-                    var totalPrice = unitPrice * quantity;
-
-                    if (discount > 0) {
-                        totalPrice = ((unitPrice - (unitPrice * discount / 100)) * quantity).toFixed(2);
-                    } else {
-                        totalPrice = (unitPrice * quantity).toFixed(2);
-                    }
-                    $('#TotalPrice').val(totalPrice);
-                }
-                quantityInput.on('input', UpdateTotalPriceByQuantity);
-                UpdateTotalPriceByQuantity();
+                quantityInput.on('input', updateTotal);
+                row.find('.product-discount').on('change', updateTotal);
+                updateTotal();
 
                 saleButton.on('click', function () {
-                    var sku = productData.productData.productSKU;
-                    var unitPrice = parseFloat(unitPriceInput.val());
-                    var discount = parseInt($('.product-discount option:selected').val());
-                    var availability = productData.productData.availability;
                     var quantity = parseInt(quantityInput.val());
-                    if (quantity > availability) {
-                        alert("Количеството което сте избрали е по-голямо от наличностите.");
-                        return false;
-                    }
-                    var date = productData.productData.soldDate;
-                    var productId = productData.productData.productId;
-                    var productInventoryId = productData.productData.productInventoryId;
-                    var paymentMethod = parseInt($('.product-paymentMethod option:selected').val());
-                    var totalPrice;
-                    if (discount > 0) {
-                        totalPrice = (unitPrice - (unitPrice * discount / 100)) * quantity;
-                    } else {
-                        totalPrice = unitPrice * quantity;
+
+                    if (quantity <= 0) {
+                        alert('Количеството трябва да е по-голямо от нула.');
+                        return;
                     }
 
-                    var notes = $('.notes-input').val();
+                    if (quantity > productData.availability) {
+                        alert('Количеството, което сте избрали, е по-голямо от наличността.');
+                        return;
+                    }
 
                     var sale = {
-                        productSKU: sku,
-                        unitPrice: unitPrice,
-                        discount: discount,
+                        productSKU: productData.productSKU,
+                        discount: parseInt(row.find('.product-discount').val()),
                         quantity: quantity,
-                        soldDate: date,
-                        productId: productId,
-                        totalPrice: totalPrice,
-                        productInventoryId: productInventoryId,
-                        paymentMethod: paymentMethod,
-                        notes: notes
+                        productId: productData.productId,
+                        productInventoryId: productData.productInventoryId,
+                        paymentMethod: parseInt(row.find('.product-paymentMethod').val()),
+                        notes: notesInput.val()
                     };
 
                     $.ajax({
@@ -155,75 +158,67 @@
                         data: sale,
                         success: function (response) {
                             if (response.success) {
-                                alert("Успешно извършихте продажба!")
+                                alert('Продажбата е записана успешно.');
                                 window.location.reload();
                             } else {
-                                alert('Sale failed: ' + response.message);
+                                alert(response.message || 'Продажбата не беше записана.');
                             }
                         }
                     });
                 });
 
+                $('.product-container').append(row);
+
+                function updateTotal() {
+                    var unitPrice = parseFloat(unitPriceInput.val()) || 0;
+                    var quantity = parseInt(quantityInput.val()) || 0;
+                    var discount = parseFloat(row.find('.product-discount').val()) || 0;
+                    var totalPrice = unitPrice * quantity * (1 - discount / 100);
+                    totalPriceInput.val(totalPrice.toFixed(2));
+                }
             }
-            //Create discount dropdown
+
+            function inputGroup(label, input) {
+                var group = $('<div class="input-group input-group-lg mb-2">');
+                group.append($('<span class="input-group-text fw-bold">').text(label + ':'));
+                group.append(input);
+                return group;
+            }
+
             function createDiscountDropdown(selectedDiscount) {
-                var container = $('<div class="input-group input-group-lg mb-2">');
-                var description = $('<label class="input-group-text fw-bold" for="inputGroupSelect01">Отстъпка : </label>');
-                var dropdown = $('<select class="product-discount form-select" id="inputGroupSelect01">');
-                var discountValues = [
-        @foreach (var value in Enum.GetValues(typeof(Discount)).Cast<Discount>())
-        {
-            <text>{ value: @((int)value) }, </text>
-        }
-                            ];
-
-                discountValues.forEach(function (option) {
-                    var optionElement = $('<option>').attr('value', option.value).text(option.value + "%");
-
-                    if (option.value === selectedDiscount) {
-                        optionElement.attr('selected', 'selected');
+                var dropdown = $('<select class="product-discount form-select">');
+                var values = [
+                    @foreach (var value in Enum.GetValues(typeof(Discount)).Cast<Discount>())
+                    {
+                        <text>{ value: "@((int)value)", text: "@((int)value)%" },</text>
                     }
-                    dropdown.append(optionElement);
+                ];
+
+                $.each(values, function (_, item) {
+                    dropdown.append($('<option>').val(item.value).text(item.text).prop('selected', item.value == selectedDiscount));
                 });
 
-                container.append(description);
-                container.append(dropdown);
-
-                return container;
+                return inputGroup('Отстъпка', dropdown);
             }
 
-            //Create PaymentMethod dropdown
             function createPaymentMethodDropdown(selectedPaymentMethod) {
-                var container = $('<div class="input-group input-group-lg mb-2">');
-                var description = $('<label class="input-group-text fw-bold" for="inputGroupSelect01">Плащане : </label>');
                 var dropdown = $('<select class="product-paymentMethod form-select">');
-                var paymentMethods = [
-        @foreach (var value in Enum.GetValues(typeof(PaymentMethod)).Cast<PaymentMethod>())
-        {
-            var enumType = typeof(PaymentMethod);
-            var enumMember = enumType.GetMember(value.ToString())[0];
-            var descriptionAttribute = enumMember.GetCustomAttributes(typeof(DescriptionAttribute), false).FirstOrDefault() as DescriptionAttribute;
-            var paymentDescription = descriptionAttribute != null ? descriptionAttribute.Description : value.ToString();
-
-            var encodedDescription = Html.Raw(paymentDescription.Replace("\"", "&quot;"));
-            <text>{ value: "@((int)value)", text: "@encodedDescription" }, </text>
-        }
-                            ];
-
-                for (var i = 0; i < paymentMethods.length; i++) {
-                    var optionElement = $('<option>').attr('value', paymentMethods[i].value).text(paymentMethods[i].text);
-                    if (paymentMethods[i].value === selectedPaymentMethod) {
-                        optionElement.attr('selected', 'selected');
+                var values = [
+                    @foreach (var value in Enum.GetValues(typeof(PaymentMethod)).Cast<PaymentMethod>())
+                    {
+                        var enumMember = typeof(PaymentMethod).GetMember(value.ToString())[0];
+                        var descriptionAttribute = enumMember.GetCustomAttributes(typeof(DescriptionAttribute), false).FirstOrDefault() as DescriptionAttribute;
+                        var description = descriptionAttribute != null ? descriptionAttribute.Description : value.ToString();
+                        <text>{ value: "@((int)value)", text: "@Html.Raw(description.Replace("\"", "&quot;"))" },</text>
                     }
-                    dropdown.append(optionElement);
-                }
+                ];
 
-                container.append(description);
-                container.append(dropdown);
+                $.each(values, function (_, item) {
+                    dropdown.append($('<option>').val(item.value).text(item.text).prop('selected', item.value == selectedPaymentMethod));
+                });
 
-                return container;
+                return inputGroup('Начин на плащане', dropdown);
             }
-
-        })
+        });
     </script>
 }

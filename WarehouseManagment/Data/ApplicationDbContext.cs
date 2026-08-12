@@ -53,6 +53,79 @@ namespace WarehouseManagment.Data
                 .HasIndex(p => p.SKU)
                 .IsUnique();
 
+            builder.Entity<Sale>()
+                .HasIndex(x => x.DocumentNumber);
+
+            builder.Entity<Sale>()
+                .HasIndex(x => x.SoldDate);
+
+            builder.Entity<Sale>()
+                .HasIndex(x => x.ProductSKU);
+
+            builder.Entity<Sale>()
+                .Property(x => x.DocumentNumber)
+                .HasMaxLength(100);
+
+            builder.Entity<Sale>()
+                .Property(x => x.CreatedByUserId)
+                .HasMaxLength(450);
+
+            builder.Entity<Sale>()
+                .Property(x => x.CreatedByUserNameSnapshot)
+                .HasMaxLength(256);
+
+            builder.Entity<Sale>()
+                .Property(x => x.ReversalReason)
+                .HasMaxLength(500);
+
+            builder.Entity<Sale>()
+                .Property(x => x.ReversedByUserId)
+                .HasMaxLength(450);
+
+            builder.Entity<Sale>()
+                .HasOne(x => x.Warehouse)
+                .WithMany()
+                .HasForeignKey(x => x.WarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Courier>()
+                .HasIndex(x => x.DocumentNumber);
+
+            builder.Entity<Courier>()
+                .HasIndex(x => x.SendDate);
+
+            builder.Entity<Courier>()
+                .HasIndex(x => x.ProductSKU);
+
+            builder.Entity<Courier>()
+                .HasIndex(x => x.ShippmentBill);
+
+            builder.Entity<Courier>()
+                .Property(x => x.DocumentNumber)
+                .HasMaxLength(100);
+
+            builder.Entity<Courier>()
+                .Property(x => x.CreatedByUserId)
+                .HasMaxLength(450);
+
+            builder.Entity<Courier>()
+                .Property(x => x.CreatedByUserNameSnapshot)
+                .HasMaxLength(256);
+
+            builder.Entity<Courier>()
+                .Property(x => x.ReversalReason)
+                .HasMaxLength(500);
+
+            builder.Entity<Courier>()
+                .Property(x => x.ReversedByUserId)
+                .HasMaxLength(450);
+
+            builder.Entity<Courier>()
+                .HasOne(x => x.Warehouse)
+                .WithMany()
+                .HasForeignKey(x => x.WarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.Entity<Warehouse>()
                 .HasIndex(w => w.Code)
                 .IsUnique();

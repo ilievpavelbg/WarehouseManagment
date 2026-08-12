@@ -33,12 +33,15 @@
         var isWarehouseOperator = User.IsInRole(ApplicationRoles.WarehouseOperator);
         var isReadOnly = User.IsInRole(ApplicationRoles.ReadOnly);
         var isProductionManager = User.IsInRole(ApplicationRoles.ProductionManager);
+        var isSalesManager = User.IsInRole(ApplicationRoles.SalesManager);
+        var isSalesOperator = User.IsInRole(ApplicationRoles.SalesOperator);
         var isProductionWorker = User.IsInRole(ApplicationRoles.Cutter) || User.IsInRole(ApplicationRoles.Sewer) || User.IsInRole(ApplicationRoles.Finisher);
         var canManageWarehouse = isAdministrator || isWarehouseManager;
         var canReadWarehouse = canManageWarehouse || isWarehouseOperator || isReadOnly;
         var canViewLowStock = canManageWarehouse || isReadOnly;
         var canManageProduction = isAdministrator || isProductionManager;
         var canWorkProduction = canManageProduction || isProductionWorker;
+        var canAccessSales = isAdministrator || isSalesManager || isSalesOperator;
         var isProductionWorkerOnly = isProductionWorker && !canManageProduction;
         var brandController = isProductionWorkerOnly ? "ProductionWork" : "Home";
         var brandAction = "Index";
@@ -67,7 +70,7 @@
                                     <a class="nav-link @(isHomeActive ? "active" : string.Empty)" asp-area="" asp-controller="Home" asp-action="Index">Начало</a>
                                 </li>
                             }
-                            @if (!isProductionWorkerOnly)
+                            @if (!isProductionWorkerOnly && canAccessSales)
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle @(isSalesActive ? "active" : string.Empty)" href="#" id="salesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
