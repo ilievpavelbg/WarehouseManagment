@@ -25,6 +25,10 @@
                 {
                     <span>-</span>
                 }
+                else if (Model.PosSaleId.HasValue)
+                {
+                    <a asp-controller="Pos" asp-action="Receipt" asp-route-id="@Model.PosSaleId.Value">@Model.DocumentNumber</a>
+                }
                 else if (Model.HasProductionDocument)
                 {
                     <a asp-controller="ProductionDocuments" asp-action="ViewDocument" asp-route-documentNumber="@Model.DocumentNumber">@Model.DocumentNumber</a>
@@ -41,6 +45,11 @@
 </div>
 
 <div class="mb-3">
+    @if (Model.PosSaleId.HasValue)
+    {
+        <a class="btn btn-outline-primary" asp-controller="Pos" asp-action="Receipt" asp-route-id="@Model.PosSaleId.Value">Отвори документа</a>
+        <a class="btn btn-outline-secondary" asp-controller="Pos" asp-action="Receipt" asp-route-id="@Model.PosSaleId.Value">Печат</a>
+    }
     @if (Model.HasProductionDocument)
     {
         <a class="btn btn-outline-primary" asp-controller="ProductionDocuments" asp-action="ViewDocument" asp-route-documentNumber="@Model.DocumentNumber">Отвори документа</a>

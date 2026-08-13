@@ -27,10 +27,12 @@ namespace WarehouseManagment.Services
                 .ToListAsync();
 
             var users = await GetUserDisplayNamesAsync(auditLogs.Select(x => x.UserId));
+            var posSaleLinks = await GetPosSaleLinksAsync(auditLogs.Select(x => x.DocumentNumber));
             var logs = auditLogs.Select(x =>
                 {
                     var userName = ResolveUserName(x.UserId, x.UserName, users);
                     var documentNumber = x.DocumentNumber ?? string.Empty;
+                    posSaleLinks.TryGetValue(documentNumber, out var posSaleId);
 
                     return new AuditLogRowModel
                     {
@@ -45,6 +47,7 @@ namespace WarehouseManagment.Services
                             : documentNumber,
                         DocumentNumber = documentNumber,
                         HasProductionDocument = AuditDisplayHelper.IsProductionDocument(documentNumber),
+                        PosSaleId = posSaleId,
                         Description = x.Description,
                         IpAddress = AuditDisplayHelper.FormatIpAddress(x.IpAddress)
                     };
@@ -83,6 +86,8 @@ namespace WarehouseManagment.Services
             var users = await GetUserDisplayNamesAsync(new[] { log.UserId });
             var documentNumber = log.DocumentNumber ?? string.Empty;
             var entityId = log.EntityId?.ToString() ?? string.Empty;
+            var posSaleLinks = await GetPosSaleLinksAsync(new[] { documentNumber });
+            posSaleLinks.TryGetValue(documentNumber, out var posSaleId);
 
             return new AuditLogDetailsModel
             {
@@ -104,6 +109,7 @@ namespace WarehouseManagment.Services
                 NewValueRows = AuditDisplayHelper.ParseValues(log.NewValues),
                 IpAddress = AuditDisplayHelper.FormatIpAddress(log.IpAddress),
                 HasProductionDocument = AuditDisplayHelper.IsProductionDocument(documentNumber),
+                PosSaleId = posSaleId,
                 HasProductionOrderLink = string.Equals(log.EntityType, "ProductionOrder", StringComparison.OrdinalIgnoreCase)
                     && log.EntityId.HasValue
                     && log.EntityId.Value <= int.MaxValue
@@ -121,6 +127,25 @@ namespace WarehouseManagment.Services
                 .AsNoTracking()
                 .Where(x => ids.Contains(x.Id))
                 .ToDictionaryAsync(x => x.Id, x => x.UserName ?? x.Email ?? string.Empty);
+        }
+
+        private async Task<Dictionary<string, int>> GetPosSaleLinksAsync(IEnumerable<string?> documentNumbers)
+        {
+            var numbers = documentNumbers
+                .Where(AuditDisplayHelper.IsPosDocument)
+                .Select(x => x!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (!numbers.Any())
+            {
+                return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            return await _dbContext.PosSales
+                .AsNoTracking()
+                .Where(x => numbers.Contains(x.DocumentNumber))
+                .ToDictionaryAsync(x => x.DocumentNumber, x => x.Id, StringComparer.OrdinalIgnoreCase);
         }
 
         private static string ResolveUserName(string? userId, string? snapshotUserName, IReadOnlyDictionary<string, string> users)

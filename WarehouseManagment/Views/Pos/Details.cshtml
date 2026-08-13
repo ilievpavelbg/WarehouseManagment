@@ -8,6 +8,7 @@
     <h1>@ViewData["Title"]</h1>
     <div>
         <a class="btn btn-outline-secondary" asp-action="Receipt" asp-route-id="@Model.Id">Печат</a>
+        <a class="btn btn-outline-info" asp-controller="AuditLog" asp-action="Index" asp-route-DocumentNumber="@Model.DocumentNumber">Одит</a>
         <a class="btn btn-primary" asp-action="Sales">Назад</a>
     </div>
 </div>
@@ -28,7 +29,7 @@
     <div class="col-md-6">
         <dl class="row">
             <dt class="col-sm-4">Плащане</dt>
-            <dd class="col-sm-8">@Model.PaymentMethod</dd>
+            <dd class="col-sm-8">@AuditDisplayHelper.PaymentMethodLabel(Model.PaymentMethod.ToString())</dd>
             <dt class="col-sm-4">Статус</dt>
             <dd class="col-sm-8">@Model.Status</dd>
             <dt class="col-sm-4">Общо</dt>
@@ -56,7 +57,7 @@
                 <td>@line.ProductSKU</td>
                 <td>@line.ProductDescription</td>
                 <td>@line.Size</td>
-                <td>@line.Quantity бр</td>
+                <td>@line.Quantity бр.</td>
                 <td>@line.UnitPrice.ToString("0.00") EUR</td>
                 <td>@line.DiscountPercent.ToString("0.##")%</td>
                 <td>@line.LineTotal.ToString("0.00") EUR</td>
