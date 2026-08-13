@@ -79,6 +79,8 @@
     <tbody>
         @foreach (var row in Model.Rows)
         {
+            var statusLabel = row.Status == WarehouseManagment.Data.PosSaleStatus.Reversed ? "Сторнирана" : "Завършена";
+            var statusClass = row.Status == WarehouseManagment.Data.PosSaleStatus.Reversed ? "bg-danger" : "bg-success";
             <tr>
                 <td><a asp-action="Receipt" asp-route-id="@row.Id">@row.DocumentNumber</a></td>
                 <td>@row.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
@@ -88,7 +90,7 @@
                 <td>@row.Total.ToString("0.00") EUR</td>
                 <td>@AuditDisplayHelper.PaymentMethodLabel(row.PaymentMethod.ToString())</td>
                 <td>
-                    <span class="badge @(row.Status == WarehouseManagment.Data.PosSaleStatus.Completed ? "bg-success" : "bg-danger")">@row.Status</span>
+                    <span class="badge @statusClass">@statusLabel</span>
                 </td>
                 <td>
                     <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@row.Id">Детайли</a>

@@ -242,13 +242,16 @@ namespace WarehouseManagment.Services
         public async Task<PosReceiptModel> GetReceiptAsync(int id)
         {
             var sale = await GetSaleWithLinesAsync(id);
-            return MapReceipt(sale);
+            var receipt = MapReceipt(sale);
+            receipt.ReversedByUserName = await ResolveUserNameAsync(sale.ReversedByUserId);
+            return receipt;
         }
 
         public async Task<PosSaleDetailsModel> GetDetailsAsync(int id)
         {
             var sale = await GetSaleWithLinesAsync(id);
             var receipt = MapReceipt(sale);
+            receipt.ReversedByUserName = await ResolveUserNameAsync(sale.ReversedByUserId);
 
             return new PosSaleDetailsModel
             {
@@ -264,8 +267,128 @@ namespace WarehouseManagment.Services
                 Status = receipt.Status,
                 Lines = receipt.Lines,
                 ReversalReason = sale.ReversalReason,
-                ReversedOn = sale.ReversedOn
+                ReversedOn = sale.ReversedOn,
+                ReversedByUserId = sale.ReversedByUserId,
+                ReversedByUserName = receipt.ReversedByUserName
             };
+        }
+
+        public async Task<PosSaleReversalModel> GetReversalModelAsync(int id)
+        {
+            var sale = await GetSaleWithLinesAsync(id);
+            ValidateReversalEligibility(sale);
+
+            return new PosSaleReversalModel
+            {
+                Id = sale.Id,
+                DocumentNumber = sale.DocumentNumber,
+                CreatedOn = sale.CreatedOn,
+                OperatorName = sale.CreatedByUserNameSnapshot,
+                WarehouseName = $"{sale.Warehouse.Code} - {sale.Warehouse.Name}",
+                PaymentMethod = sale.PaymentMethod,
+                Total = sale.Total,
+                Lines = sale.Lines.Select(x => new PosReceiptLineModel
+                {
+                    ProductSKU = x.ProductSKU,
+                    ProductDescription = x.ProductDescriptionSnapshot,
+                    Size = x.SizeSnapshot,
+                    Quantity = x.Quantity,
+                    UnitPrice = x.UnitPrice,
+                    DiscountPercent = x.DiscountPercent,
+                    LineTotal = x.LineTotal
+                }).ToList()
+            };
+        }
+
+        public async Task ReverseSaleAsync(PosSaleReversalModel model)
+        {
+            if (model == null)
+            {
+                throw new ArgumentNullException(nameof(model));
+            }
+
+            var reason = model.ReversalReason?.Trim() ?? string.Empty;
+            if (reason.Length < 3)
+            {
+                throw new InvalidOperationException("Причината за сторно трябва да бъде поне 3 символа.");
+            }
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+            try
+            {
+                var sale = await _dbContext.PosSales
+                    .FromSqlInterpolated($"SELECT * FROM PosSales WITH (UPDLOCK, HOLDLOCK) WHERE Id = {model.Id}")
+                    .Include(x => x.Warehouse)
+                    .Include(x => x.Lines)
+                    .FirstOrDefaultAsync(x => x.Id == model.Id);
+
+                if (sale == null)
+                {
+                    throw new InvalidOperationException("POS продажбата не е намерена.");
+                }
+
+                ValidateReversalEligibility(sale);
+
+                var finishedGoodsWarehouse = await GetDefaultFinishedGoodsWarehouseAsync();
+                if (finishedGoodsWarehouse.Id != sale.WarehouseId)
+                {
+                    throw new InvalidOperationException("Складът за готова продукция не съвпада със склада на оригиналната POS продажба.");
+                }
+
+                var inventoryIds = sale.Lines.Select(x => x.ProductInventoryId).Distinct().ToList();
+                var inventories = await LockInventoriesAsync(inventoryIds);
+                if (inventories.Count != inventoryIds.Count)
+                {
+                    throw new InvalidOperationException("Един или повече артикули от продажбата вече не са намерени.");
+                }
+
+                var reversedOn = DateTime.Now;
+                var restoredQuantity = 0;
+
+                foreach (var line in sale.Lines.OrderBy(x => x.ProductInventoryId))
+                {
+                    var inventory = inventories.Single(x => x.Id == line.ProductInventoryId);
+                    inventory.Quantity += line.Quantity;
+                    restoredQuantity += line.Quantity;
+
+                    await _inventoryMovementService.CreateMovementAsync(new InventoryMovementModel
+                    {
+                        ProductInventoryId = line.ProductInventoryId,
+                        WarehouseId = sale.WarehouseId,
+                        MovementType = MovementType.SaleReversal,
+                        Quantity = line.Quantity,
+                        ReferenceType = nameof(PosSale),
+                        ReferenceId = sale.Id,
+                        ReferenceNumber = sale.DocumentNumber,
+                        UserId = _currentUserService.UserId,
+                        Notes = $"Сторно на POS продажба {sale.DocumentNumber}."
+                    });
+                }
+
+                sale.Status = PosSaleStatus.Reversed;
+                sale.ReversalReason = reason;
+                sale.ReversedOn = reversedOn;
+                sale.ReversedByUserId = _currentUserService.UserId;
+
+                await _auditLogService.AddAsync(new AuditLogEntryModel
+                {
+                    ActionType = AuditActionType.PosSaleReversal,
+                    EntityType = nameof(PosSale),
+                    EntityId = sale.Id,
+                    DocumentNumber = sale.DocumentNumber,
+                    Description = $"Сторнирана POS продажба {sale.DocumentNumber}.",
+                    NewValues = $"DocumentNumber={sale.DocumentNumber}; Quantity={restoredQuantity}; Total={sale.Total:F2}; Reason={reason}; ReversedBy={_currentUserService.UserName}; ReversedOn={reversedOn:yyyy-MM-dd HH:mm:ss}; Warehouse={sale.Warehouse.Code} - {sale.Warehouse.Name}"
+                });
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<PosSaleIndexModel> GetSalesAsync(PosSaleFilterModel filter)
@@ -367,6 +490,43 @@ namespace WarehouseManagment.Services
             return sale ?? throw new InvalidOperationException("POS продажбата не е намерена.");
         }
 
+        private static void ValidateReversalEligibility(PosSale sale)
+        {
+            if (sale.Status == PosSaleStatus.Reversed)
+            {
+                throw new InvalidOperationException("Продажбата вече е сторнирана.");
+            }
+
+            if (sale.Status != PosSaleStatus.Completed)
+            {
+                throw new InvalidOperationException("Само завършена POS продажба може да бъде сторнирана.");
+            }
+
+            if (!sale.Lines.Any())
+            {
+                throw new InvalidOperationException("POS продажбата няма редове за сторно.");
+            }
+
+            if (sale.Warehouse == null || !sale.Warehouse.IsActive)
+            {
+                throw new InvalidOperationException("Складът на оригиналната POS продажба не е активен.");
+            }
+        }
+
+        private async Task<string?> ResolveUserNameAsync(string? userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return null;
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => x.Id == userId)
+                .Select(x => x.UserName ?? x.Email)
+                .FirstOrDefaultAsync();
+        }
+
         private IQueryable<PosSale> ApplyFilters(IQueryable<PosSale> query, PosSaleFilterModel filter)
         {
             if (!string.IsNullOrWhiteSpace(filter.DocumentNumber))
@@ -426,6 +586,9 @@ namespace WarehouseManagment.Services
                 DiscountTotal = sale.DiscountTotal,
                 Total = sale.Total,
                 Status = sale.Status,
+                ReversalReason = sale.ReversalReason,
+                ReversedOn = sale.ReversedOn,
+                ReversedByUserId = sale.ReversedByUserId,
                 Lines = sale.Lines.Select(x => new PosReceiptLineModel
                 {
                     ProductSKU = x.ProductSKU,

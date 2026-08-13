@@ -185,6 +185,48 @@ namespace WarehouseManagment.Controllers
             return View(await _posService.GetDetailsAsync(id));
         }
 
+        [HttpGet]
+        [Authorize(Policy = ApplicationPolicies.RequireSalesManager)]
+        public async Task<IActionResult> Reverse(int id)
+        {
+            return View(await _posService.GetReversalModelAsync(id));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Policy = ApplicationPolicies.RequireSalesManager)]
+        public async Task<IActionResult> Reverse(PosSaleReversalModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                var preparedModel = await _posService.GetReversalModelAsync(model.Id);
+                preparedModel.ReversalReason = model.ReversalReason;
+                return View(preparedModel);
+            }
+
+            try
+            {
+                await _posService.ReverseSaleAsync(model);
+                TempData["PosSaleMessage"] = "POS продажбата е сторнирана успешно.";
+                return RedirectToAction(nameof(Details), new { id = model.Id });
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError(string.Empty, ex.Message);
+                try
+                {
+                    var preparedModel = await _posService.GetReversalModelAsync(model.Id);
+                    preparedModel.ReversalReason = model.ReversalReason;
+                    return View(preparedModel);
+                }
+                catch
+                {
+                    TempData["PosSaleError"] = ex.Message;
+                    return RedirectToAction(nameof(Details), new { id = model.Id });
+                }
+            }
+        }
+
         private PosCartModel GetCart()
         {
             var json = HttpContext.Session.GetString(CartSessionKey);

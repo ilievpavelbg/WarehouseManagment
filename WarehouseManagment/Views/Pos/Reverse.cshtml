@@ -1,0 +1,70 @@
+@model PosSaleReversalModel
+
+@{
+    ViewData["Title"] = "Сторно на POS продажба";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<div class="alert alert-warning">
+    Потвърждаването на сторното ще възстанови наличностите по всички редове и ще маркира оригиналния POS документ като сторниран.
+</div>
+
+<form asp-action="Reverse" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+    <div class="card mb-3">
+        <div class="card-header">Документ</div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Документ</dt><dd class="col-sm-9">@Model.DocumentNumber</dd>
+                <dt class="col-sm-3">Дата</dt><dd class="col-sm-9">@Model.CreatedOn.ToString("dd.MM.yyyy HH:mm")</dd>
+                <dt class="col-sm-3">Оператор</dt><dd class="col-sm-9">@(Model.OperatorName ?? "-")</dd>
+                <dt class="col-sm-3">Склад</dt><dd class="col-sm-9">@Model.WarehouseName</dd>
+                <dt class="col-sm-3">Плащане</dt><dd class="col-sm-9">@AuditDisplayHelper.PaymentMethodLabel(Model.PaymentMethod.ToString())</dd>
+                <dt class="col-sm-3">Общо</dt><dd class="col-sm-9">@Model.Total.ToString("0.00") EUR</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>SKU</th>
+                    <th>Артикул</th>
+                    <th>Размер</th>
+                    <th class="text-end">Количество</th>
+                    <th class="text-end">Ед. цена</th>
+                    <th class="text-end">Отстъпка</th>
+                    <th class="text-end">Общо</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var line in Model.Lines)
+                {
+                    <tr>
+                        <td>@line.ProductSKU</td>
+                        <td>@line.ProductDescription</td>
+                        <td>@line.Size</td>
+                        <td class="text-end">@line.Quantity бр.</td>
+                        <td class="text-end">@line.UnitPrice.ToString("0.00") EUR</td>
+                        <td class="text-end">@line.DiscountPercent.ToString("0.##")%</td>
+                        <td class="text-end">@line.LineTotal.ToString("0.00") EUR</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="ReversalReason" class="form-label">Причина за сторно</label>
+        <textarea asp-for="ReversalReason" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="ReversalReason" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-danger">Потвърди сторно</button>
+    <a class="btn btn-secondary" asp-action="Details" asp-route-id="@Model.Id">Отказ</a>
+</form>

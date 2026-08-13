@@ -11,5 +11,7 @@ namespace WarehouseManagment.Interfaces
         Task<PosReceiptModel> GetReceiptAsync(int id);
         Task<PosSaleIndexModel> GetSalesAsync(PosSaleFilterModel filter);
         Task<PosSaleDetailsModel> GetDetailsAsync(int id);
+        Task<PosSaleReversalModel> GetReversalModelAsync(int id);
+        Task ReverseSaleAsync(PosSaleReversalModel model);
     }
 }

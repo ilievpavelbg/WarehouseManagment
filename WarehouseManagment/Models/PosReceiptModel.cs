@@ -14,6 +14,10 @@ namespace WarehouseManagment.Models
         public decimal DiscountTotal { get; set; }
         public decimal Total { get; set; }
         public PosSaleStatus Status { get; set; }
+        public string? ReversalReason { get; set; }
+        public DateTime? ReversedOn { get; set; }
+        public string? ReversedByUserId { get; set; }
+        public string? ReversedByUserName { get; set; }
         public List<PosReceiptLineModel> Lines { get; set; } = new();
     }
 }

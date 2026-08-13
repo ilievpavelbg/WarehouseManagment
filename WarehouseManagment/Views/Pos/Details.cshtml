@@ -2,11 +2,27 @@
 
 @{
     ViewData["Title"] = $"POS продажба {Model.DocumentNumber}";
+    var statusLabel = Model.Status == WarehouseManagment.Data.PosSaleStatus.Reversed ? "Сторнирана" : "Завършена";
+    var statusClass = Model.Status == WarehouseManagment.Data.PosSaleStatus.Reversed ? "bg-danger" : "bg-success";
+    var canReverse = Model.CanReverse && (User.IsInRole(ApplicationRoles.Administrator) || User.IsInRole(ApplicationRoles.SalesManager));
+}
+
+@if (TempData["PosSaleMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["PosSaleMessage"]</div>
+}
+@if (TempData["PosSaleError"] != null)
+{
+    <div class="alert alert-danger">@TempData["PosSaleError"]</div>
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1>@ViewData["Title"]</h1>
     <div>
+        @if (canReverse)
+        {
+            <a class="btn btn-danger" asp-action="Reverse" asp-route-id="@Model.Id">Сторнирай продажбата</a>
+        }
         <a class="btn btn-outline-secondary" asp-action="Receipt" asp-route-id="@Model.Id">Печат</a>
         <a class="btn btn-outline-info" asp-controller="AuditLog" asp-action="Index" asp-route-DocumentNumber="@Model.DocumentNumber">Одит</a>
         <a class="btn btn-primary" asp-action="Sales">Назад</a>
@@ -31,9 +47,18 @@
             <dt class="col-sm-4">Плащане</dt>
             <dd class="col-sm-8">@AuditDisplayHelper.PaymentMethodLabel(Model.PaymentMethod.ToString())</dd>
             <dt class="col-sm-4">Статус</dt>
-            <dd class="col-sm-8">@Model.Status</dd>
+            <dd class="col-sm-8"><span class="badge @statusClass">@statusLabel</span></dd>
             <dt class="col-sm-4">Общо</dt>
             <dd class="col-sm-8">@Model.Total.ToString("0.00") EUR</dd>
+            @if (Model.Status == WarehouseManagment.Data.PosSaleStatus.Reversed)
+            {
+                <dt class="col-sm-4">Причина за сторно</dt>
+                <dd class="col-sm-8">@Model.ReversalReason</dd>
+                <dt class="col-sm-4">Сторнирана на</dt>
+                <dd class="col-sm-8">@(Model.ReversedOn.HasValue ? Model.ReversedOn.Value.ToString("dd.MM.yyyy HH:mm") : "-")</dd>
+                <dt class="col-sm-4">Сторнирана от</dt>
+                <dd class="col-sm-8">@(Model.ReversedByUserName ?? "-")</dd>
+            }
         </dl>
     </div>
 </div>

@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = $"POS документ {Model.DocumentNumber}";
     var paymentLabel = AuditDisplayHelper.PaymentMethodLabel(Model.PaymentMethod.ToString());
+    var isReversed = Model.Status == WarehouseManagment.Data.PosSaleStatus.Reversed;
 }
 
 <div class="d-flex justify-content-between mb-3 no-print">
@@ -19,6 +20,10 @@
     <h2 class="text-center">VETEIDA</h2>
     <p class="text-center mb-1">POS вътрешен документ</p>
     <p class="text-center small text-muted">Това не е фискален бон.</p>
+    @if (isReversed)
+    {
+        <div class="alert alert-danger text-center fw-bold">СТОРНИРАНА ПРОДАЖБА</div>
+    }
     <hr />
     <dl class="row">
         <dt class="col-sm-3">Документ</dt>
@@ -31,6 +36,15 @@
         <dd class="col-sm-9">@Model.WarehouseName</dd>
         <dt class="col-sm-3">Плащане</dt>
         <dd class="col-sm-9">@paymentLabel</dd>
+        @if (isReversed)
+        {
+            <dt class="col-sm-3">Причина за сторно</dt>
+            <dd class="col-sm-9">@Model.ReversalReason</dd>
+            <dt class="col-sm-3">Сторнирана на</dt>
+            <dd class="col-sm-9">@(Model.ReversedOn.HasValue ? Model.ReversedOn.Value.ToString("dd.MM.yyyy HH:mm") : "-")</dd>
+            <dt class="col-sm-3">Сторнирана от</dt>
+            <dd class="col-sm-9">@(Model.ReversedByUserName ?? "-")</dd>
+        }
     </dl>
 
     <table class="table table-sm">
