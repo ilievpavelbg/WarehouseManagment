@@ -6,6 +6,8 @@ namespace WarehouseManagment.Interfaces
     {
         Task<PosSearchResultModel> GetByBarcodeAsync(string barcode);
         Task<PosSearchResultModel> GetByProductInventoryIdAsync(int productInventoryId);
+        Task<int?> GetAvailableStockByBarcodeAsync(string barcode);
+        Task<int?> GetAvailableStockByProductInventoryIdAsync(int productInventoryId);
         Task<List<PosSearchResultModel>> SearchAsync(string search);
         Task<int> CheckoutAsync(PosCartModel cart);
         Task<PosReceiptModel> GetReceiptAsync(int id);

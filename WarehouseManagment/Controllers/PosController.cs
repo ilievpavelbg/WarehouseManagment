@@ -49,11 +49,21 @@ namespace WarehouseManagment.Controllers
                 AddOrIncreaseLine(cart, item, 1);
                 SaveCart(cart);
 
-                return Json(new { success = true, cart });
+                return Json(new { success = true, cart, productInventoryId = item.ProductInventoryId, message = "Артикулът е добавен." });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                var stockGuard = IsStockGuardMessage(ex.Message);
+                if (!stockGuard)
+                {
+                    var availableStock = await _posService.GetAvailableStockByBarcodeAsync(barcode);
+                    if (availableStock.HasValue)
+                    {
+                        return Json(new { success = false, message = FormatInsufficientStockMessage(availableStock.Value), messageType = "warning" });
+                    }
+                }
+
+                return Json(new { success = false, message = stockGuard ? ex.Message : "Баркодът не е намерен.", messageType = stockGuard ? "warning" : "danger" });
             }
         }
 
@@ -68,41 +78,71 @@ namespace WarehouseManagment.Controllers
                 AddOrIncreaseLine(cart, item, quantity);
                 SaveCart(cart);
 
-                return Json(new { success = true, cart });
+                return Json(new { success = true, cart, productInventoryId = item.ProductInventoryId, message = "Артикулът е добавен." });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                var stockGuard = IsStockGuardMessage(ex.Message);
+                if (!stockGuard)
+                {
+                    var availableStock = await _posService.GetAvailableStockByProductInventoryIdAsync(productInventoryId);
+                    if (availableStock.HasValue)
+                    {
+                        return Json(new { success = false, message = FormatInsufficientStockMessage(availableStock.Value), messageType = "warning" });
+                    }
+                }
+
+                return Json(new { success = false, message = stockGuard ? ex.Message : "Артикулът не е намерен.", messageType = stockGuard ? "warning" : "danger" });
             }
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult UpdateQuantity(int productInventoryId, int quantity)
+        public async Task<IActionResult> UpdateQuantity(int productInventoryId, int quantity)
         {
             var cart = GetCart();
             var line = cart.Lines.FirstOrDefault(x => x.ProductInventoryId == productInventoryId);
 
             if (line == null)
             {
-                return Json(new { success = false, message = "Редът не е намерен." });
+                return Json(new { success = false, message = "Редът не е намерен.", messageType = "danger" });
             }
 
             if (quantity < 1)
             {
-                return Json(new { success = false, message = "Количеството не може да бъде по-малко от 1." });
+                return Json(new { success = false, message = "Количеството не може да бъде по-малко от 1.", messageType = "warning" });
             }
 
-            if (quantity > line.AvailableStock)
+            try
             {
-                return Json(new { success = false, message = "Количеството надвишава наличността." });
+                var currentItem = await _posService.GetByProductInventoryIdAsync(productInventoryId);
+                line.AvailableStock = currentItem.AvailableStock;
+
+                if (quantity > currentItem.AvailableStock)
+                {
+                    return Json(new { success = false, message = FormatInsufficientStockMessage(currentItem.AvailableStock), messageType = "warning" });
+                }
+
+                line.Quantity = quantity;
+                RecalculateLine(line);
+                SaveCart(cart);
+
+                return Json(new { success = true, cart, productInventoryId });
             }
+            catch (Exception ex)
+            {
+                var stockGuard = IsStockGuardMessage(ex.Message);
+                if (!stockGuard)
+                {
+                    var availableStock = await _posService.GetAvailableStockByProductInventoryIdAsync(productInventoryId);
+                    if (availableStock.HasValue)
+                    {
+                        return Json(new { success = false, message = FormatInsufficientStockMessage(availableStock.Value), messageType = "warning" });
+                    }
+                }
 
-            line.Quantity = quantity;
-            RecalculateLine(line);
-            SaveCart(cart);
-
-            return Json(new { success = true, cart });
+                return Json(new { success = false, message = stockGuard ? ex.Message : "Артикулът не е намерен.", messageType = stockGuard ? "warning" : "danger" });
+            }
         }
 
         [HttpPost]
@@ -253,7 +293,7 @@ namespace WarehouseManagment.Controllers
         {
             if (item.AvailableStock <= 0)
             {
-                throw new InvalidOperationException("Няма наличност за избрания артикул.");
+                throw new InvalidOperationException(FormatInsufficientStockMessage(item.AvailableStock));
             }
 
             if (quantity < 1)
@@ -280,10 +320,15 @@ namespace WarehouseManagment.Controllers
 
                 cart.Lines.Add(line);
             }
+            else
+            {
+                line.AvailableStock = item.AvailableStock;
+                line.UnitPrice = item.UnitPrice;
+            }
 
             if (line.Quantity + quantity > line.AvailableStock)
             {
-                throw new InvalidOperationException("Количеството надвишава наличността.");
+                throw new InvalidOperationException(FormatInsufficientStockMessage(line.AvailableStock));
             }
 
             line.Quantity += quantity;
@@ -293,6 +338,16 @@ namespace WarehouseManagment.Controllers
         private static void RecalculateLine(PosCartLineModel line)
         {
             line.LineTotal = Math.Round(line.UnitPrice * line.Quantity * (1 - line.DiscountPercent / 100), 2);
+        }
+
+        private static string FormatInsufficientStockMessage(int availableStock)
+        {
+            return $"Недостатъчна наличност. Налични: {availableStock} бр.";
+        }
+
+        private static bool IsStockGuardMessage(string message)
+        {
+            return message.StartsWith("Недостатъчна наличност", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

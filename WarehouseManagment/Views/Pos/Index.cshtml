@@ -18,17 +18,17 @@
     <div class="col-lg-4">
         <div class="card">
             <div class="card-body">
-                <label class="form-label fw-bold fs-5">Сканирай баркод</label>
+                <label class="form-label fw-bold fs-5" for="barcodeInput">Сканирай баркод</label>
                 <form id="scanForm" class="input-group input-group-lg mb-3">
                     <input id="barcodeInput" class="form-control" autocomplete="off" autofocus placeholder="Баркод" />
                     <button class="btn btn-success" type="submit">Добави</button>
                 </form>
 
-                <label class="form-label fw-bold">Търсене на артикул</label>
-                <div class="input-group mb-3">
-                    <input id="searchInput" class="form-control" placeholder="SKU, описание или размер" />
-                    <button id="searchButton" class="btn btn-outline-primary" type="button">Търси</button>
-                </div>
+                <label class="form-label fw-bold" for="searchInput">Търсене на артикул</label>
+                <form id="searchForm" class="input-group mb-3">
+                    <input id="searchInput" class="form-control" autocomplete="off" placeholder="SKU, описание или размер" />
+                    <button id="searchButton" class="btn btn-outline-primary" type="submit">Търси</button>
+                </form>
 
                 <div id="searchResults" class="d-grid gap-2 small"></div>
             </div>
@@ -40,7 +40,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h4 class="mb-0">Текуща количка</h4>
-                    <button id="clearCartButton" class="btn btn-outline-secondary btn-sm">Изчисти</button>
+                    <button id="clearCartButton" class="btn btn-outline-secondary btn-sm" type="button">Изчисти</button>
                 </div>
 
                 <div class="table-responsive">
@@ -79,7 +79,7 @@
                                 <strong id="grandTotal">0.00 EUR</strong>
                             </div>
 
-                            <label class="form-label mt-3">Начин на плащане</label>
+                            <label class="form-label mt-3" for="paymentMethod">Начин на плащане</label>
                             <select id="paymentMethod" class="form-select form-select-lg">
                                 @foreach (var method in Model.PaymentMethods)
                                 {
@@ -90,7 +90,7 @@
                                 }
                             </select>
 
-                            <button id="checkoutButton" class="btn btn-success btn-lg w-100 mt-3">Завърши продажба</button>
+                            <button id="checkoutButton" class="btn btn-success btn-lg w-100 mt-3" type="button">Завърши продажба</button>
                         </div>
                     </div>
                 </div>
@@ -102,30 +102,30 @@
 @section Scripts {
     <script>
         var cart = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Cart));
+        var highlightedProductInventoryId = null;
 
         $(document).ready(function () {
             renderCart();
-            $('#barcodeInput').focus();
+            focusBarcode();
 
             $('#scanForm').on('submit', function (event) {
                 event.preventDefault();
                 scanBarcode();
             });
 
-            $('#searchButton').on('click', searchProducts);
-            $('#searchInput').on('keydown', function (event) {
-                if (event.key === 'Enter') {
-                    event.preventDefault();
-                    searchProducts();
-                }
+            $('#searchForm').on('submit', function (event) {
+                event.preventDefault();
+                searchProducts();
             });
 
             $('#clearCartButton').on('click', function () {
-            postJson('/Pos/Clear', {}, function (response) {
-                cart = response.cart;
-                renderCart();
-                showMessage('Количката е изчистена.', 'info');
-            });
+                postJson('/Pos/Clear', {}, function (response) {
+                    cart = response.cart;
+                    highlightedProductInventoryId = null;
+                    renderCart();
+                    showMessage('Количката е изчистена.', 'info');
+                    focusBarcode();
+                });
             });
 
             $('#checkoutButton').on('click', function () {
@@ -136,24 +136,29 @@
         });
 
         function scanBarcode() {
-            var barcode = $('#barcodeInput').val();
+            var barcode = $('#barcodeInput').val().trim();
             if (!barcode) {
+                focusBarcode();
                 return;
             }
 
             postJson('/Pos/Scan', { barcode: barcode }, function (response) {
                 cart = response.cart;
+                highlightedProductInventoryId = response.productInventoryId;
                 renderCart();
-                showMessage('Артикулът е добавен.', 'success');
-                $('#barcodeInput').val('').focus();
+                showMessage(response.message || 'Артикулът е добавен.', 'success');
+                $('#barcodeInput').val('');
+                focusBarcode();
+            }, function () {
+                $('#barcodeInput').focus().select();
             });
         }
 
         function searchProducts() {
-            var search = $('#searchInput').val();
+            var search = $('#searchInput').val().trim();
             $('#searchResults').empty();
 
-            if (!search || search.trim().length < 1) {
+            if (!search) {
                 $('#searchResults').append('<div class="alert alert-info mb-0">Въведете SKU, описание или размер.</div>');
                 return;
             }
@@ -171,11 +176,11 @@
                 $.each(results, function (_, item) {
                     var row = $('<div class="border rounded p-2 bg-light">');
                     row.html('<div class="d-flex justify-content-between gap-2">' +
-                        '<div><strong>' + item.productSKU + '</strong> - ' + (item.productDescription || '') +
-                        '<br />Размер: ' + item.size +
+                        '<div><strong>' + escapeHtml(item.productSKU) + '</strong> - ' + escapeHtml(item.productDescription || '') +
+                        '<br />Размер: ' + escapeHtml(item.size) +
                         '<br />Наличност: ' + item.availableStock + ' бр.' +
                         '<br />Цена: ' + money(item.unitPrice) +
-                        (item.barcode ? '<br /><span class="text-muted">Баркод: ' + item.barcode + '</span>' : '') +
+                        (item.barcode ? '<br /><span class="text-muted">Баркод: ' + escapeHtml(item.barcode) + '</span>' : '') +
                         '</div><div><button type="button" class="btn btn-success add-result">Добави</button></div></div>');
                     row.find('.add-result').on('click', function () {
                         addLine(item.productInventoryId);
@@ -192,35 +197,41 @@
         function addLine(productInventoryId) {
             postJson('/Pos/Add', { productInventoryId: productInventoryId, quantity: 1 }, function (response) {
                 cart = response.cart;
+                highlightedProductInventoryId = response.productInventoryId;
                 renderCart();
-                showMessage('Артикулът е добавен.', 'success');
-                $('#barcodeInput').focus();
-            });
+                showMessage(response.message || 'Артикулът е добавен.', 'success');
+                focusBarcode();
+            }, focusBarcode);
         }
 
         function updateQuantity(productInventoryId, quantity) {
             postJson('/Pos/UpdateQuantity', { productInventoryId: productInventoryId, quantity: quantity }, function (response) {
                 cart = response.cart;
+                highlightedProductInventoryId = response.productInventoryId;
                 renderCart();
-            });
+                focusBarcode();
+            }, focusBarcode);
         }
 
         function updateDiscount(productInventoryId, discountPercent) {
             postJson('/Pos/UpdateDiscount', { productInventoryId: productInventoryId, discountPercent: discountPercent }, function (response) {
                 cart = response.cart;
                 renderCart();
-            });
+                focusBarcode();
+            }, focusBarcode);
         }
 
         function removeLine(productInventoryId) {
             postJson('/Pos/Remove', { productInventoryId: productInventoryId }, function (response) {
                 cart = response.cart;
+                highlightedProductInventoryId = null;
                 renderCart();
                 showMessage('Редът е премахнат.', 'info');
+                focusBarcode();
             });
         }
 
-        function postJson(url, data, onSuccess) {
+        function postJson(url, data, onSuccess, onFailure) {
             $.ajax({
                 url: url,
                 type: 'POST',
@@ -232,11 +243,17 @@
                     if (response.success) {
                         onSuccess(response);
                     } else {
-                        showMessage(response.message || 'Операцията не беше изпълнена.', 'danger');
+                        showMessage(response.message || 'Операцията не беше изпълнена.', response.messageType || 'danger');
+                        if (onFailure) {
+                            onFailure(response);
+                        }
                     }
                 },
                 error: function () {
                     showMessage('Възникна техническа грешка. Опитайте отново.', 'danger');
+                    if (onFailure) {
+                        onFailure();
+                    }
                 }
             });
         }
@@ -255,16 +272,21 @@
             $('#checkoutButton').prop('disabled', lines.length === 0);
 
             $.each(lines, function (_, line) {
-                var id = line.productInventoryId || line.ProductInventoryId;
-                var quantity = line.quantity || line.Quantity;
+                var id = value(line.productInventoryId, line.ProductInventoryId);
+                var quantity = value(line.quantity, line.Quantity);
                 var row = $('<tr>');
-                row.append('<td><strong>' + value(line.productSKU, line.ProductSKU) + '</strong><br />' + value(line.productDescription, line.ProductDescription) + '</td>');
-                row.append('<td>' + value(line.size, line.Size) + '</td>');
-                row.append('<td><div class="input-group"><button class="btn btn-outline-secondary minus">-</button><input class="form-control text-center qty" type="number" min="1" value="' + quantity + '"><button class="btn btn-outline-secondary plus">+</button></div><small class="text-muted">Наличност ' + value(line.availableStock, line.AvailableStock) + ' бр</small></td>');
+                row.attr('data-product-inventory-id', id);
+                if (highlightedProductInventoryId && id === highlightedProductInventoryId) {
+                    row.addClass('table-success');
+                }
+
+                row.append('<td><strong>' + escapeHtml(value(line.productSKU, line.ProductSKU)) + '</strong><br />' + escapeHtml(value(line.productDescription, line.ProductDescription) || '') + '</td>');
+                row.append('<td>' + escapeHtml(value(line.size, line.Size)) + '</td>');
+                row.append('<td><div class="input-group"><button class="btn btn-outline-secondary minus" type="button">-</button><input class="form-control text-center qty" type="number" min="1" value="' + quantity + '"><button class="btn btn-outline-secondary plus" type="button">+</button></div><small class="text-muted">Наличност ' + value(line.availableStock, line.AvailableStock) + ' бр.</small></td>');
                 row.append('<td>' + money(value(line.unitPrice, line.UnitPrice)) + '</td>');
                 row.append('<td><input class="form-control discount" type="number" min="0" max="100" value="' + value(line.discountPercent, line.DiscountPercent) + '"></td>');
                 row.append('<td>' + money(value(line.lineTotal, line.LineTotal)) + '</td>');
-                row.append('<td><button class="btn btn-sm btn-outline-danger remove">Премахни</button></td>');
+                row.append('<td><button class="btn btn-sm btn-outline-danger remove" type="button">Премахни</button></td>');
 
                 row.find('.minus').on('click', function () { updateQuantity(id, quantity - 1); });
                 row.find('.plus').on('click', function () { updateQuantity(id, quantity + 1); });
@@ -278,6 +300,18 @@
             $('#subtotal').text(money(value(cart.subtotal, cart.Subtotal)));
             $('#discountTotal').text(money(value(cart.discountTotal, cart.DiscountTotal)));
             $('#grandTotal').text(money(value(cart.total, cart.Total)));
+
+            if (highlightedProductInventoryId) {
+                window.setTimeout(function () {
+                    $('tr[data-product-inventory-id="' + highlightedProductInventoryId + '"]').removeClass('table-success');
+                }, 900);
+            }
+        }
+
+        function focusBarcode() {
+            window.setTimeout(function () {
+                $('#barcodeInput').focus();
+            }, 0);
         }
 
         function value(camel, pascal) {
@@ -286,6 +320,10 @@
 
         function money(value) {
             return (parseFloat(value || 0)).toFixed(2) + ' EUR';
+        }
+
+        function escapeHtml(value) {
+            return $('<div>').text(value || '').html();
         }
     </script>
 }

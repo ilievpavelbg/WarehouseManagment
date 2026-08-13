@@ -71,6 +71,31 @@ namespace WarehouseManagment.Services
             return result;
         }
 
+        public async Task<int?> GetAvailableStockByBarcodeAsync(string barcode)
+        {
+            barcode = barcode?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(barcode))
+            {
+                return null;
+            }
+
+            return await _dbContext.ProductInventory
+                .AsNoTracking()
+                .Where(x => x.BarcodeValue == barcode)
+                .Select(x => (int?)x.Quantity)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<int?> GetAvailableStockByProductInventoryIdAsync(int productInventoryId)
+        {
+            return await _dbContext.ProductInventory
+                .AsNoTracking()
+                .Where(x => x.Id == productInventoryId)
+                .Select(x => (int?)x.Quantity)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<List<PosSearchResultModel>> SearchAsync(string search)
         {
             if (string.IsNullOrWhiteSpace(search) || search.Trim().Length < 1)
