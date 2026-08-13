@@ -56,12 +56,12 @@ namespace WarehouseManagment.Data
                 .IsUnique();
 
             builder.Entity<ProductInventory>()
-                .HasIndex(x => x.Barcode)
+                .HasIndex(x => x.BarcodeValue)
                 .IsUnique()
-                .HasFilter("[Barcode] IS NOT NULL");
+                .HasFilter("[BarcodeValue] IS NOT NULL");
 
             builder.Entity<ProductInventory>()
-                .Property(x => x.Barcode)
+                .Property(x => x.BarcodeValue)
                 .HasMaxLength(32);
 
             builder.Entity<Sale>()

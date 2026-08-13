@@ -103,7 +103,7 @@ namespace WarehouseManagment.Services
                                 await _repository.AddAsync(productInventory);
                                 await _repository.SaveChangesAsync();
 
-                                productInventory.Barcode = await _barcodeService.GenerateBarcodeAsync();
+                                productInventory.BarcodeValue = await _barcodeService.GenerateBarcodeAsync();
 
                                 if (importQuantity > 0)
                                 {
@@ -155,7 +155,7 @@ namespace WarehouseManagment.Services
                                     await _repository.AddAsync(productInventory);
                                     await _repository.SaveChangesAsync();
 
-                                    productInventory.Barcode = await _barcodeService.GenerateBarcodeAsync();
+                                    productInventory.BarcodeValue = await _barcodeService.GenerateBarcodeAsync();
 
                                     if (importQuantity > 0)
                                     {

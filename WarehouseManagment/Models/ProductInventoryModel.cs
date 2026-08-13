@@ -9,7 +9,8 @@
         public int Quantity { get => quantity; set => quantity = value; }
         public string ProductSKU { get; set; } = null!;
         public int ProductId { get; set; }
-        public string? Barcode { get; set; }
+        public byte[]? Barcode { get; set; }
+        public string? BarcodeValue { get; set; }
         public List<string> ExistingSizes { get; set; } = new List<string>();
     }
 }

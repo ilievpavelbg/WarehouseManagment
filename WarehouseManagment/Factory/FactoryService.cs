@@ -97,7 +97,8 @@ namespace WarehouseManagment.Factory
               Quantity = productInventory.Quantity,
               ProductSKU = productInventory.ProductSKU,
               ProductId = productInventory.ProductId,
-              Barcode = productInventory.Barcode
+              Barcode = productInventory.Barcode,
+              BarcodeValue = productInventory.BarcodeValue
             };
 
             return model;

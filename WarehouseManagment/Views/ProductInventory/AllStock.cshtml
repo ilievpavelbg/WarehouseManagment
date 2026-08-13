@@ -41,9 +41,9 @@ else
                         <td>@item.Size</td>
                         <td>@item.Quantity бр.</td>
                         <td>
-                            @if (!string.IsNullOrWhiteSpace(item.Barcode))
+                            @if (!string.IsNullOrWhiteSpace(item.BarcodeValue))
                             {
-                                <code>@item.Barcode</code>
+                                <code>@item.BarcodeValue</code>
                             }
                             else
                             {
@@ -51,7 +51,7 @@ else
                             }
                         </td>
                         <td>
-                            @if (!string.IsNullOrWhiteSpace(item.Barcode))
+                            @if (!string.IsNullOrWhiteSpace(item.BarcodeValue))
                             {
                                 <a class="btn btn-sm btn-outline-primary" asp-controller="Label" asp-action="Index" asp-route-ProductInventoryId="@item.Id" asp-route-Quantity="1">Печат</a>
                             }

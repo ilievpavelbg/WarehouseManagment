@@ -111,7 +111,7 @@ namespace WarehouseManagment.Services
                     ProductSKU = x.Product.SKU,
                     ProductDescription = x.Product.Description,
                     Size = x.Size.ToString(),
-                    Barcode = x.Barcode ?? string.Empty,
+                    Barcode = x.BarcodeValue ?? string.Empty,
                     AvailableStock = x.Quantity,
                     UnitPrice = x.Product.RetailPrice.HasValue ? (decimal)x.Product.RetailPrice.Value : 0
                 })
@@ -313,7 +313,7 @@ namespace WarehouseManagment.Services
                     ProductSKU = x.Product.SKU,
                     ProductDescription = x.Product.Description,
                     Size = x.Size.ToString(),
-                    Barcode = x.Barcode ?? string.Empty,
+                    Barcode = x.BarcodeValue ?? string.Empty,
                     AvailableStock = x.Quantity,
                     UnitPrice = x.Product.RetailPrice.HasValue ? (decimal)x.Product.RetailPrice.Value : 0
                 });

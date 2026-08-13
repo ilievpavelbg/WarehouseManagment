@@ -51,10 +51,10 @@
                                 </span>
                             </td>
                             <td>
-                                @if (!string.IsNullOrWhiteSpace(productInventory.Barcode))
+                                @if (!string.IsNullOrWhiteSpace(productInventory.BarcodeValue))
                                 {
-                                    <div><code>@productInventory.Barcode</code></div>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary copy-barcode mt-1" data-barcode="@productInventory.Barcode">Копирай</button>
+                                    <div><code>@productInventory.BarcodeValue</code></div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary copy-barcode mt-1" data-barcode="@productInventory.BarcodeValue">Копирай</button>
                                     <a class="btn btn-sm btn-outline-primary mt-1" asp-controller="Label" asp-action="Index" asp-route-ProductInventoryId="@productInventory.Id" asp-route-Quantity="1">Печат етикет</a>
                                 }
                                 else

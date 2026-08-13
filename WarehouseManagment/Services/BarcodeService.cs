@@ -19,8 +19,8 @@ namespace WarehouseManagment.Services
         public async Task<string> GenerateBarcodeAsync()
         {
             var reservedBarcodes = await _dbContext.ProductInventory
-                .Where(x => x.Barcode != null && x.Barcode.StartsWith(InternalPrefix))
-                .Select(x => x.Barcode!)
+                .Where(x => x.BarcodeValue != null && x.BarcodeValue.StartsWith(InternalPrefix))
+                .Select(x => x.BarcodeValue!)
                 .ToListAsync();
 
             return GenerateBarcode(reservedBarcodes);
@@ -61,7 +61,7 @@ namespace WarehouseManagment.Services
             }
 
             var exists = await _dbContext.ProductInventory
-                .AnyAsync(x => x.Barcode == barcode && (!excludingProductInventoryId.HasValue || x.Id != excludingProductInventoryId.Value));
+                .AnyAsync(x => x.BarcodeValue == barcode && (!excludingProductInventoryId.HasValue || x.Id != excludingProductInventoryId.Value));
 
             if (exists)
             {
@@ -91,19 +91,19 @@ namespace WarehouseManagment.Services
         public async Task<int> GenerateMissingProductInventoryBarcodesAsync()
         {
             var inventories = await _dbContext.ProductInventory
-                .Where(x => string.IsNullOrWhiteSpace(x.Barcode))
+                .Where(x => string.IsNullOrWhiteSpace(x.BarcodeValue))
                 .OrderBy(x => x.Id)
                 .ToListAsync();
 
             var reservedBarcodes = await _dbContext.ProductInventory
-                .Where(x => !string.IsNullOrWhiteSpace(x.Barcode))
-                .Select(x => x.Barcode!)
+                .Where(x => !string.IsNullOrWhiteSpace(x.BarcodeValue))
+                .Select(x => x.BarcodeValue!)
                 .ToListAsync();
 
             foreach (var inventory in inventories)
             {
-                inventory.Barcode = GenerateBarcode(reservedBarcodes);
-                reservedBarcodes.Add(inventory.Barcode);
+                inventory.BarcodeValue = GenerateBarcode(reservedBarcodes);
+                reservedBarcodes.Add(inventory.BarcodeValue);
             }
 
             await _dbContext.SaveChangesAsync();

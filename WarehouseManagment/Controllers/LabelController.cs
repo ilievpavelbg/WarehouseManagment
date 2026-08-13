@@ -33,12 +33,23 @@ namespace WarehouseManagment.Controllers
             if (!string.IsNullOrWhiteSpace(model.Search))
             {
                 var search = model.Search.Trim();
-                model.Results = await QueryVariants()
+                var matchingSizes = Enum.GetValues<Size>()
+                    .Where(x => x.ToString().Contains(search, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                var query = BaseVariantQuery()
                     .Where(x =>
-                        EF.Functions.Like(x.ProductSKU, $"%{search}%") ||
-                        (x.ProductDescription != null && EF.Functions.Like(x.ProductDescription, $"%{search}%")) ||
-                        EF.Functions.Like(x.Size, $"%{search}%") ||
-                        EF.Functions.Like(x.Barcode, $"%{search}%"))
+                        EF.Functions.Like(x.Product.SKU, $"%{search}%") ||
+                        (x.Product.Description != null && EF.Functions.Like(x.Product.Description, $"%{search}%")) ||
+                        (x.BarcodeValue != null && EF.Functions.Like(x.BarcodeValue, $"%{search}%")));
+
+                if (matchingSizes.Any())
+                {
+                    query = query.Concat(BaseVariantQuery().Where(x => matchingSizes.Contains(x.Size)));
+                }
+
+                model.Results = await ProjectVariants(query)
+                    .Distinct()
                     .Take(30)
                     .ToListAsync();
             }
@@ -53,21 +64,26 @@ namespace WarehouseManagment.Controllers
             return File(image, "image/png");
         }
 
-        private IQueryable<LabelVariantModel> QueryVariants()
+        private IQueryable<ProductInventory> BaseVariantQuery()
         {
             return _dbContext.ProductInventory
                 .AsNoTracking()
                 .Include(x => x.Product)
-                .Where(x => !string.IsNullOrWhiteSpace(x.Barcode))
+                .Where(x => !string.IsNullOrWhiteSpace(x.BarcodeValue))
                 .OrderBy(x => x.ProductSKU)
-                .ThenBy(x => x.Size)
+                .ThenBy(x => x.Size);
+        }
+
+        private static IQueryable<LabelVariantModel> ProjectVariants(IQueryable<ProductInventory> query)
+        {
+            return query
                 .Select(x => new LabelVariantModel
                 {
                     ProductInventoryId = x.Id,
                     ProductSKU = x.Product.SKU,
                     ProductDescription = x.Product.Description,
                     Size = x.Size.ToString(),
-                    Barcode = x.Barcode!,
+                    Barcode = x.BarcodeValue!,
                     Quantity = x.Quantity,
                     RetailPrice = x.Product.RetailPrice.HasValue ? (decimal)x.Product.RetailPrice.Value : 0
                 });
@@ -75,10 +91,10 @@ namespace WarehouseManagment.Controllers
 
         private async Task<LabelVariantModel> GetVariantAsync(int productInventoryId)
         {
-            var variant = await QueryVariants()
+            var variant = await ProjectVariants(BaseVariantQuery())
                 .FirstOrDefaultAsync(x => x.ProductInventoryId == productInventoryId);
 
-            return variant ?? throw new InvalidOperationException("Размерът / вариантът няма генериран баркод.");
+            return variant ?? throw new InvalidOperationException("Размерът / вариантът няма генериран POS баркод.");
         }
 
         private static void Normalize(LabelPrintModel model)

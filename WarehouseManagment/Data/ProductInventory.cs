@@ -16,8 +16,10 @@ namespace WarehouseManagment.Data
         [ForeignKey(nameof(Product))]
         public int ProductId { get; set; }
         public Product Product { get; set; } = null!;
+        public byte[]? Barcode { get; set; }
+
         [StringLength(32)]
-        public string? Barcode { get; set; }
+        public string? BarcodeValue { get; set; }
 
     }
 }

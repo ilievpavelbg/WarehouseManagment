@@ -40,10 +40,10 @@ namespace WarehouseManagment.Services
                     Quantity = model.Quantity,
                     ProductId = model.ProductId,
                     ProductSKU = model.ProductSKU,
-                    Barcode = string.IsNullOrWhiteSpace(model.Barcode) ? await _barcodeService.GenerateBarcodeAsync() : model.Barcode.Trim()
+                    BarcodeValue = string.IsNullOrWhiteSpace(model.BarcodeValue) ? await _barcodeService.GenerateBarcodeAsync() : model.BarcodeValue.Trim()
                 };
 
-                await _barcodeService.EnsureUniqueAsync(productInventory.Barcode!);
+                await _barcodeService.EnsureUniqueAsync(productInventory.BarcodeValue!);
 
                 if (Enum.TryParse(model.Size, out Data.Size size))
                 {
