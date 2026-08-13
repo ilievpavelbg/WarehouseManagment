@@ -17,7 +17,7 @@
     @Html.AntiForgeryToken()
     @{
         var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
-        var salesControllers = new[] { "Product", "Sale", "Courier", "Pos" };
+        var salesControllers = new[] { "Product", "Sale", "Courier", "Pos", "Label" };
         var wmsControllers = new[] { "Warehouse", "WarehouseSettings", "Material", "StockInquiry", "FinishedGoodsStock", "LowStock", "InventoryMovement", "AuditLog" };
         var masterDataControllers = new[] { "MaterialCategory", "UnitOfMeasure", "Supplier" };
         var productionControllers = new[] { "ProductionOrder", "ProductionWork", "ProductionProfile", "CostComponent", "ProductCostCalculation", "BillOfMaterials", "ProductionOperation", "ProductRouting" };
@@ -79,6 +79,7 @@
                                     <ul class="dropdown-menu" aria-labelledby="salesDropdown">
                                         <li><a class="dropdown-item" asp-area="" asp-controller="Product" asp-action="Index">Артикули</a></li>
                                         <li><a class="dropdown-item" asp-area="" asp-controller="Pos" asp-action="Index">POS</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Label" asp-action="Index">Етикети</a></li>
                                         <li><a class="dropdown-item" asp-area="" asp-controller="Pos" asp-action="Sales">POS продажби</a></li>
                                         <li><a class="dropdown-item" asp-area="" asp-controller="Sale" asp-action="BarcodeScanerInput">Магазин legacy</a></li>
                                         <li><a class="dropdown-item" asp-area="" asp-controller="Sale" asp-action="AllSales">Отчет магазин</a></li>

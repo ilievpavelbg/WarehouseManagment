@@ -2,7 +2,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
-using WarehouseManagment.BarcodGenerator;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
@@ -16,16 +15,19 @@ namespace WarehouseManagment.Services
         private readonly IProductInventoryService _productInventoryService;
         private readonly ApplicationDbContext _dbContext;
         private readonly IInventoryMovementService _inventoryMovementService;
+        private readonly IBarcodeService _barcodeService;
 
         public ProductService(IRepository repository,
             IProductInventoryService productInventoryService,
             ApplicationDbContext dbContext,
-            IInventoryMovementService inventoryMovementService)
+            IInventoryMovementService inventoryMovementService,
+            IBarcodeService barcodeService)
         {
             _repository = repository;
             _productInventoryService = productInventoryService;
             _dbContext = dbContext;
             _inventoryMovementService = inventoryMovementService;
+            _barcodeService = barcodeService;
         }
         public async Task<Product> CreateProductAsync(ProductModel model, bool returnProduct)
         {
@@ -101,8 +103,7 @@ namespace WarehouseManagment.Services
                                 await _repository.AddAsync(productInventory);
                                 await _repository.SaveChangesAsync();
 
-                                var productInventoryId = productInventory.Id.ToString();
-                                productInventory.Barcode = BarcodeService.GenerateBarcodeImage(productInventoryId);
+                                productInventory.Barcode = await _barcodeService.GenerateBarcodeAsync();
 
                                 if (importQuantity > 0)
                                 {
@@ -154,8 +155,7 @@ namespace WarehouseManagment.Services
                                     await _repository.AddAsync(productInventory);
                                     await _repository.SaveChangesAsync();
 
-                                    var productInventoryId = productInventory.Id.ToString();
-                                    productInventory.Barcode = BarcodeService.GenerateBarcodeImage(productInventoryId);
+                                    productInventory.Barcode = await _barcodeService.GenerateBarcodeAsync();
 
                                     if (importQuantity > 0)
                                     {

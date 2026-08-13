@@ -63,7 +63,7 @@ namespace WarehouseManagment.Controllers
         {
             try
             {
-                var item = await _posService.GetByBarcodeAsync(productInventoryId.ToString());
+                var item = await _posService.GetByProductInventoryIdAsync(productInventoryId);
                 var cart = GetCart();
                 AddOrIncreaseLine(cart, item, quantity);
                 SaveCart(cart);

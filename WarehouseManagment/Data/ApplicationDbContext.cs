@@ -55,6 +55,15 @@ namespace WarehouseManagment.Data
                 .HasIndex(p => p.SKU)
                 .IsUnique();
 
+            builder.Entity<ProductInventory>()
+                .HasIndex(x => x.Barcode)
+                .IsUnique()
+                .HasFilter("[Barcode] IS NOT NULL");
+
+            builder.Entity<ProductInventory>()
+                .Property(x => x.Barcode)
+                .HasMaxLength(32);
+
             builder.Entity<Sale>()
                 .HasIndex(x => x.DocumentNumber)
                 .IsUnique();

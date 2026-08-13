@@ -30,34 +30,91 @@ namespace WarehouseManagment.Services
 
         public async Task<PosSearchResultModel> GetByBarcodeAsync(string barcode)
         {
-            if (!int.TryParse(barcode?.Trim(), out var productInventoryId))
+            barcode = barcode?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(barcode))
             {
                 throw new InvalidOperationException("Баркодът не е намерен.");
             }
 
             var result = await BuildSearchQuery()
+                .FirstOrDefaultAsync(x => x.Barcode == barcode);
+
+            if (result == null)
+            {
+                throw new InvalidOperationException("Баркодът не е намерен.");
+            }
+
+            if (result.AvailableStock <= 0)
+            {
+                throw new InvalidOperationException("Артикулът няма наличност.");
+            }
+
+            return result;
+        }
+
+        public async Task<PosSearchResultModel> GetByProductInventoryIdAsync(int productInventoryId)
+        {
+            var result = await BuildSearchQuery()
                 .FirstOrDefaultAsync(x => x.ProductInventoryId == productInventoryId);
 
-            return result ?? throw new InvalidOperationException("Баркодът не е намерен.");
+            if (result == null)
+            {
+                throw new InvalidOperationException("Артикулът не е намерен.");
+            }
+
+            if (result.AvailableStock <= 0)
+            {
+                throw new InvalidOperationException("Артикулът няма наличност.");
+            }
+
+            return result;
         }
 
         public async Task<List<PosSearchResultModel>> SearchAsync(string search)
         {
-            if (string.IsNullOrWhiteSpace(search))
+            if (string.IsNullOrWhiteSpace(search) || search.Trim().Length < 1)
             {
                 return new List<PosSearchResultModel>();
             }
 
             var term = search.Trim();
+            var matchingSizes = Enum.GetValues<Size>()
+                .Where(x => x.ToString().Contains(term, StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-            return await BuildSearchQuery()
+            var query = _dbContext.ProductInventory
+                .AsNoTracking()
+                .Include(x => x.Product)
+                .Where(x => x.Quantity > 0)
                 .Where(x =>
-                    EF.Functions.Like(x.ProductSKU, $"%{term}%") ||
-                    (x.ProductDescription != null && EF.Functions.Like(x.ProductDescription, $"%{term}%")) ||
-                    EF.Functions.Like(x.Size, $"%{term}%"))
+                    EF.Functions.Like(x.Product.SKU, $"%{term}%") ||
+                    (x.Product.Description != null && EF.Functions.Like(x.Product.Description, $"%{term}%")));
+
+            if (matchingSizes.Any())
+            {
+                query = query.Concat(_dbContext.ProductInventory
+                    .AsNoTracking()
+                    .Include(x => x.Product)
+                    .Where(x => x.Quantity > 0 && matchingSizes.Contains(x.Size)));
+            }
+
+            return await query
+                .Distinct()
                 .OrderBy(x => x.ProductSKU)
                 .ThenBy(x => x.Size)
                 .Take(20)
+                .Select(x => new PosSearchResultModel
+                {
+                    ProductId = x.ProductId,
+                    ProductInventoryId = x.Id,
+                    ProductSKU = x.Product.SKU,
+                    ProductDescription = x.Product.Description,
+                    Size = x.Size.ToString(),
+                    Barcode = x.Barcode ?? string.Empty,
+                    AvailableStock = x.Quantity,
+                    UnitPrice = x.Product.RetailPrice.HasValue ? (decimal)x.Product.RetailPrice.Value : 0
+                })
                 .ToListAsync();
         }
 
@@ -256,7 +313,7 @@ namespace WarehouseManagment.Services
                     ProductSKU = x.Product.SKU,
                     ProductDescription = x.Product.Description,
                     Size = x.Size.ToString(),
-                    Barcode = x.Id.ToString(),
+                    Barcode = x.Barcode ?? string.Empty,
                     AvailableStock = x.Quantity,
                     UnitPrice = x.Product.RetailPrice.HasValue ? (decimal)x.Product.RetailPrice.Value : 0
                 });

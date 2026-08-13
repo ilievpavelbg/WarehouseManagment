@@ -12,5 +12,6 @@ namespace WarehouseManagment.Interfaces
         Task UpdateInventoryAsync(int id, int quantity);
         Task<string> GetSizeByInventoryId(int id);
         Task<List<ProductInventory>> GetAllStock();
+        Task<int> GenerateMissingBarcodesAsync();
     }
 }

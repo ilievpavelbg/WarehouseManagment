@@ -1,4 +1,4 @@
-﻿@model List<ProductInventoryModel>
+@model List<ProductInventoryModel>
 
 @{
     ViewData["Title"] = "Склад, наличности и баркод";
@@ -6,40 +6,56 @@
 
 <h1 class="text-center">@ViewData["Title"]</h1>
 
-@* <a class="btn btn-danger" asp-action="ExportToExcel" asp-controller="Sale">Експорт в Excel</a> *@
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+<form asp-controller="ProductInventory" asp-action="GenerateMissingBarcodes" method="post" class="mb-3">
+    @Html.AntiForgeryToken()
+    <button type="submit" class="btn btn-outline-primary">Генерирай липсващи баркодове</button>
+</form>
 
 @if (!Model.Any())
 {
-    <p>Няма намерени резултати !</p>
+    <p>Няма намерени резултати.</p>
 }
 else
 {
     <div class="col-12">
-        <table class="table table-striped table-bordered">
-            <thead class="thead-dark">
+        <table class="table table-striped table-bordered align-middle">
+            <thead class="table-dark">
                 <tr>
-                    <th scope="col">Id</th>
                     <th scope="col">SKU</th>
                     <th scope="col">Размер</th>
                     <th scope="col">Количество</th>
                     <th scope="col">Баркод</th>
+                    <th scope="col">Етикет</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var item in Model.OrderBy(x => x.ProductSKU))
+                @foreach (var item in Model.OrderBy(x => x.ProductSKU).ThenBy(x => x.Size))
                 {
                     <tr>
-                        <td>@item.Id</td>
                         <td>@item.ProductSKU</td>
                         <td>@item.Size</td>
-                        <td>@item.Quantity</td>
+                        <td>@item.Quantity бр.</td>
                         <td>
-                            @{
-                                string base64Barcode = Convert.ToBase64String(@item.Barcode);
+                            @if (!string.IsNullOrWhiteSpace(item.Barcode))
+                            {
+                                <code>@item.Barcode</code>
                             }
-                            <img src="data:image/png;base64, @base64Barcode" alt="Barcode Image" width="200" height="100">
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Липсва</span>
+                            }
                         </td>
-
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(item.Barcode))
+                            {
+                                <a class="btn btn-sm btn-outline-primary" asp-controller="Label" asp-action="Index" asp-route-ProductInventoryId="@item.Id" asp-route-Quantity="1">Печат</a>
+                            }
+                        </td>
                     </tr>
                 }
             </tbody>

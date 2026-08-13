@@ -1,0 +1,141 @@
+@model LabelPrintModel
+
+@{
+    ViewData["Title"] = "Печат на етикети";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h1>@ViewData["Title"]</h1>
+    @if (Model.Selected != null)
+    {
+        <button class="btn btn-primary" onclick="window.print()">Печат</button>
+    }
+</div>
+
+<form method="get" class="row g-2 align-items-end mb-4 no-print">
+    <div class="col-md-5">
+        <label class="form-label">Търсене</label>
+        <input name="Search" value="@Model.Search" class="form-control" placeholder="SKU, описание, размер или баркод" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Брой етикети</label>
+        <input name="Quantity" value="@Model.Quantity" type="number" min="1" max="500" class="form-control" />
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-outline-success w-100">Търси</button>
+    </div>
+</form>
+
+@if (Model.Results.Any())
+{
+    <div class="table-responsive no-print mb-4">
+        <table class="table table-striped table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>SKU</th>
+                    <th>Артикул</th>
+                    <th>Размер</th>
+                    <th>Наличност</th>
+                    <th>Цена</th>
+                    <th>Баркод</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Results)
+                {
+                    <tr>
+                        <td>@row.ProductSKU</td>
+                        <td>@row.ProductDescription</td>
+                        <td>@row.Size</td>
+                        <td>@row.Quantity бр.</td>
+                        <td>@row.RetailPrice.ToString("0.00") EUR</td>
+                        <td><code>@row.Barcode</code></td>
+                        <td>
+                            <a class="btn btn-sm btn-success" asp-action="Index" asp-route-ProductInventoryId="@row.ProductInventoryId" asp-route-Quantity="@Model.Quantity">Преглед</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (Model.Selected != null)
+{
+    <div class="label-sheet">
+        @for (var i = 0; i < Model.Quantity; i++)
+        {
+            <div class="apparel-label">
+                <div class="brand">VETEIDA</div>
+                <div class="sku">@Model.Selected.ProductSKU - @Model.Selected.ProductDescription</div>
+                <div>Размер: @Model.Selected.Size</div>
+                <div class="price">@Model.Selected.RetailPrice.ToString("0.00") EUR</div>
+                <img src="@Url.Action("BarcodeImage", "Label", new { barcode = Model.Selected.Barcode })" alt="Barcode" />
+                <div class="barcode-text">@Model.Selected.Barcode</div>
+            </div>
+        }
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(Model.Search) && !Model.Results.Any())
+{
+    <div class="alert alert-info no-print">Няма намерени артикули с генериран баркод.</div>
+}
+
+<style>
+    .label-sheet {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .apparel-label {
+        width: 58mm;
+        min-height: 38mm;
+        border: 1px dashed #999;
+        padding: 5mm;
+        text-align: center;
+        page-break-inside: avoid;
+        font-size: 11px;
+    }
+
+    .apparel-label .brand {
+        font-weight: 700;
+        font-size: 16px;
+        letter-spacing: 1px;
+    }
+
+    .apparel-label .sku {
+        font-weight: 600;
+    }
+
+    .apparel-label .price {
+        font-size: 14px;
+        font-weight: 700;
+        margin: 3px 0;
+    }
+
+    .apparel-label img {
+        width: 100%;
+        max-height: 22mm;
+        object-fit: contain;
+    }
+
+    .barcode-text {
+        font-family: monospace;
+    }
+
+    @@media print {
+        header, footer, .no-print {
+            display: none !important;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        .container {
+            max-width: none;
+        }
+    }
+</style>

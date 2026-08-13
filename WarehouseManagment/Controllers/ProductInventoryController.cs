@@ -49,7 +49,7 @@ namespace WarehouseManagment.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return Json(new { result = false, message = "Invalid inventory data." });
+                return Json(new { result = false, message = "Невалидни данни за наличност." });
             }
 
             try
@@ -72,7 +72,7 @@ namespace WarehouseManagment.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return Json(new { response = false, message = "Invalid inventory data." });
+                return Json(new { response = false, message = "Невалидни данни за наличност." });
             }
 
             try
@@ -96,6 +96,21 @@ namespace WarehouseManagment.Controllers
             var stockModel = _factoryService.PrepareProductInventoryListModel(stock);
 
             return View(stockModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> GenerateMissingBarcodes(int? returnProductId = null)
+        {
+            var count = await _productInventoryService.GenerateMissingBarcodesAsync();
+            TempData["SuccessMessage"] = $"Генерирани са {count} липсващи баркода.";
+
+            if (returnProductId.HasValue)
+            {
+                return RedirectToAction("Availability", "Product", new { id = returnProductId.Value });
+            }
+
+            return RedirectToAction("AllStock");
         }
     }
 }

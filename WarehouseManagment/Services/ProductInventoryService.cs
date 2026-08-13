@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using WarehouseManagment.BarcodGenerator;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
 using WarehouseManagment.Models;
@@ -12,14 +11,17 @@ namespace WarehouseManagment.Services
         private readonly IRepository _repository;
         private readonly ApplicationDbContext _dbContext;
         private readonly IInventoryMovementService _inventoryMovementService;
+        private readonly IBarcodeService _barcodeService;
 
         public ProductInventoryService(IRepository repository,
             ApplicationDbContext dbContext,
-            IInventoryMovementService inventoryMovementService)
+            IInventoryMovementService inventoryMovementService,
+            IBarcodeService barcodeService)
         {
             _repository = repository;
             _dbContext = dbContext;
             _inventoryMovementService = inventoryMovementService;
+            _barcodeService = barcodeService;
         }
 
         public async Task CreateProductInventoryAsync(ProductInventoryModel model)
@@ -30,15 +32,18 @@ namespace WarehouseManagment.Services
             {
                 if (model.Quantity < 0)
                 {
-                    throw new ArgumentException("Quantity cannot be negative.");
+                    throw new ArgumentException("Количеството не може да бъде отрицателно.");
                 }
 
                 var productInventory = new ProductInventory()
                 {
                     Quantity = model.Quantity,
                     ProductId = model.ProductId,
-                    ProductSKU = model.ProductSKU
+                    ProductSKU = model.ProductSKU,
+                    Barcode = string.IsNullOrWhiteSpace(model.Barcode) ? await _barcodeService.GenerateBarcodeAsync() : model.Barcode.Trim()
                 };
+
+                await _barcodeService.EnsureUniqueAsync(productInventory.Barcode!);
 
                 if (Enum.TryParse(model.Size, out Data.Size size))
                 {
@@ -52,9 +57,6 @@ namespace WarehouseManagment.Services
                 await _repository.AddAsync(productInventory);
                 await _repository.SaveChangesAsync();
 
-                var productInventoryId = productInventory.Id.ToString();
-                productInventory.Barcode = BarcodeService.GenerateBarcodeImage(productInventoryId);
-
                 if (model.Quantity > 0)
                 {
                     await _inventoryMovementService.CreateMovementAsync(new InventoryMovementModel
@@ -64,7 +66,7 @@ namespace WarehouseManagment.Services
                         Quantity = model.Quantity,
                         ReferenceType = "ProductInventoryCreate",
                         ReferenceId = productInventory.Id,
-                        Notes = "Initial product inventory quantity."
+                        Notes = "Начална наличност на готов продукт."
                     });
                 }
 
@@ -86,7 +88,7 @@ namespace WarehouseManagment.Services
             {
                 if (model.Quantity < 0)
                 {
-                    throw new ArgumentException("Quantity cannot be negative.");
+                    throw new ArgumentException("Количеството не може да бъде отрицателно.");
                 }
 
                 var productInventory = await GetProductInventoryByIdAsync(model.Id);
@@ -104,7 +106,7 @@ namespace WarehouseManagment.Services
                         Quantity = movementQuantity,
                         ReferenceType = "ManualInventoryAdjustment",
                         ReferenceId = productInventory.Id,
-                        Notes = $"Manual stock adjustment from {oldQuantity} to {model.Quantity}."
+                        Notes = $"Ръчна корекция на наличност от {oldQuantity} до {model.Quantity}."
                     });
                 }
 
@@ -168,7 +170,7 @@ namespace WarehouseManagment.Services
 
                 if (updatedQuantity < 0)
                 {
-                    throw new InvalidOperationException("Insufficient stock quantity.");
+                    throw new InvalidOperationException("Недостатъчна наличност.");
                 }
 
                 inventory.Quantity = updatedQuantity;
@@ -182,7 +184,7 @@ namespace WarehouseManagment.Services
                         Quantity = -quantity,
                         ReferenceType = "InventoryUpdate",
                         ReferenceId = inventory.Id,
-                        Notes = $"Inventory updated by {-quantity}."
+                        Notes = $"Наличността е променена с {-quantity}."
                     });
                 }
 
@@ -194,6 +196,11 @@ namespace WarehouseManagment.Services
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        public async Task<int> GenerateMissingBarcodesAsync()
+        {
+            return await _barcodeService.GenerateMissingProductInventoryBarcodesAsync();
         }
     }
 }

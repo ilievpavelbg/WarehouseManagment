@@ -45,6 +45,11 @@
                 <input asp-for="Quantity" type="number" min="0" autocomplete="off" class="form-control" placeholder="Въведи количество" />
                 <span asp-validation-for="Quantity" class="text-danger"></span>
             </div>
+            <div class="form-group text-center mb-3">
+                <label asp-for="Barcode" class="control-label">Баркод (по избор)</label>
+                <input asp-for="Barcode" autocomplete="off" class="form-control" placeholder="Оставете празно за автоматичен баркод" />
+                <span asp-validation-for="Barcode" class="text-danger"></span>
+            </div>
             <div class="text-center">
                 <button type="submit" id="submitBtn"  class="btn btn-primary">Създай</button>
             </div>
@@ -69,12 +74,12 @@
                     success: function (response) {
                         if (response.result === true) {
                             setTimeout(function () {
-                                $('#successMessageCreate').text("Размерар количеството и баркода са успешно създадени.");
+                                $('#successMessageCreate').text("Размерът, количеството и баркодът са успешно създадени.");
                                 $('#successMessageCreate').show();
                             }, 3000);
                             window.location.href = "/Product/Availability/" + @Model.ProductId;
                         } else {
-                            $('#errorMessageCreate').text("An error occurred while creating the product: " + response.message);
+                            $('#errorMessageCreate').text("Възникна грешка при създаване на размера: " + response.message);
                             $('#errorMessageCreate').show();
 
                             setTimeout(function () {

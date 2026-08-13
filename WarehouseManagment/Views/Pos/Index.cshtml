@@ -11,6 +11,9 @@
     <div class="text-muted">Оператор: @(Model.OperatorName ?? "-")</div>
 </div>
 
+@Html.AntiForgeryToken()
+<div id="posMessage" class="alert d-none" role="alert"></div>
+
 <div class="row g-3">
     <div class="col-lg-4">
         <div class="card">
@@ -27,7 +30,7 @@
                     <button id="searchButton" class="btn btn-outline-primary" type="button">Търси</button>
                 </div>
 
-                <div id="searchResults" class="list-group small"></div>
+                <div id="searchResults" class="d-grid gap-2 small"></div>
             </div>
         </div>
     </div>
@@ -118,26 +121,16 @@
             });
 
             $('#clearCartButton').on('click', function () {
-                $.post('/Pos/Clear', function (response) {
-                    if (response.success) {
-                        cart = response.cart;
-                        renderCart();
-                    }
-                });
+            postJson('/Pos/Clear', {}, function (response) {
+                cart = response.cart;
+                renderCart();
+                showMessage('Количката е изчистена.', 'info');
+            });
             });
 
             $('#checkoutButton').on('click', function () {
-                $.ajax({
-                    url: '/Pos/Checkout',
-                    type: 'POST',
-                    data: { paymentMethod: $('#paymentMethod').val() },
-                    success: function (response) {
-                        if (response.success) {
-                            window.location.href = response.redirectUrl;
-                        } else {
-                            alert(response.message || 'Продажбата не беше завършена.');
-                        }
-                    }
+                postJson('/Pos/Checkout', { paymentMethod: $('#paymentMethod').val() }, function (response) {
+                    window.location.href = response.redirectUrl;
                 });
             });
         });
@@ -148,20 +141,11 @@
                 return;
             }
 
-            $.ajax({
-                url: '/Pos/Scan',
-                type: 'POST',
-                data: { barcode: barcode },
-                success: function (response) {
-                    if (response.success) {
-                        cart = response.cart;
-                        renderCart();
-                        $('#barcodeInput').val('').focus();
-                    } else {
-                        alert(response.message || 'Баркодът не беше добавен.');
-                        $('#barcodeInput').focus();
-                    }
-                }
+            postJson('/Pos/Scan', { barcode: barcode }, function (response) {
+                cart = response.cart;
+                renderCart();
+                showMessage('Артикулът е добавен.', 'success');
+                $('#barcodeInput').val('').focus();
             });
         }
 
@@ -169,91 +153,99 @@
             var search = $('#searchInput').val();
             $('#searchResults').empty();
 
-            if (!search) {
+            if (!search || search.trim().length < 1) {
+                $('#searchResults').append('<div class="alert alert-info mb-0">Въведете SKU, описание или размер.</div>');
                 return;
             }
 
+            $('#searchButton').prop('disabled', true).text('Търсене...');
+            $('#searchResults').append('<div class="alert alert-secondary mb-0">Търсене...</div>');
+
             $.get('/Pos/Search', { search: search }, function (results) {
+                $('#searchResults').empty();
                 if (!results.length) {
-                    $('#searchResults').append('<div class="list-group-item">Няма резултати.</div>');
+                    $('#searchResults').append('<div class="alert alert-info mb-0">Няма намерени артикули.</div>');
                     return;
                 }
 
                 $.each(results, function (_, item) {
-                    var row = $('<button type="button" class="list-group-item list-group-item-action">');
-                    row.html('<strong>' + item.productSKU + '</strong> - ' + (item.productDescription || '') +
+                    var row = $('<div class="border rounded p-2 bg-light">');
+                    row.html('<div class="d-flex justify-content-between gap-2">' +
+                        '<div><strong>' + item.productSKU + '</strong> - ' + (item.productDescription || '') +
                         '<br />Размер: ' + item.size +
-                        ' / Наличност: ' + item.availableStock + ' бр' +
-                        ' / Цена: ' + money(item.unitPrice));
-                    row.on('click', function () {
+                        '<br />Наличност: ' + item.availableStock + ' бр.' +
+                        '<br />Цена: ' + money(item.unitPrice) +
+                        (item.barcode ? '<br /><span class="text-muted">Баркод: ' + item.barcode + '</span>' : '') +
+                        '</div><div><button type="button" class="btn btn-success add-result">Добави</button></div></div>');
+                    row.find('.add-result').on('click', function () {
                         addLine(item.productInventoryId);
                     });
                     $('#searchResults').append(row);
                 });
+            }).fail(function () {
+                $('#searchResults').empty().append('<div class="alert alert-danger mb-0">Възникна грешка при търсенето. Опитайте отново.</div>');
+            }).always(function () {
+                $('#searchButton').prop('disabled', false).text('Търси');
             });
         }
 
         function addLine(productInventoryId) {
-            $.ajax({
-                url: '/Pos/Add',
-                type: 'POST',
-                data: { productInventoryId: productInventoryId, quantity: 1 },
-                success: function (response) {
-                    if (response.success) {
-                        cart = response.cart;
-                        renderCart();
-                        $('#barcodeInput').focus();
-                    } else {
-                        alert(response.message || 'Артикулът не беше добавен.');
-                    }
-                }
+            postJson('/Pos/Add', { productInventoryId: productInventoryId, quantity: 1 }, function (response) {
+                cart = response.cart;
+                renderCart();
+                showMessage('Артикулът е добавен.', 'success');
+                $('#barcodeInput').focus();
             });
         }
 
         function updateQuantity(productInventoryId, quantity) {
-            $.ajax({
-                url: '/Pos/UpdateQuantity',
-                type: 'POST',
-                data: { productInventoryId: productInventoryId, quantity: quantity },
-                success: function (response) {
-                    if (response.success) {
-                        cart = response.cart;
-                        renderCart();
-                    } else {
-                        alert(response.message);
-                    }
-                }
+            postJson('/Pos/UpdateQuantity', { productInventoryId: productInventoryId, quantity: quantity }, function (response) {
+                cart = response.cart;
+                renderCart();
             });
         }
 
         function updateDiscount(productInventoryId, discountPercent) {
-            $.ajax({
-                url: '/Pos/UpdateDiscount',
-                type: 'POST',
-                data: { productInventoryId: productInventoryId, discountPercent: discountPercent },
-                success: function (response) {
-                    if (response.success) {
-                        cart = response.cart;
-                        renderCart();
-                    } else {
-                        alert(response.message);
-                    }
-                }
+            postJson('/Pos/UpdateDiscount', { productInventoryId: productInventoryId, discountPercent: discountPercent }, function (response) {
+                cart = response.cart;
+                renderCart();
             });
         }
 
         function removeLine(productInventoryId) {
+            postJson('/Pos/Remove', { productInventoryId: productInventoryId }, function (response) {
+                cart = response.cart;
+                renderCart();
+                showMessage('Редът е премахнат.', 'info');
+            });
+        }
+
+        function postJson(url, data, onSuccess) {
             $.ajax({
-                url: '/Pos/Remove',
+                url: url,
                 type: 'POST',
-                data: { productInventoryId: productInventoryId },
+                data: data,
+                headers: {
+                    RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val()
+                },
                 success: function (response) {
                     if (response.success) {
-                        cart = response.cart;
-                        renderCart();
+                        onSuccess(response);
+                    } else {
+                        showMessage(response.message || 'Операцията не беше изпълнена.', 'danger');
                     }
+                },
+                error: function () {
+                    showMessage('Възникна техническа грешка. Опитайте отново.', 'danger');
                 }
             });
+        }
+
+        function showMessage(text, type) {
+            $('#posMessage')
+                .removeClass('d-none alert-success alert-info alert-warning alert-danger')
+                .addClass('alert-' + type)
+                .text(text);
         }
 
         function renderCart() {

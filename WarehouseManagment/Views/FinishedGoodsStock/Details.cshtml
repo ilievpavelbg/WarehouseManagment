@@ -38,6 +38,7 @@
                             <th>Производствена поръчка</th>
                             <th>Склад</th>
                             <th>Потребител</th>
+                            <th>Етикети</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -50,6 +51,9 @@
                                 <td>@receipt.ProductionOrderNumber</td>
                                 <td>@receipt.WarehouseName</td>
                                 <td>@receipt.UserName</td>
+                                <td>
+                                    <a class="btn btn-sm btn-outline-primary" asp-controller="Label" asp-action="Index" asp-route-ProductInventoryId="@Model.ProductInventoryId" asp-route-Quantity="@receipt.Quantity">Печат</a>
+                                </td>
                             </tr>
                         }
                     </tbody>
