@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 
@@ -31,7 +32,13 @@ namespace WarehouseManagment.Models
             [AuditActionType.ProductionMaterialSnapshotCreate] = "Създаване на материални изисквания",
             [AuditActionType.ProductionMaterialConsumption] = "Разход на материали за производство",
             [AuditActionType.FinishedGoodsReceipt] = "Приемане на готова продукция",
-            [AuditActionType.ProductionOrderFinalized] = "Финално приключване на производствена поръчка"
+            [AuditActionType.ProductionOrderFinalized] = "Финално приключване на производствена поръчка",
+            [AuditActionType.PosSaleCreate] = "POS продажба",
+            [AuditActionType.PosSaleUpdate] = "Редакция на POS продажба",
+            [AuditActionType.PosSaleReversal] = "Сторно POS продажба",
+            [AuditActionType.CourierShipmentCreate] = "Куриерска пратка",
+            [AuditActionType.CourierShipmentUpdate] = "Редакция на куриерска пратка",
+            [AuditActionType.CourierShipmentReversal] = "Сторно куриерска пратка"
         };
 
         private static readonly Dictionary<string, string> EntityLabels = new(StringComparer.OrdinalIgnoreCase)
@@ -52,7 +59,9 @@ namespace WarehouseManagment.Models
             ["ProductionOperation"] = "Производствена операция",
             ["Supplier"] = "Доставчик",
             ["UnitOfMeasure"] = "Мерна единица",
-            ["MaterialCategory"] = "Категория материали"
+            ["MaterialCategory"] = "Категория материали",
+            ["PosSale"] = "POS продажба",
+            ["Sale"] = "Стара POS продажба"
         };
 
         private static readonly Dictionary<string, string> ValueLabels = new(StringComparer.OrdinalIgnoreCase)
@@ -70,7 +79,7 @@ namespace WarehouseManagment.Models
             ["Materials"] = "Материали",
             ["MaterialCodeSnapshot"] = "Код материал",
             ["MaterialNameSnapshot"] = "Материал",
-            ["Quantity"] = "Количество",
+            ["Quantity"] = "Общо количество",
             ["Unit"] = "Мерна единица",
             ["UnitNameSnapshot"] = "Мерна единица",
             ["Completed"] = "Завършено",
@@ -80,13 +89,22 @@ namespace WarehouseManagment.Models
             ["OldStatus"] = "Предишен статус",
             ["NewStatus"] = "Нов статус",
             ["Product"] = "Артикул",
+            ["SKU"] = "SKU",
+            ["ProductInventoryId"] = "Размер / вариант",
             ["Size"] = "Размер / вариант",
             ["BatchNumber"] = "Партида",
             ["LotNumber"] = "Lot номер",
             ["BatchNumberSnapshot"] = "Партида",
             ["LotNumberSnapshot"] = "Lot номер",
             ["Operation"] = "Операция",
-            ["Worker"] = "Работник"
+            ["Worker"] = "Работник",
+            ["Lines"] = "Редове",
+            ["Subtotal"] = "Междинна сума",
+            ["Discount"] = "Отстъпка",
+            ["Total"] = "Общо",
+            ["UnitPrice"] = "Ед. цена",
+            ["Payment"] = "Плащане",
+            ["Warehouse"] = "Склад"
         };
 
         public static string ActionLabel(AuditActionType actionType)
@@ -138,25 +156,60 @@ namespace WarehouseManagment.Models
                 || StartsWithPrefix(documentNumber, "FGR");
         }
 
-        public static List<AuditValueDisplayModel> ParseValues(string? json)
+        public static bool IsPosDocument(string? documentNumber)
         {
-            if (string.IsNullOrWhiteSpace(json))
+            return StartsWithPrefix(documentNumber, "POS");
+        }
+
+        public static string PaymentMethodLabel(string? value)
+        {
+            return value switch
+            {
+                "Cash" => "В брой",
+                "Card" => "Карта",
+                _ => string.IsNullOrWhiteSpace(value) ? "-" : value
+            };
+        }
+
+        public static List<AuditValueDisplayModel> ParseValues(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
             {
                 return new List<AuditValueDisplayModel>();
             }
 
             try
             {
-                using var document = JsonDocument.Parse(json);
+                using var document = JsonDocument.Parse(value);
                 return ParseElement(document.RootElement, null);
             }
             catch
             {
+                var keyValueRows = ParseKeyValuePairs(value);
+                if (keyValueRows.Any())
+                {
+                    return keyValueRows;
+                }
+
                 return new List<AuditValueDisplayModel>
                 {
-                    new AuditValueDisplayModel { Label = "Стойност", Value = json }
+                    new AuditValueDisplayModel { Label = "Стойност", Value = value }
                 };
             }
+        }
+
+        private static List<AuditValueDisplayModel> ParseKeyValuePairs(string value)
+        {
+            return value
+                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(part => part.Split('=', 2, StringSplitOptions.TrimEntries))
+                .Where(parts => parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[0]))
+                .Select(parts => new AuditValueDisplayModel
+                {
+                    Label = ValueLabel(parts[0]),
+                    Value = FormatBusinessValue(parts[0], parts[1])
+                })
+                .ToList();
         }
 
         private static List<AuditValueDisplayModel> ParseElement(JsonElement element, string? parentName)
@@ -176,7 +229,7 @@ namespace WarehouseManagment.Models
                         rows.Add(new AuditValueDisplayModel
                         {
                             Label = ValueLabel(property.Name),
-                            Value = FormatJsonValue(property.Value)
+                            Value = FormatBusinessValue(property.Name, FormatJsonValue(property.Value))
                         });
                     }
                 }
@@ -219,6 +272,29 @@ namespace WarehouseManagment.Models
             return rows;
         }
 
+        private static string FormatBusinessValue(string key, string value)
+        {
+            if (string.Equals(key, "Payment", StringComparison.OrdinalIgnoreCase))
+            {
+                return PaymentMethodLabel(value);
+            }
+
+            if (string.Equals(key, "Subtotal", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(key, "Discount", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(key, "Total", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(key, "UnitPrice", StringComparison.OrdinalIgnoreCase))
+            {
+                return TryParseDecimal(value, out var amount) ? $"{amount:0.00} EUR" : value;
+            }
+
+            if (string.Equals(key, "Quantity", StringComparison.OrdinalIgnoreCase))
+            {
+                return int.TryParse(value, out var quantity) ? $"{quantity} бр." : value;
+            }
+
+            return string.IsNullOrWhiteSpace(value) ? "-" : value;
+        }
+
         private static string FormatJsonValue(JsonElement value)
         {
             return value.ValueKind switch
@@ -230,6 +306,12 @@ namespace WarehouseManagment.Models
                 JsonValueKind.Null => "-",
                 _ => value.GetRawText()
             };
+        }
+
+        private static bool TryParseDecimal(string value, out decimal result)
+        {
+            return decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out result)
+                || decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out result);
         }
 
         private static bool StartsWithPrefix(string? documentNumber, string prefix)

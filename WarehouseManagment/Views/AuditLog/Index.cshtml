@@ -84,7 +84,11 @@ else
                         <td>@log.ActionTypeName</td>
                         <td>@log.EntityTypeName</td>
                         <td>
-                            @if (log.HasProductionDocument)
+                            @if (log.PosSaleId.HasValue)
+                            {
+                                <a asp-controller="Pos" asp-action="Receipt" asp-route-id="@log.PosSaleId.Value">@log.DocumentNumber</a>
+                            }
+                            else if (log.HasProductionDocument)
                             {
                                 <a asp-controller="ProductionDocuments" asp-action="ViewDocument" asp-route-documentNumber="@log.DocumentNumber">@log.DocumentNumber</a>
                             }
@@ -95,8 +99,13 @@ else
                         </td>
                         <td>@log.Description</td>
                         <td>@log.IpAddress</td>
-                        <td>
-                            <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@log.Id">Детайли</a>
+                        <td class="text-nowrap">
+                            @if (log.PosSaleId.HasValue)
+                            {
+                                <a class="btn btn-sm btn-outline-success" asp-controller="Pos" asp-action="Receipt" asp-route-id="@log.PosSaleId.Value">Отвори документа</a>
+                                <a class="btn btn-sm btn-outline-secondary" asp-controller="Pos" asp-action="Receipt" asp-route-id="@log.PosSaleId.Value">Печат</a>
+                            }
+                            <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@log.Id">Одит</a>
                         </td>
                     </tr>
                 }

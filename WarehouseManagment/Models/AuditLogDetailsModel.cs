@@ -34,6 +34,8 @@ namespace WarehouseManagment.Models
 
         public bool HasProductionDocument { get; set; }
 
+        public int? PosSaleId { get; set; }
+
         public bool HasProductionOrderLink { get; set; }
 
         public List<AuditValueDisplayModel> OldValueRows { get; set; } = new List<AuditValueDisplayModel>();

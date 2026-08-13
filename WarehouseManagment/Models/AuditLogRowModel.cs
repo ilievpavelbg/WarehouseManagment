@@ -20,6 +20,8 @@ namespace WarehouseManagment.Models
 
         public bool HasProductionDocument { get; set; }
 
+        public int? PosSaleId { get; set; }
+
         public string Description { get; set; } = string.Empty;
 
         public string IpAddress { get; set; } = string.Empty;

@@ -7,6 +7,10 @@
 
 <h1>@ViewData["Title"]</h1>
 
+<div class="alert alert-info">
+    Този екран показва текущите POS продажби от PosSales / PosSaleLines. Старите продажби остават отделно в legacy отчета.
+</div>
+
 <form method="get" class="row g-2 align-items-end my-3">
     <div class="col-md-2">
         <label class="form-label">Документ</label>
@@ -34,7 +38,7 @@
             <option value="">Всички</option>
             @foreach (var method in Model.PaymentMethods)
             {
-                <option value="@method" selected="@(filter.PaymentMethod == method)">@method</option>
+                <option value="@method" selected="@(filter.PaymentMethod == method)">@AuditDisplayHelper.PaymentMethodLabel(method.ToString())</option>
             }
         </select>
     </div>
@@ -76,19 +80,20 @@
         @foreach (var row in Model.Rows)
         {
             <tr>
-                <td>@row.DocumentNumber</td>
+                <td><a asp-action="Receipt" asp-route-id="@row.Id">@row.DocumentNumber</a></td>
                 <td>@row.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
                 <td>@(row.OperatorName ?? "-")</td>
                 <td>@row.LineCount</td>
-                <td>@row.TotalQuantity бр</td>
+                <td>@row.TotalQuantity бр.</td>
                 <td>@row.Total.ToString("0.00") EUR</td>
-                <td>@row.PaymentMethod</td>
+                <td>@AuditDisplayHelper.PaymentMethodLabel(row.PaymentMethod.ToString())</td>
                 <td>
                     <span class="badge @(row.Status == WarehouseManagment.Data.PosSaleStatus.Completed ? "bg-success" : "bg-danger")">@row.Status</span>
                 </td>
                 <td>
                     <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@row.Id">Детайли</a>
                     <a class="btn btn-sm btn-outline-secondary" asp-action="Receipt" asp-route-id="@row.Id">Печат</a>
+                    <a class="btn btn-sm btn-outline-info" asp-controller="AuditLog" asp-action="Index" asp-route-DocumentNumber="@row.DocumentNumber">Одит</a>
                 </td>
             </tr>
         }
