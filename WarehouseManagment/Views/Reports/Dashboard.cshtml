@@ -1,0 +1,16 @@
+@model ManagementDashboardModel
+@using System.Text.Json
+@{ ViewData["Title"] = "Управленско табло"; }
+<div class="app-page-header"><div><h1>Управленско табло</h1><p>Аналитичен изглед за избрания период.</p></div></div>
+<form method="get" class="app-filter-panel row g-2 align-items-end"><div class="col-md-2"><label class="form-label">Дата от</label><input type="date" name="DateFrom" value="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")" class="form-control" /></div><div class="col-md-2"><label class="form-label">Дата до</label><input type="date" name="DateTo" value="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")" class="form-control" /></div><div class="col-md-2"><button class="btn btn-primary w-100">Обнови</button></div></form>
+<div class="row g-3 my-3">@foreach (var kpi in Model.Kpis){<div class="col-md"><div class="app-stat-card border-start border-4 @kpi.CssClass"><span>@kpi.Label</span><strong>@kpi.Value</strong></div></div>}</div>
+<div class="row g-3"><div class="col-lg-6"><div class="app-card"><h5>Продажби по дни</h5><canvas id="salesChart"></canvas></div></div><div class="col-lg-6"><div class="app-card"><h5>Топ продукти</h5><canvas id="productsChart"></canvas></div></div></div>
+@section Scripts{
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const sales = @Html.Raw(JsonSerializer.Serialize(Model.SalesByDay));
+const products = @Html.Raw(JsonSerializer.Serialize(Model.TopProducts));
+function draw(id, points){ const el=document.getElementById(id); if(!el||!points.length)return; new Chart(el,{type:'bar',data:{labels:points.map(x=>x.Label),datasets:[{data:points.map(x=>x.Value),backgroundColor:'#0d6efd'}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});}
+draw('salesChart', sales); draw('productsChart', products);
+</script>
+}

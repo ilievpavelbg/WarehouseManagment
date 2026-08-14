@@ -1,0 +1,7 @@
+@model TraceabilityModel
+@{ ViewData["Title"] = "Проследимост"; }
+<div class="app-page-header"><div><h1>Проследимост</h1><p>Търсене по SKU, баркод, POS документ, производствена поръчка, PMT/PMC/FGR.</p></div></div>
+<form method="get" class="app-filter-panel row g-2 align-items-end"><div class="col-md-6"><label class="form-label">Търсене</label><input name="Search" value="@Model.Filter.Search" class="form-control" /></div><div class="col-md-2"><button class="btn btn-primary w-100">Търси</button></div></form>
+<div class="app-card"><table class="table app-table"><thead><tr><th>Дата</th><th>Събитие</th><th>Описание</th><th>Документ</th></tr></thead><tbody>
+@foreach (var row in Model.Events){<tr><td>@row.Date.ToString("dd.MM.yyyy HH:mm")</td><td>@row.EventType</td><td>@row.Description</td><td>@if (!string.IsNullOrWhiteSpace(row.Controller)){<a asp-controller="@row.Controller" asp-action="@row.Action" asp-route-id="@row.RouteId">@row.DocumentNumber</a>}else{@row.DocumentNumber}</td></tr>}
+</tbody></table>@if (!Model.Events.Any()){<div class="app-empty-state">Няма намерени събития.</div>}</div>

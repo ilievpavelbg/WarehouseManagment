@@ -139,6 +139,7 @@ builder.Services.AddScoped<IProductionMaterialService, ProductionMaterialService
 builder.Services.AddScoped<IProductionFinalizationService, ProductionFinalizationService>();
 builder.Services.AddScoped<IProductionWorkService, ProductionWorkService>();
 builder.Services.AddScoped<IProductionDocumentQueryService, ProductionDocumentQueryService>();
+builder.Services.AddScoped<IReportsService, ReportsService>();
 builder.Services.AddScoped<IProductionSetupSeeder, ProductionSetupSeeder>();
 builder.Services.AddScoped<IRoleSeeder, RoleSeeder>();
 builder.Services.AddSingleton<IHttpContextAccessor,  HttpContextAccessor>();

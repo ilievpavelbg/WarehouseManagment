@@ -1,0 +1,6 @@
+@model ReportsIndexModel<SalesByOperatorReportRowModel>
+@{ ViewData["Title"] = "Продажби по оператор"; }
+<div class="app-page-header"><div><h1>Продажби по оператор</h1><p>POS резултати по оператор.</p></div></div>
+<div class="app-card"><table class="table app-table"><thead><tr><th>Оператор</th><th class="text-end">Документи</th><th class="text-end">Редове</th><th class="text-end">Количество</th><th class="text-end">Нетни продажби</th><th class="text-end">Средна кошница</th><th class="text-end">Сторно</th></tr></thead><tbody>
+@foreach (var row in Model.Rows){<tr><td>@row.Operator</td><td class="text-end">@row.Documents</td><td class="text-end">@row.Items</td><td class="text-end">@row.Quantity</td><td class="text-end">@row.NetSales.ToString("N2") EUR</td><td class="text-end">@row.AverageBasket.ToString("N2") EUR</td><td class="text-end">@row.Reversals</td></tr>}
+</tbody></table></div>

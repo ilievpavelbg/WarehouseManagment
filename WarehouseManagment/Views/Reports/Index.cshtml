@@ -1,0 +1,25 @@
+@model ReportsLandingModel
+@{
+    ViewData["Title"] = "Справки и анализи";
+}
+
+<div class="app-page-header">
+    <div>
+        <h1>Справки и анализи</h1>
+        <p>Управленски и оперативни справки върху съществуващите WMS, Production и POS данни.</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    @foreach (var card in Model.Cards)
+    {
+        <div class="col-md-6 col-xl-4">
+            <a class="text-decoration-none text-dark" asp-controller="@card.Controller" asp-action="@card.Action">
+                <div class="app-card h-100 border-start border-4 @card.CssClass">
+                    <h5>@card.Title</h5>
+                    <p class="text-muted mb-0">@card.Description</p>
+                </div>
+            </a>
+        </div>
+    }
+</div>

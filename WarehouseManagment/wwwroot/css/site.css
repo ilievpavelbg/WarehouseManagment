@@ -179,4 +179,270 @@ body {
     align-items: center;
 }
 
+.app-shell {
+    margin-bottom: 0;
+    background: #eef2f6;
+    color: #1f2937;
+}
+
+.app-layout {
+    min-height: 100vh;
+    display: flex;
+}
+
+.app-sidebar {
+    width: 270px;
+    flex: 0 0 270px;
+    background: #111827;
+    color: #d1d5db;
+    min-height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    transition: width .15s ease, transform .15s ease;
+    z-index: 1040;
+}
+
+.app-brand {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.app-brand a {
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+    background: #dc2626;
+    padding: .45rem .65rem;
+    border-radius: .35rem;
+}
+
+.app-nav {
+    padding: .75rem;
+}
+
+.app-nav-link,
+.app-nav-group,
+.app-nav .collapse a {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    color: #d1d5db;
+    text-decoration: none;
+    border: 0;
+    background: transparent;
+    padding: .55rem .65rem;
+    border-radius: .4rem;
+    font-size: .92rem;
+    text-align: left;
+}
+
+.app-nav-group {
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-weight: 700;
+    margin-top: .5rem;
+}
+
+.app-nav .collapse a {
+    padding-left: 1.35rem;
+}
+
+.app-nav-link:hover,
+.app-nav-group:hover,
+.app-nav .collapse a:hover,
+.app-nav-link.active,
+.app-nav .collapse a.active {
+    color: #fff;
+    background: rgba(59,130,246,.22);
+}
+
+.app-nav-link span {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: .35rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,.08);
+    font-size: .75rem;
+    font-style: normal;
+}
+
+.app-nav-link em {
+    font-style: normal;
+}
+
+.sidebar-collapsed .app-sidebar {
+    width: 82px;
+    flex-basis: 82px;
+}
+
+.sidebar-collapsed .app-brand a,
+.sidebar-collapsed .app-nav-group,
+.sidebar-collapsed .app-nav .collapse,
+.sidebar-collapsed .app-nav-link em {
+    display: none;
+}
+
+.app-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.app-topbar {
+    height: 64px;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    padding: 0 1.25rem;
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+}
+
+.app-top-title {
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.app-breadcrumb {
+    color: #6b7280;
+    font-size: .78rem;
+}
+
+.app-user-menu {
+    flex-direction: row;
+    align-items: center;
+    gap: .25rem;
+}
+
+.app-user-menu .nav-link {
+    color: #374151;
+    padding: .25rem .5rem;
+}
+
+.app-content {
+    padding: 1.25rem;
+}
+
+.app-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.app-page-header h1 {
+    font-size: 1.35rem;
+    margin: 0;
+}
+
+.app-page-header p {
+    margin: .25rem 0 0;
+    color: #6b7280;
+}
+
+.app-card,
+.app-filter-panel,
+.app-stat-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: .5rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+
+.app-card {
+    padding: 1rem;
+}
+
+.app-filter-panel {
+    padding: .85rem;
+    margin-bottom: 1rem;
+}
+
+.app-stat-card {
+    padding: .85rem 1rem;
+}
+
+.app-stat-card span {
+    display: block;
+    color: #6b7280;
+    font-size: .82rem;
+}
+
+.app-stat-card strong {
+    display: block;
+    font-size: 1.2rem;
+}
+
+.app-table {
+    margin-bottom: 0;
+    font-size: .9rem;
+}
+
+.app-table thead th {
+    background: #f8fafc;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 64px;
+    z-index: 3;
+}
+
+.app-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.app-empty-state {
+    padding: 2rem;
+    text-align: center;
+    color: #6b7280;
+}
+
+@media (max-width: 991.98px) {
+    .app-sidebar {
+        position: fixed;
+        transform: translateX(-100%);
+    }
+
+    .sidebar-mobile-open .app-sidebar {
+        transform: translateX(0);
+    }
+
+    .app-content {
+        padding: 1rem;
+    }
+
+    .app-page-header {
+        flex-direction: column;
+    }
+}
+
+@media print {
+    .app-sidebar,
+    .app-topbar,
+    .app-filter-panel,
+    .btn {
+        display: none !important;
+    }
+
+    .app-content {
+        padding: 0;
+    }
+
+    .app-card {
+        border: 0;
+        box-shadow: none;
+    }
+}
+
 

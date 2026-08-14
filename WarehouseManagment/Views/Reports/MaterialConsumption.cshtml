@@ -1,0 +1,6 @@
+@model ReportsIndexModel<MaterialConsumptionReportRowModel>
+@{ ViewData["Title"] = "Разход на материали"; }
+<div class="app-page-header"><div><h1>Разход на материали</h1><p>Прехвърлено, потребено, върнато и остатък в НЗП.</p></div><a class="btn btn-outline-success" asp-action="Export" asp-route-report="consumption">Excel</a></div>
+<div class="app-card"><table class="table app-table"><thead><tr><th>Поръчка</th><th>Артикул</th><th>Материал</th><th class="text-end">Прехвърлено</th><th class="text-end">Потребено</th><th class="text-end">Върнато</th><th class="text-end">Остатък</th><th>PMC</th></tr></thead><tbody>
+@foreach (var row in Model.Rows){<tr><td>@row.ProductionOrder</td><td>@row.Product</td><td>@row.Material</td><td class="text-end">@QuantityDisplayFormatter.Format(row.Transferred, row.Unit, true)</td><td class="text-end">@QuantityDisplayFormatter.Format(row.Consumed, row.Unit, true)</td><td class="text-end">@QuantityDisplayFormatter.Format(row.Returned, row.Unit, true)</td><td class="text-end">@QuantityDisplayFormatter.Format(row.Remainder, row.Unit, true)</td><td>@row.PmcDocument</td></tr>}
+</tbody></table></div>

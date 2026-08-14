@@ -1,0 +1,6 @@
+@model ReportsIndexModel<SalesByProductReportRowModel>
+@{ ViewData["Title"] = "Продажби по артикули"; }
+<div class="app-page-header"><div><h1>Продажби по артикули</h1><p>Нетни POS продажби по SKU и вариант. Сторнираните документи са изключени.</p></div><a class="btn btn-outline-success" asp-action="Export" asp-route-report="salesbyproduct">Excel</a></div>
+<div class="app-card"><table class="table app-table"><thead><tr><th>SKU</th><th>Артикул</th><th>Вариант</th><th class="text-end">Количество</th><th class="text-end">Брутно</th><th class="text-end">Отстъпка</th><th class="text-end">Нетно</th><th class="text-end">Документи</th></tr></thead><tbody>
+@foreach (var row in Model.Rows){<tr><td>@row.SKU</td><td>@row.Product</td><td>@row.Variant</td><td class="text-end">@row.QuantitySold</td><td class="text-end">@row.GrossValue.ToString("N2") EUR</td><td class="text-end">@row.Discount.ToString("N2") EUR</td><td class="text-end">@row.NetValue.ToString("N2") EUR</td><td class="text-end">@row.Documents</td></tr>}
+</tbody></table></div>

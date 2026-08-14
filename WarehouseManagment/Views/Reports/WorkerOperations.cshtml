@@ -1,0 +1,6 @@
+@model ReportsIndexModel<WorkerOperationReportRowModel>
+@{ ViewData["Title"] = "Производителност по операции"; }
+<div class="app-page-header"><div><h1>Производителност по операции</h1><p>Отчетена работа по работник, роля и операция.</p></div></div>
+<div class="app-card"><table class="table app-table"><thead><tr><th>Работник</th><th>Роля</th><th>Операция</th><th class="text-end">Годно</th><th class="text-end">Брак</th><th class="text-end">Отчети</th><th class="text-end">Средно време</th></tr></thead><tbody>
+@foreach (var row in Model.Rows){<tr><td>@row.Worker</td><td>@row.Role</td><td>@row.Operation</td><td class="text-end">@QuantityDisplayFormatter.Format(row.GoodQuantity, "бр", true)</td><td class="text-end">@QuantityDisplayFormatter.Format(row.RejectedQuantity, "бр", true)</td><td class="text-end">@row.Reports</td><td class="text-end">@(row.AverageMinutes.HasValue ? $"{row.AverageMinutes:N0} мин." : "-")</td></tr>}
+</tbody></table></div>

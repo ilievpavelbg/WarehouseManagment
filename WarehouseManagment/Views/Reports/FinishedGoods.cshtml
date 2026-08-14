@@ -1,0 +1,6 @@
+@model ReportsIndexModel<FinishedGoodsReportRowModel>
+@{ ViewData["Title"] = "Готова продукция"; }
+<div class="app-page-header"><div><h1>Готова продукция</h1><p>Текуща продаваема наличност, FGR и продажби за периода.</p></div></div>
+<div class="app-card"><table class="table app-table"><thead><tr><th>SKU</th><th>Артикул</th><th>Вариант</th><th>Баркод</th><th class="text-end">Наличност</th><th>Склад</th><th>Последен FGR</th><th>Дата FGR</th><th class="text-end">Продадено</th></tr></thead><tbody>
+@foreach (var row in Model.Rows){<tr><td>@row.SKU</td><td>@row.Product</td><td>@row.Variant</td><td><code>@row.Barcode</code></td><td class="text-end">@row.CurrentQuantity бр.</td><td>@row.FinishedGoodsWarehouse</td><td>@row.LatestFgr</td><td>@row.LastReceiptDate?.ToString("dd.MM.yyyy")</td><td class="text-end">@row.SoldQuantity бр.</td></tr>}
+</tbody></table></div>

@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="bg">
 @inject IWebHostEnvironment WebHostEnvironment
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - V E T E I D A -</title>
+    <title>@ViewData["Title"] - VETEIDA ERP</title>
     @if (!WebHostEnvironment.IsDevelopment())
     {
         <script src="https://www.google.com/recaptcha/api.js" async defer></script>
@@ -13,21 +13,11 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/WarehouseManagment.styles.css" asp-append-version="true" />
 </head>
-<body>
+<body class="app-shell">
     @Html.AntiForgeryToken()
     @{
-        var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
-        var salesControllers = new[] { "Product", "Sale", "Courier", "Pos", "Label" };
-        var wmsControllers = new[] { "Warehouse", "WarehouseSettings", "Material", "StockInquiry", "FinishedGoodsStock", "LowStock", "InventoryMovement", "AuditLog" };
-        var masterDataControllers = new[] { "MaterialCategory", "UnitOfMeasure", "Supplier" };
-        var productionControllers = new[] { "ProductionOrder", "ProductionWork", "ProductionProfile", "CostComponent", "ProductCostCalculation", "BillOfMaterials", "ProductionOperation", "ProductRouting" };
-        var adminControllers = new[] { "UserRoles" };
-        var isHomeActive = string.Equals(currentController, "Home", StringComparison.OrdinalIgnoreCase);
-        var isSalesActive = salesControllers.Contains(currentController);
-        var isWmsActive = wmsControllers.Contains(currentController);
-        var isMasterDataActive = masterDataControllers.Contains(currentController);
-        var isProductionActive = productionControllers.Contains(currentController);
-        var isAdminActive = adminControllers.Contains(currentController);
+        var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+        var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
         var isAdministrator = User.IsInRole(ApplicationRoles.Administrator);
         var isWarehouseManager = User.IsInRole(ApplicationRoles.WarehouseManager);
         var isWarehouseOperator = User.IsInRole(ApplicationRoles.WarehouseOperator);
@@ -42,150 +32,158 @@
         var canManageProduction = isAdministrator || isProductionManager;
         var canWorkProduction = canManageProduction || isProductionWorker;
         var canAccessSales = isAdministrator || isSalesManager || isSalesOperator;
+        var canViewReports = isAdministrator || isWarehouseManager || isProductionManager || isSalesManager;
         var isProductionWorkerOnly = isProductionWorker && !canManageProduction;
         var brandController = isProductionWorkerOnly ? "ProductionWork" : "Home";
-        var brandAction = "Index";
+        var currentRole = isAdministrator ? "Administrator" :
+            isSalesManager ? "SalesManager" :
+            isWarehouseManager ? "WarehouseManager" :
+            isProductionManager ? "ProductionManager" :
+            isSalesOperator ? "SalesOperator" :
+            isWarehouseOperator ? "WarehouseOperator" :
+            isProductionWorker ? "Production" :
+            isReadOnly ? "ReadOnly" : string.Empty;
+        string Active(string controller, string? action = null) =>
+            string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase) &&
+            (action == null || string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase))
+                ? "active"
+                : string.Empty;
+        string GroupOpen(params string[] controllers) => controllers.Contains(currentController, StringComparer.OrdinalIgnoreCase) ? "show" : string.Empty;
     }
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand rounded" asp-controller="@brandController" asp-action="@brandAction" style="background-color:#ff0000; padding:8px;">Управление склад VETEIDA</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor01" aria-controls="navbarColor01"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between" id="navbarColor01">
-                    @if (User.Identity?.IsAuthenticated == true)
-                    {
-                        <ul class="navbar-nav me-auto mb-2 mb-lg-0 flex-nowrap">
-                            @if (isProductionWorkerOnly)
-                            {
-                                <li class="nav-item">
-                                    <a class="nav-link @(string.Equals(currentController, "ProductionWork", StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty)" asp-area="" asp-controller="ProductionWork" asp-action="Index">Моите задачи</a>
-                                </li>
-                            }
-                            @if (!isProductionWorkerOnly && canReadWarehouse)
-                            {
-                                <li class="nav-item">
-                                    <a class="nav-link @(isHomeActive ? "active" : string.Empty)" asp-area="" asp-controller="Home" asp-action="Index">Начало</a>
-                                </li>
-                            }
-                            @if (!isProductionWorkerOnly && canAccessSales)
-                            {
-                                <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle @(isSalesActive ? "active" : string.Empty)" href="#" id="salesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        Продажби
-                                    </a>
-                                    <ul class="dropdown-menu" aria-labelledby="salesDropdown">
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="Product" asp-action="Index">Артикули</a></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="Pos" asp-action="Index">Нова POS продажба</a></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="Label" asp-action="Index">Етикети</a></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="Pos" asp-action="Sales">POS продажби</a></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="Sale" asp-action="BarcodeScanerInput">Стара POS продажба</a></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="Sale" asp-action="AllSales">Стари продажби</a></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="Courier" asp-action="BarcodeScanerInput">Куриер</a></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="Courier" asp-action="AllCouriers">Отчет куриери</a></li>
-                                    </ul>
-                                </li>
-                            }
-                            @if (!isProductionWorkerOnly && canReadWarehouse)
-                            {
-                                <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle @(isWmsActive ? "active" : string.Empty)" href="#" id="wmsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        Склад
-                                    </a>
-                                    <ul class="dropdown-menu" aria-labelledby="wmsDropdown">
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="Home" asp-action="Index">WMS табло</a></li>
-                                        @if (canManageWarehouse)
-                                        {
-                                            <li><a class="dropdown-item" asp-area="" asp-controller="Warehouse" asp-action="Index">Складове</a></li>
-                                            <li><a class="dropdown-item" asp-area="" asp-controller="WarehouseSettings" asp-action="Index">Настройки складове</a></li>
-                                        }
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="Material" asp-action="Index">Материали</a></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="StockInquiry" asp-action="Index">Наличности</a></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="FinishedGoodsStock" asp-action="Index">Готова продукция</a></li>
-                                        @if (canViewLowStock)
-                                        {
-                                            <li><a class="dropdown-item" asp-area="" asp-controller="LowStock" asp-action="Index">Под минимум</a></li>
-                                        }
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="InventoryMovement" asp-action="Index">Движения склад</a></li>
-                                        @if (canManageWarehouse)
-                                        {
-                                            <li><a class="dropdown-item" asp-area="" asp-controller="AuditLog" asp-action="Index">Одит лог</a></li>
-                                        }
-                                    </ul>
-                                </li>
-                            }
-                            @if (!isProductionWorkerOnly && canManageWarehouse)
-                            {
-                                <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle @(isMasterDataActive ? "active" : string.Empty)" href="#" id="masterDataDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        Номенклатури
-                                    </a>
-                                    <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="MaterialCategory" asp-action="Index">Категории материали</a></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="UnitOfMeasure" asp-action="Index">Мерни единици</a></li>
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="Supplier" asp-action="Index">Доставчици</a></li>
-                                    </ul>
-                                </li>
-                            }
-                            @if (!isProductionWorkerOnly && canWorkProduction)
-                            {
-                                <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle @(isProductionActive ? "active" : string.Empty)" href="#" id="productionDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        Производство
-                                    </a>
-                                    <ul class="dropdown-menu" aria-labelledby="productionDropdown">
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="ProductionWork" asp-action="Index">Моите задачи</a></li>
-                                        @if (canManageProduction)
-                                        {
-                                            <li><a class="dropdown-item" asp-area="" asp-controller="ProductionOrder" asp-action="Index">Производствени поръчки</a></li>
-                                            <li><hr class="dropdown-divider" /></li>
-                                            <li><a class="dropdown-item" asp-area="" asp-controller="ProductionProfile" asp-action="Index">Производствени изделия</a></li>
-                                            <li><a class="dropdown-item" asp-area="" asp-controller="CostComponent" asp-action="Index">Компоненти себестойност</a></li>
-                                            <li><a class="dropdown-item" asp-area="" asp-controller="ProductCostCalculation" asp-action="Index">Калкулации</a></li>
-                                            <li><a class="dropdown-item" asp-area="" asp-controller="BillOfMaterials" asp-action="Index">Разходни норми</a></li>
-                                            <li><a class="dropdown-item" asp-area="" asp-controller="ProductionOperation" asp-action="Index">Производствени операции</a></li>
-                                            <li><a class="dropdown-item" asp-area="" asp-controller="ProductRouting" asp-action="Index">Технологични маршрути</a></li>
-                                        }
-                                    </ul>
-                                </li>
-                            }
-                            @if (!isProductionWorkerOnly && isAdministrator)
-                            {
-                                <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle @(isAdminActive ? "active" : string.Empty)" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        Администрация
-                                    </a>
-                                    <ul class="dropdown-menu" aria-labelledby="adminDropdown">
-                                        <li><a class="dropdown-item" asp-area="" asp-controller="UserRoles" asp-action="Index">Потребители и роли</a></li>
-                                    </ul>
-                                </li>
-                            }
-                        </ul>
-                    }
-                    <div class="ms-auto">
-                        <partial name="_LoginPartial" />
-                    </div>
-                </div>
+
+    <div class="app-layout" id="appLayout">
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="app-brand">
+                <a asp-controller="@brandController" asp-action="Index">VETEIDA ERP</a>
+                <button class="btn btn-sm btn-outline-light app-sidebar-toggle" type="button" id="sidebarToggle">☰</button>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-    <footer class="bg-light text-center text-lg-start fixed-bottom">
-        <div class="text-center p-3">
-            &copy; 2023 - Warehouse Managment VETEIDA - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <nav class="app-nav">
+                    @if (isProductionWorkerOnly)
+                    {
+                        <a class="app-nav-link @Active("ProductionWork")" asp-controller="ProductionWork" asp-action="Index"><span>МЗ</span><em>Моите задачи</em></a>
+                    }
+                    else
+                    {
+                        <a class="app-nav-link @Active("Home")" asp-controller="Home" asp-action="Index"><span>Н</span><em>Начало</em></a>
+
+                        @if (canReadWarehouse)
+                        {
+                            <button class="app-nav-group" type="button" data-bs-toggle="collapse" data-bs-target="#wmsMenu" aria-expanded="true">Склад</button>
+                            <div class="collapse @GroupOpen("Warehouse", "WarehouseSettings", "Material", "StockInquiry", "FinishedGoodsStock", "LowStock", "InventoryMovement", "MaterialStockCard")" id="wmsMenu">
+                                <a class="@Active("Home")" asp-controller="Home" asp-action="Index">WMS табло</a>
+                                <a asp-controller="Material" asp-action="Index">Материали</a>
+                                <a class="@Active("StockInquiry")" asp-controller="StockInquiry" asp-action="Index">Наличности</a>
+                                <a class="@Active("FinishedGoodsStock")" asp-controller="FinishedGoodsStock" asp-action="Index">Готова продукция</a>
+                                <a class="@Active("InventoryMovement")" asp-controller="InventoryMovement" asp-action="Index">Движения</a>
+                                @if (canViewLowStock)
+                                {
+                                    <a class="@Active("LowStock")" asp-controller="LowStock" asp-action="Index">Под минимум</a>
+                                }
+                                @if (canManageWarehouse)
+                                {
+                                    <a class="@Active("Warehouse")" asp-controller="Warehouse" asp-action="Index">Складове</a>
+                                    <a class="@Active("WarehouseSettings")" asp-controller="WarehouseSettings" asp-action="Index">Настройки складове</a>
+                                }
+                            </div>
+                        }
+
+                        @if (canWorkProduction)
+                        {
+                            <button class="app-nav-group" type="button" data-bs-toggle="collapse" data-bs-target="#productionMenu">Производство</button>
+                            <div class="collapse @GroupOpen("ProductionOrder", "ProductionWork", "ProductionProfile", "CostComponent", "ProductCostCalculation", "BillOfMaterials", "ProductionOperation", "ProductRouting")" id="productionMenu">
+                                <a class="@Active("ProductionWork")" asp-controller="ProductionWork" asp-action="Index">Моите задачи</a>
+                                @if (canManageProduction)
+                                {
+                                    <a class="@Active("ProductionOrder")" asp-controller="ProductionOrder" asp-action="Index">Производствени поръчки</a>
+                                    <a class="@Active("BillOfMaterials")" asp-controller="BillOfMaterials" asp-action="Index">Разходни норми</a>
+                                    <a class="@Active("ProductRouting")" asp-controller="ProductRouting" asp-action="Index">Маршрути</a>
+                                    <a class="@Active("ProductionProfile")" asp-controller="ProductionProfile" asp-action="Index">Профили</a>
+                                }
+                            </div>
+                        }
+
+                        @if (canAccessSales)
+                        {
+                            <button class="app-nav-group" type="button" data-bs-toggle="collapse" data-bs-target="#salesMenu">Продажби</button>
+                            <div class="collapse @GroupOpen("Product", "Sale", "Courier", "Pos", "Label")" id="salesMenu">
+                                <a class="@Active("Pos", "Index")" asp-controller="Pos" asp-action="Index">POS</a>
+                                <a class="@Active("Pos", "Sales")" asp-controller="Pos" asp-action="Sales">POS продажби</a>
+                                <a class="@Active("Product")" asp-controller="Product" asp-action="Index">Артикули</a>
+                                <a class="@Active("Label")" asp-controller="Label" asp-action="Index">Печат на етикети</a>
+                                @if (isSalesManager || isAdministrator)
+                                {
+                                    <a asp-controller="Sale" asp-action="AllSales">Стари продажби</a>
+                                    <a asp-controller="Courier" asp-action="AllCouriers">Куриер / доставки</a>
+                                }
+                            </div>
+                        }
+
+                        @if (canViewReports)
+                        {
+                            <button class="app-nav-group" type="button" data-bs-toggle="collapse" data-bs-target="#reportsMenu">Справки</button>
+                            <div class="collapse @GroupOpen("Reports")" id="reportsMenu">
+                                <a class="@Active("Reports", "Dashboard")" asp-controller="Reports" asp-action="Dashboard">Управленско табло</a>
+                                @if (isSalesManager || isAdministrator)
+                                {
+                                    <a class="@Active("Reports", "Sales")" asp-controller="Reports" asp-action="Sales">Продажби</a>
+                                }
+                                @if (canManageWarehouse)
+                                {
+                                    <a class="@Active("Reports", "Warehouse")" asp-controller="Reports" asp-action="Warehouse">Склад</a>
+                                }
+                                @if (canManageProduction)
+                                {
+                                    <a class="@Active("Reports", "Production")" asp-controller="Reports" asp-action="Production">Производство</a>
+                                }
+                                <a class="@Active("Reports", "Barcodes")" asp-controller="Reports" asp-action="Barcodes">Артикули / баркод</a>
+                                <a class="@Active("Reports", "Traceability")" asp-controller="Reports" asp-action="Traceability">Проследимост</a>
+                            </div>
+                        }
+
+                        @if (isAdministrator)
+                        {
+                            <button class="app-nav-group" type="button" data-bs-toggle="collapse" data-bs-target="#adminMenu">Администрация</button>
+                            <div class="collapse @GroupOpen("UserRoles", "AuditLog", "MaterialCategory", "UnitOfMeasure", "Supplier")" id="adminMenu">
+                                <a class="@Active("UserRoles")" asp-controller="UserRoles" asp-action="Index">Потребители и роли</a>
+                                <a class="@Active("AuditLog")" asp-controller="AuditLog" asp-action="Index">Audit Log</a>
+                                <a asp-controller="MaterialCategory" asp-action="Index">Категории</a>
+                                <a asp-controller="UnitOfMeasure" asp-action="Index">Мерни единици</a>
+                                <a asp-controller="Supplier" asp-action="Index">Доставчици</a>
+                            </div>
+                        }
+                    }
+                </nav>
+            }
+        </aside>
+
+        <div class="app-main">
+            <header class="app-topbar">
+                <button class="btn btn-outline-secondary d-lg-none" type="button" id="mobileSidebarToggle">☰</button>
+                <div>
+                    <div class="app-top-title">@ViewData["Title"]</div>
+                    <div class="app-breadcrumb">@currentController / @currentAction</div>
+                </div>
+                <div class="ms-auto d-flex align-items-center gap-3">
+                    @if (!string.IsNullOrWhiteSpace(currentRole))
+                    {
+                        <span class="badge bg-light text-dark border">@currentRole</span>
+                    }
+                    <partial name="_LoginPartial" />
+                </div>
+            </header>
+
+            <main role="main" class="app-content">
+                @RenderBody()
+            </main>
         </div>
-    </footer>
+    </div>
+
     @if (!WebHostEnvironment.IsDevelopment())
     {
-        <script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit"
-                async defer>
-        </script>
+        <script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit" async defer></script>
     }
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script>
@@ -199,6 +197,21 @@
                 }
             }
         });
+
+        (function () {
+            const layout = document.getElementById('appLayout');
+            const collapsed = localStorage.getItem('veteida-sidebar-collapsed') === 'true';
+            if (collapsed) layout?.classList.add('sidebar-collapsed');
+
+            document.getElementById('sidebarToggle')?.addEventListener('click', function () {
+                layout?.classList.toggle('sidebar-collapsed');
+                localStorage.setItem('veteida-sidebar-collapsed', layout?.classList.contains('sidebar-collapsed') ? 'true' : 'false');
+            });
+
+            document.getElementById('mobileSidebarToggle')?.addEventListener('click', function () {
+                layout?.classList.toggle('sidebar-mobile-open');
+            });
+        })();
     </script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
