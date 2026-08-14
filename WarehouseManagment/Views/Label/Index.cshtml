@@ -8,9 +8,22 @@
     <h1>@ViewData["Title"]</h1>
     @if (Model.Selected != null)
     {
-        <button class="btn btn-primary" onclick="window.print()">Печат</button>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary" onclick="window.print()">Печат</button>
+            <form asp-action="RecordPrinted" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="productInventoryId" value="@Model.Selected.ProductInventoryId" />
+                <input type="hidden" name="quantity" value="@Model.Quantity" />
+                <button type="submit" class="btn btn-outline-success">Отбележи като отпечатани</button>
+            </form>
+        </div>
     }
 </div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success no-print">@TempData["SuccessMessage"]</div>
+}
 
 <form method="get" class="row g-2 align-items-end mb-4 no-print">
     <div class="col-md-5">
@@ -63,6 +76,21 @@
 
 @if (Model.Selected != null)
 {
+    <div class="card mb-3 no-print">
+        <div class="card-body">
+            <h5 class="card-title">Метаданни за баркод</h5>
+            <div class="row g-2 small">
+                <div class="col-md-3"><strong>Баркод:</strong> <code>@Model.Selected.Barcode</code></div>
+                <div class="col-md-2"><strong>Тип:</strong> @(Model.Selected.BarcodeType ?? "-")</div>
+                <div class="col-md-3"><strong>Последно отпечатан:</strong> @(Model.Selected.BarcodePrintedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</div>
+                <div class="col-md-2"><strong>Отпечатани етикети:</strong> @Model.Selected.BarcodePrintCount</div>
+            </div>
+            <div class="text-muted mt-2">
+                Броят показва етикети, отбелязани като отпечатани от потребител. Прегледът и browser print не потвърждават физически печат автоматично.
+            </div>
+        </div>
+    </div>
+
     <div class="label-sheet">
         @for (var i = 0; i < Model.Quantity; i++)
         {

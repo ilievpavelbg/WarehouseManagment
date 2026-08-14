@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SkiaSharp;
 using WarehouseManagment.Data;
 using WarehouseManagment.Interfaces;
+using WarehouseManagment.Models;
 
 namespace WarehouseManagment.Services
 {
@@ -10,10 +11,17 @@ namespace WarehouseManagment.Services
     {
         private const string InternalPrefix = "280123";
         private readonly ApplicationDbContext _dbContext;
+        private readonly ICurrentUserService _currentUserService;
+        private readonly IAuditLogService _auditLogService;
 
-        public BarcodeService(ApplicationDbContext dbContext)
+        public BarcodeService(
+            ApplicationDbContext dbContext,
+            ICurrentUserService currentUserService,
+            IAuditLogService auditLogService)
         {
             _dbContext = dbContext;
+            _currentUserService = currentUserService;
+            _auditLogService = auditLogService;
         }
 
         public async Task<string> GenerateBarcodeAsync()
@@ -88,9 +96,18 @@ namespace WarehouseManagment.Services
             return stream.ToArray();
         }
 
+        public void ApplyGeneratedMetadata(ProductInventory inventory)
+        {
+            inventory.BarcodeType = IBarcodeService.DefaultBarcodeType;
+            inventory.BarcodeGeneratedOn = DateTime.Now;
+            inventory.BarcodeGeneratedByUserId = _currentUserService.UserId;
+            inventory.BarcodeGeneratedByUserNameSnapshot = _currentUserService.UserName;
+        }
+
         public async Task<int> GenerateMissingProductInventoryBarcodesAsync()
         {
             var inventories = await _dbContext.ProductInventory
+                .Include(x => x.Product)
                 .Where(x => string.IsNullOrWhiteSpace(x.BarcodeValue))
                 .OrderBy(x => x.Id)
                 .ToListAsync();
@@ -103,11 +120,72 @@ namespace WarehouseManagment.Services
             foreach (var inventory in inventories)
             {
                 inventory.BarcodeValue = GenerateBarcode(reservedBarcodes);
+                ApplyGeneratedMetadata(inventory);
                 reservedBarcodes.Add(inventory.BarcodeValue);
+
+                await AddBarcodeAuditAsync(AuditActionType.BarcodeGenerated, inventory, "Генериран POS баркод.");
             }
 
             await _dbContext.SaveChangesAsync();
             return inventories.Count;
+        }
+
+        public async Task<int> FillMissingBarcodeMetadataAsync()
+        {
+            var inventories = await _dbContext.ProductInventory
+                .Include(x => x.Product)
+                .Where(x => !string.IsNullOrWhiteSpace(x.BarcodeValue) && string.IsNullOrWhiteSpace(x.BarcodeType))
+                .OrderBy(x => x.Id)
+                .ToListAsync();
+
+            var updated = 0;
+            foreach (var inventory in inventories)
+            {
+                if (!ValidateBarcode(inventory.BarcodeValue!))
+                {
+                    continue;
+                }
+
+                inventory.BarcodeType = IBarcodeService.DefaultBarcodeType;
+                updated++;
+
+                await AddBarcodeAuditAsync(AuditActionType.BarcodeMetadataUpdated, inventory, "Попълнен тип на съществуващ POS баркод.");
+            }
+
+            await _dbContext.SaveChangesAsync();
+            return updated;
+        }
+
+        public async Task RecordLabelsPrintedAsync(int productInventoryId, int quantity)
+        {
+            if (quantity < 1)
+            {
+                throw new InvalidOperationException("Броят етикети трябва да бъде по-голям от нула.");
+            }
+
+            if (quantity > 500)
+            {
+                throw new InvalidOperationException("Не може да бъдат отбелязани повече от 500 етикета наведнъж.");
+            }
+
+            var inventory = await _dbContext.ProductInventory
+                .Include(x => x.Product)
+                .FirstOrDefaultAsync(x => x.Id == productInventoryId);
+
+            if (inventory == null || string.IsNullOrWhiteSpace(inventory.BarcodeValue))
+            {
+                throw new InvalidOperationException("Размерът / вариантът няма генериран POS баркод.");
+            }
+
+            inventory.BarcodePrintedOn = DateTime.Now;
+            inventory.BarcodePrintCount += quantity;
+
+            await AddBarcodeAuditAsync(
+                AuditActionType.BarcodeLabelsPrinted,
+                inventory,
+                $"Отбелязани като отпечатани {quantity} етикета.");
+
+            await _dbContext.SaveChangesAsync();
         }
 
         private string GenerateBarcode(ICollection<string> reservedBarcodes)
@@ -140,6 +218,18 @@ namespace WarehouseManagment.Services
             }
 
             throw new InvalidOperationException("Не може да бъде генериран уникален баркод.");
+        }
+
+        private async Task AddBarcodeAuditAsync(AuditActionType actionType, ProductInventory inventory, string description)
+        {
+            await _auditLogService.AddAsync(new AuditLogEntryModel
+            {
+                ActionType = actionType,
+                EntityType = nameof(ProductInventory),
+                EntityId = inventory.Id,
+                Description = description,
+                NewValues = $"SKU={inventory.Product?.SKU ?? inventory.ProductSKU}; Size={inventory.Size}; Barcode={inventory.BarcodeValue}; BarcodeType={inventory.BarcodeType}; PrintCount={inventory.BarcodePrintCount}; Operator={_currentUserService.UserName}; Timestamp={DateTime.Now:yyyy-MM-dd HH:mm:ss}"
+            });
         }
     }
 }

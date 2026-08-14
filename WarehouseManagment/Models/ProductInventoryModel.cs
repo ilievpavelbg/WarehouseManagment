@@ -11,6 +11,11 @@
         public int ProductId { get; set; }
         public byte[]? Barcode { get; set; }
         public string? BarcodeValue { get; set; }
+        public string? BarcodeType { get; set; }
+        public DateTime? BarcodeGeneratedOn { get; set; }
+        public string? BarcodeGeneratedByUserNameSnapshot { get; set; }
+        public DateTime? BarcodePrintedOn { get; set; }
+        public int BarcodePrintCount { get; set; }
         public List<string> ExistingSizes { get; set; } = new List<string>();
     }
 }

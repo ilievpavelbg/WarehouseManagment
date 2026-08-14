@@ -24,6 +24,11 @@
             <input type="hidden" name="returnProductId" value="@Model.Id" />
             <button type="submit" class="btn btn-outline-primary">Генерирай липсващи баркодове</button>
         </form>
+        <form asp-controller="ProductInventory" asp-action="FillMissingBarcodeMetadata" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnProductId" value="@Model.Id" />
+            <button type="submit" class="btn btn-outline-secondary">Попълни липсващи метаданни</button>
+        </form>
     }
 </div>
 
@@ -36,6 +41,7 @@
                         <th scope="col">Размер</th>
                         <th scope="col">Количество</th>
                         <th scope="col">Баркод</th>
+                        <th scope="col">Метаданни</th>
                         <th scope="col">Действия</th>
                     </tr>
                 </thead>
@@ -62,6 +68,20 @@
                                     <span class="badge bg-warning text-dark">Липсва</span>
                                 }
                             </td>
+                            <td class="small text-start">
+                                @if (!string.IsNullOrWhiteSpace(productInventory.BarcodeValue))
+                                {
+                                    <div><strong>Тип:</strong> @(productInventory.BarcodeType ?? "-")</div>
+                                    <div><strong>Генериран:</strong> @(productInventory.BarcodeGeneratedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</div>
+                                    <div><strong>Потребител:</strong> @(productInventory.BarcodeGeneratedByUserNameSnapshot ?? "-")</div>
+                                    <div><strong>Последен печат:</strong> @(productInventory.BarcodePrintedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</div>
+                                    <div><strong>Отпечатани етикети:</strong> @productInventory.BarcodePrintCount</div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
                             <td style="width:263px;" data-product-id="@productInventory.ProductId" data-product-sku="@productInventory.ProductSKU">
                                 <a class="btn btn-sm btn-primary ChangeQty" style="display: block">Промени количество</a>
                                 <a class="btn btn-sm btn-success SaveQty" style="display: none" data-id="@productInventory.Id" data-confirm="Сигурни ли сте, че искате да запазите това количество?">Запази промените</a>
@@ -76,7 +96,7 @@
                         <td class="h4 text-center">
                             @Model.ProductInventoriesModel.Sum(x => x.Quantity) бр.
                         </td>
-                        <td colspan="2"></td>
+                        <td colspan="3"></td>
                     </tr>
                 </tbody>
             </table>

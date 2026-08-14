@@ -64,6 +64,22 @@ namespace WarehouseManagment.Data
                 .Property(x => x.BarcodeValue)
                 .HasMaxLength(32);
 
+            builder.Entity<ProductInventory>()
+                .Property(x => x.BarcodeType)
+                .HasMaxLength(32);
+
+            builder.Entity<ProductInventory>()
+                .Property(x => x.BarcodeGeneratedByUserId)
+                .HasMaxLength(450);
+
+            builder.Entity<ProductInventory>()
+                .Property(x => x.BarcodeGeneratedByUserNameSnapshot)
+                .HasMaxLength(256);
+
+            builder.Entity<ProductInventory>()
+                .Property(x => x.BarcodePrintCount)
+                .HasDefaultValue(0);
+
             builder.Entity<Sale>()
                 .HasIndex(x => x.DocumentNumber)
                 .IsUnique();

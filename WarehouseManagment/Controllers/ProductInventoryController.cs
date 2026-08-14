@@ -112,5 +112,20 @@ namespace WarehouseManagment.Controllers
 
             return RedirectToAction("AllStock");
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> FillMissingBarcodeMetadata(int? returnProductId = null)
+        {
+            var count = await _productInventoryService.FillMissingBarcodeMetadataAsync();
+            TempData["SuccessMessage"] = $"Попълнени са метаданни за {count} съществуващи баркода.";
+
+            if (returnProductId.HasValue)
+            {
+                return RedirectToAction("Availability", "Product", new { id = returnProductId.Value });
+            }
+
+            return RedirectToAction("AllStock");
+        }
     }
 }

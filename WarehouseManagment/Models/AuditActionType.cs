@@ -30,6 +30,9 @@ namespace WarehouseManagment.Models
         PosSaleReversal = 26,
         CourierShipmentCreate = 27,
         CourierShipmentUpdate = 28,
-        CourierShipmentReversal = 29
+        CourierShipmentReversal = 29,
+        BarcodeGenerated = 30,
+        BarcodeMetadataUpdated = 31,
+        BarcodeLabelsPrinted = 32
     }
 }

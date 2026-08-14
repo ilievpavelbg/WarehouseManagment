@@ -4,6 +4,6 @@ namespace WarehouseManagment.Interfaces
     {
         Task<bool> IsConfiguredAsync();
         Task FiscalizeSaleAsync(int posSaleId);
-        Task PrintFiscalReceiptAsync(int posSaleId);
+        Task FiscalizeReversalAsync(int posSaleId);
     }
 }

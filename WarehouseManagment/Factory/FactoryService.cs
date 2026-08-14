@@ -98,7 +98,12 @@ namespace WarehouseManagment.Factory
               ProductSKU = productInventory.ProductSKU,
               ProductId = productInventory.ProductId,
               Barcode = productInventory.Barcode,
-              BarcodeValue = productInventory.BarcodeValue
+              BarcodeValue = productInventory.BarcodeValue,
+              BarcodeType = productInventory.BarcodeType,
+              BarcodeGeneratedOn = productInventory.BarcodeGeneratedOn,
+              BarcodeGeneratedByUserNameSnapshot = productInventory.BarcodeGeneratedByUserNameSnapshot,
+              BarcodePrintedOn = productInventory.BarcodePrintedOn,
+              BarcodePrintCount = productInventory.BarcodePrintCount
             };
 
             return model;

@@ -11,12 +11,12 @@ namespace WarehouseManagment.Services
 
         public Task FiscalizeSaleAsync(int posSaleId)
         {
-            throw new NotSupportedException("Фискално устройство не е конфигурирано.");
+            return Task.CompletedTask;
         }
 
-        public Task PrintFiscalReceiptAsync(int posSaleId)
+        public Task FiscalizeReversalAsync(int posSaleId)
         {
-            throw new NotSupportedException("Фискално устройство не е конфигурирано.");
+            return Task.CompletedTask;
         }
     }
 }

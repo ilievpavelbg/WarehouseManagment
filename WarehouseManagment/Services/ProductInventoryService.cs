@@ -35,15 +35,21 @@ namespace WarehouseManagment.Services
                     throw new ArgumentException("Количеството не може да бъде отрицателно.");
                 }
 
+                var barcodeGenerated = string.IsNullOrWhiteSpace(model.BarcodeValue);
                 var productInventory = new ProductInventory()
                 {
                     Quantity = model.Quantity,
                     ProductId = model.ProductId,
                     ProductSKU = model.ProductSKU,
-                    BarcodeValue = string.IsNullOrWhiteSpace(model.BarcodeValue) ? await _barcodeService.GenerateBarcodeAsync() : model.BarcodeValue.Trim()
+                    BarcodeValue = barcodeGenerated ? await _barcodeService.GenerateBarcodeAsync() : model.BarcodeValue!.Trim()
                 };
 
                 await _barcodeService.EnsureUniqueAsync(productInventory.BarcodeValue!);
+
+                if (barcodeGenerated)
+                {
+                    _barcodeService.ApplyGeneratedMetadata(productInventory);
+                }
 
                 if (Enum.TryParse(model.Size, out Data.Size size))
                 {
@@ -201,6 +207,11 @@ namespace WarehouseManagment.Services
         public async Task<int> GenerateMissingBarcodesAsync()
         {
             return await _barcodeService.GenerateMissingProductInventoryBarcodesAsync();
+        }
+
+        public async Task<int> FillMissingBarcodeMetadataAsync()
+        {
+            return await _barcodeService.FillMissingBarcodeMetadataAsync();
         }
     }
 }

@@ -1,7 +1,9 @@
+@using WarehouseManagment.Constants
 @model List<ProductInventoryModel>
 
 @{
     ViewData["Title"] = "Склад, наличности и баркод";
+    var canManageBarcodes = User.IsInRole(ApplicationRoles.Administrator) || User.IsInRole(ApplicationRoles.SalesManager);
 }
 
 <h1 class="text-center">@ViewData["Title"]</h1>
@@ -11,10 +13,19 @@
     <div class="alert alert-success">@TempData["SuccessMessage"]</div>
 }
 
-<form asp-controller="ProductInventory" asp-action="GenerateMissingBarcodes" method="post" class="mb-3">
-    @Html.AntiForgeryToken()
-    <button type="submit" class="btn btn-outline-primary">Генерирай липсващи баркодове</button>
-</form>
+@if (canManageBarcodes)
+{
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <form asp-controller="ProductInventory" asp-action="GenerateMissingBarcodes" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-primary">Генерирай липсващи баркодове</button>
+        </form>
+        <form asp-controller="ProductInventory" asp-action="FillMissingBarcodeMetadata" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-secondary">Попълни липсващи метаданни</button>
+        </form>
+    </div>
+}
 
 @if (!Model.Any())
 {
@@ -30,6 +41,7 @@ else
                     <th scope="col">Размер</th>
                     <th scope="col">Количество</th>
                     <th scope="col">Баркод</th>
+                    <th scope="col">Метаданни</th>
                     <th scope="col">Етикет</th>
                 </tr>
             </thead>
@@ -48,6 +60,20 @@ else
                             else
                             {
                                 <span class="badge bg-warning text-dark">Липсва</span>
+                            }
+                        </td>
+                        <td class="small">
+                            @if (!string.IsNullOrWhiteSpace(item.BarcodeValue))
+                            {
+                                <div><strong>Тип:</strong> @(item.BarcodeType ?? "-")</div>
+                                <div><strong>Генериран на:</strong> @(item.BarcodeGeneratedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</div>
+                                <div><strong>Генериран от:</strong> @(item.BarcodeGeneratedByUserNameSnapshot ?? "-")</div>
+                                <div><strong>Последно отпечатан:</strong> @(item.BarcodePrintedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</div>
+                                <div><strong>Отпечатани етикети:</strong> @item.BarcodePrintCount</div>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
                             }
                         </td>
                         <td>

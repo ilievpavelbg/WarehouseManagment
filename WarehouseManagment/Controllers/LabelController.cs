@@ -64,6 +64,16 @@ namespace WarehouseManagment.Controllers
             return File(image, "image/png");
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RecordPrinted(int productInventoryId, int quantity)
+        {
+            await _barcodeService.RecordLabelsPrintedAsync(productInventoryId, quantity);
+            TempData["SuccessMessage"] = $"Отбелязани са {quantity} етикета като отпечатани.";
+
+            return RedirectToAction(nameof(Index), new { ProductInventoryId = productInventoryId, Quantity = quantity });
+        }
+
         private IQueryable<ProductInventory> BaseVariantQuery()
         {
             return _dbContext.ProductInventory
@@ -84,6 +94,9 @@ namespace WarehouseManagment.Controllers
                     ProductDescription = x.Product.Description,
                     Size = x.Size.ToString(),
                     Barcode = x.BarcodeValue!,
+                    BarcodeType = x.BarcodeType,
+                    BarcodePrintedOn = x.BarcodePrintedOn,
+                    BarcodePrintCount = x.BarcodePrintCount,
                     Quantity = x.Quantity,
                     RetailPrice = x.Product.RetailPrice.HasValue ? (decimal)x.Product.RetailPrice.Value : 0
                 });

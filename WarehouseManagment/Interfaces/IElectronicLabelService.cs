@@ -4,6 +4,10 @@ namespace WarehouseManagment.Interfaces
 {
     public interface IElectronicLabelService
     {
-        Task PushAsync(ElectronicLabelPayloadModel payload);
+        Task<bool> IsConfiguredAsync();
+        Task SyncProductAsync(ElectronicLabelProductModel product);
+        Task SyncPriceAsync(int productInventoryId);
+        Task SyncAvailabilityAsync(int productInventoryId);
+        Task SyncAllAsync();
     }
 }

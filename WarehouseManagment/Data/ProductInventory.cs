@@ -21,5 +21,19 @@ namespace WarehouseManagment.Data
         [StringLength(32)]
         public string? BarcodeValue { get; set; }
 
+        [StringLength(32)]
+        public string? BarcodeType { get; set; }
+
+        public DateTime? BarcodeGeneratedOn { get; set; }
+
+        [StringLength(450)]
+        public string? BarcodeGeneratedByUserId { get; set; }
+
+        [StringLength(256)]
+        public string? BarcodeGeneratedByUserNameSnapshot { get; set; }
+
+        public DateTime? BarcodePrintedOn { get; set; }
+
+        public int BarcodePrintCount { get; set; }
     }
 }
