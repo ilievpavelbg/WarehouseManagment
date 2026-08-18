@@ -364,34 +364,12 @@ namespace WarehouseManagment.Services
 
         private static string GetMovementTypeName(MovementType movementType)
         {
-            return movementType switch
-            {
-                MovementType.ImportReceipt => "Приемане",
-                MovementType.Sale => "Продажба",
-                MovementType.SaleReversal => "Сторно продажба",
-                MovementType.CourierShipment => "Куриер",
-                MovementType.CourierReversal => "Сторно куриер",
-                MovementType.Adjustment => "Корекция",
-                MovementType.ProductionConsumption => "Производствен разход",
-                MovementType.ProductionOutput => "Производствен изход",
-                MovementType.Transfer => "Преместване",
-                MovementType.Return => "Връщане",
-                _ => movementType.ToString()
-            };
+            return InventoryMovementDisplayHelper.GetMovementLabel(movementType);
         }
 
         private static string GetMovementTypeCssClass(MovementType movementType)
         {
-            return movementType switch
-            {
-                MovementType.ImportReceipt => "bg-success",
-                MovementType.Transfer => "bg-info text-dark",
-                MovementType.Adjustment => "bg-warning text-dark",
-                MovementType.Return => "bg-secondary",
-                MovementType.Sale or MovementType.CourierShipment or MovementType.ProductionConsumption => "bg-danger",
-                MovementType.SaleReversal or MovementType.CourierReversal or MovementType.ProductionOutput => "bg-primary",
-                _ => "bg-secondary"
-            };
+            return InventoryMovementDisplayHelper.GetMovementCssClass(movementType);
         }
 
         private static string FormatWarehouse(Warehouse? warehouse)

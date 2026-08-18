@@ -2,13 +2,15 @@
 @{
     ViewData["Title"] = "Справка продажби";
 }
-<div class="app-page-header"><div><h1>Справка продажби</h1><p>POS документи. Сторнираните продажби се показват отделно и не участват в нетните KPI.</p></div><a class="btn btn-outline-success" asp-action="Export" asp-route-report="sales" asp-route-DateFrom="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")" asp-route-DateTo="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")" asp-route-Search="@Model.Filter.Search" asp-route-DocumentNumber="@Model.Filter.DocumentNumber">Excel</a></div>
+<div class="app-page-header"><div><h1>Справка продажби</h1><p>POS документи. Сторнираните продажби се показват отделно и не участват в нетните KPI.</p></div><a class="btn btn-outline-success" asp-action="Export" asp-route-report="sales" asp-route-DateFrom="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")" asp-route-DateTo="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")" asp-route-Search="@Model.Filter.Search" asp-route-DocumentNumber="@Model.Filter.DocumentNumber" asp-route-Operator="@Model.Filter.Operator" asp-route-PaymentMethod="@Model.Filter.PaymentMethod" asp-route-PosStatus="@Model.Filter.PosStatus">Excel</a></div>
 <form method="get" class="app-filter-panel row g-2 align-items-end">
     <div class="col-md-2"><label class="form-label">Дата от</label><input type="date" name="DateFrom" value="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")" class="form-control" /></div>
     <div class="col-md-2"><label class="form-label">Дата до</label><input type="date" name="DateTo" value="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")" class="form-control" /></div>
     <div class="col-md-2"><label class="form-label">Документ</label><input name="DocumentNumber" value="@Model.Filter.DocumentNumber" class="form-control" /></div>
     <div class="col-md-2"><label class="form-label">Артикул</label><input name="Search" value="@Model.Filter.Search" class="form-control" /></div>
     <div class="col-md-2"><label class="form-label">Оператор</label><input name="Operator" value="@Model.Filter.Operator" class="form-control" /></div>
+    <div class="col-md-2"><label class="form-label">Плащане</label><select name="PaymentMethod" class="form-select"><option value="">Всички</option><option value="@PaymentMethod.Cash" selected="@(Model.Filter.PaymentMethod == PaymentMethod.Cash)">В брой</option><option value="@PaymentMethod.Card" selected="@(Model.Filter.PaymentMethod == PaymentMethod.Card)">Карта</option></select></div>
+    <div class="col-md-2"><label class="form-label">Статус</label><select name="PosStatus" class="form-select"><option value="">Всички</option><option value="@PosSaleStatus.Completed" selected="@(Model.Filter.PosStatus == PosSaleStatus.Completed)">Завършена</option><option value="@PosSaleStatus.Reversed" selected="@(Model.Filter.PosStatus == PosSaleStatus.Reversed)">Сторнирана</option></select></div>
     <div class="col-md-2"><button class="btn btn-primary w-100">Филтър</button></div>
 </form>
 <div class="row g-3 my-3">@foreach (var kpi in Model.Kpis){<div class="col-md-3 col-xl"><div class="app-stat-card border-start border-4 @kpi.CssClass"><span>@kpi.Label</span><strong>@kpi.Value</strong></div></div>}</div>

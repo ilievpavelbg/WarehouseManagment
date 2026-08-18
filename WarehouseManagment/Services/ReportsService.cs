@@ -192,22 +192,32 @@ namespace WarehouseManagment.Services
                     (x.ReferenceNumber != null && x.ReferenceNumber.Contains(filter.Search)));
 
             var totalItems = await query.CountAsync();
-            var rows = await query.OrderByDescending(x => x.CreatedOn)
+            var movementRows = await query.OrderByDescending(x => x.CreatedOn)
                 .Skip((filter.Page - 1) * filter.PageSize)
                 .Take(filter.PageSize)
                 .Select(x => new WarehouseMovementReportRowModel
                 {
                     Date = x.CreatedOn,
-                    Movement = x.MovementType.ToString(),
+                    MovementType = x.MovementType,
                     Item = x.Material != null ? x.Material.Code + " - " + x.Material.Name : x.Product != null ? x.Product.SKU + " - " + x.Product.Description : "-",
                     Quantity = x.Quantity,
                     Source = x.Warehouse != null ? x.Warehouse.Code + " - " + x.Warehouse.Name : "-",
                     Destination = x.DestinationWarehouse != null ? x.DestinationWarehouse.Code + " - " + x.DestinationWarehouse.Name : "-",
                     ReferenceType = x.ReferenceType,
                     DocumentNumber = x.ReferenceNumber,
-                    User = x.UserId ?? "-"
+                    UserId = x.UserId
                 })
                 .ToListAsync();
+
+            var userNames = await GetUserDisplayNamesAsync(movementRows.Select(x => x.UserId));
+            var rows = movementRows.Select(x =>
+            {
+                x.Movement = InventoryMovementDisplayHelper.GetMovementLabel(x.MovementType);
+                x.ReferenceType = InventoryMovementDisplayHelper.GetReferenceTypeLabel(x.ReferenceType);
+                x.User = InventoryMovementDisplayHelper.FormatUser(x.UserId, userNames);
+                return x;
+            }).ToList();
+
             return Wrap(filter, rows, totalItems);
         }
 
@@ -475,51 +485,116 @@ namespace WarehouseManagment.Services
         public async Task<byte[]> ExportAsync(string report, ReportFilterModel filter)
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+            filter.Page = 1;
+            filter.PageSize = 10000;
+
             using var package = new ExcelPackage();
             var ws = package.Workbook.Worksheets.Add("Справка");
 
             switch ((report ?? string.Empty).ToLowerInvariant())
             {
                 case "sales":
-                    WriteRows(ws, (await GetSalesAsync(filter)).Rows, new[] { "Дата", "Документ", "Оператор", "Редове", "Количество", "Междинна сума", "Отстъпка", "Общо", "Плащане", "Статус" },
-                        r => new object?[] { r.Date, r.DocumentNumber, r.Operator, r.Items, r.Quantity, r.Subtotal, r.Discount, r.Total, r.Payment, r.Status });
+                    WriteRows(ws, (await GetSalesAsync(filter)).Rows, new[]
+                    {
+                        DateTimeColumn<SalesReportRowModel>("Дата", r => r.Date),
+                        TextColumn<SalesReportRowModel>("Документ", r => r.DocumentNumber, 24),
+                        TextColumn<SalesReportRowModel>("Оператор", r => r.Operator, 28),
+                        IntegerColumn<SalesReportRowModel>("Редове", r => r.Items),
+                        IntegerColumn<SalesReportRowModel>("Количество", r => r.Quantity),
+                        MoneyColumn<SalesReportRowModel>("Междинна сума", r => r.Subtotal),
+                        MoneyColumn<SalesReportRowModel>("Отстъпка", r => r.Discount),
+                        MoneyColumn<SalesReportRowModel>("Общо", r => r.Total),
+                        TextColumn<SalesReportRowModel>("Плащане", r => r.Payment, 16),
+                        TextColumn<SalesReportRowModel>("Статус", r => r.Status, 18)
+                    });
                     break;
                 case "salesbyproduct":
-                    filter.PageSize = 10000;
-                    WriteRows(ws, (await GetSalesByProductAsync(filter)).Rows, new[] { "SKU", "Артикул", "Вариант", "Количество", "Брутно", "Отстъпка", "Нетно", "Документи" },
-                        r => new object?[] { r.SKU, r.Product, r.Variant, r.QuantitySold, r.GrossValue, r.Discount, r.NetValue, r.Documents });
+                    WriteRows(ws, (await GetSalesByProductAsync(filter)).Rows, new[]
+                    {
+                        TextColumn<SalesByProductReportRowModel>("SKU", r => r.SKU, 18),
+                        TextColumn<SalesByProductReportRowModel>("Артикул", r => r.Product, 42),
+                        TextColumn<SalesByProductReportRowModel>("Вариант", r => r.Variant, 16),
+                        IntegerColumn<SalesByProductReportRowModel>("Количество", r => r.QuantitySold),
+                        MoneyColumn<SalesByProductReportRowModel>("Брутно", r => r.GrossValue),
+                        MoneyColumn<SalesByProductReportRowModel>("Отстъпка", r => r.Discount),
+                        MoneyColumn<SalesByProductReportRowModel>("Нетно", r => r.NetValue),
+                        IntegerColumn<SalesByProductReportRowModel>("Документи", r => r.Documents)
+                    });
                     break;
                 case "warehouse":
-                    filter.PageSize = 10000;
-                    WriteRows(ws, (await GetWarehouseStockAsync(filter)).Rows, new[] { "Материал", "Име", "Категория", "Основен склад", "НЗП", "Минимум", "Статус" },
-                        r => new object?[] { r.MaterialCode, r.MaterialName, r.Category, r.DefaultWarehouseQuantity, r.WipQuantity, r.MinimumStock, r.Status });
+                    WriteRows(ws, (await GetWarehouseStockAsync(filter)).Rows, new[]
+                    {
+                        TextColumn<WarehouseStockReportRowModel>("Материал", r => r.MaterialCode, 18),
+                        TextColumn<WarehouseStockReportRowModel>("Име", r => r.MaterialName, 44),
+                        TextColumn<WarehouseStockReportRowModel>("Категория", r => r.Category, 28),
+                        QuantityColumn<WarehouseStockReportRowModel>("Основен склад", r => r.DefaultWarehouseQuantity),
+                        QuantityColumn<WarehouseStockReportRowModel>("НЗП", r => r.WipQuantity),
+                        QuantityColumn<WarehouseStockReportRowModel>("Минимум", r => r.MinimumStock),
+                        TextColumn<WarehouseStockReportRowModel>("Статус", r => r.Status, 28)
+                    });
                     break;
                 case "movements":
-                    filter.PageSize = 10000;
-                    WriteRows(ws, (await GetWarehouseMovementsAsync(filter)).Rows, new[] { "Дата", "Движение", "Артикул/материал", "Количество", "Източник", "Получател", "Документ", "Потребител" },
-                        r => new object?[] { r.Date, r.Movement, r.Item, r.Quantity, r.Source, r.Destination, r.DocumentNumber, r.User });
+                    WriteRows(ws, (await GetWarehouseMovementsAsync(filter)).Rows, new[]
+                    {
+                        DateTimeColumn<WarehouseMovementReportRowModel>("Дата", r => r.Date),
+                        TextColumn<WarehouseMovementReportRowModel>("Движение", r => r.Movement, 24),
+                        TextColumn<WarehouseMovementReportRowModel>("Артикул/материал", r => r.Item, 48),
+                        SignedQuantityColumn<WarehouseMovementReportRowModel>("Количество", r => r.Quantity),
+                        TextColumn<WarehouseMovementReportRowModel>("Източник", r => r.Source, 36),
+                        TextColumn<WarehouseMovementReportRowModel>("Получател", r => r.Destination, 36),
+                        TextColumn<WarehouseMovementReportRowModel>("Документ", r => r.DocumentNumber, 24),
+                        TextColumn<WarehouseMovementReportRowModel>("Потребител", r => r.User, 28)
+                    });
                     break;
                 case "production":
-                    filter.PageSize = 10000;
-                    WriteRows(ws, (await GetProductionAsync(filter)).Rows, new[] { "Поръчка", "Артикул", "Вариант", "Планирано", "Годно", "Брак", "Начало", "Край", "Статус", "Прогрес" },
-                        r => new object?[] { r.OrderNumber, r.Product, r.Variant, r.PlannedQuantity, r.GoodQuantity, r.RejectedQuantity, r.Start, r.End, r.Status, r.ProgressPercent });
+                    WriteRows(ws, (await GetProductionAsync(filter)).Rows, new[]
+                    {
+                        TextColumn<ProductionReportRowModel>("Поръчка", r => r.OrderNumber, 24),
+                        TextColumn<ProductionReportRowModel>("Артикул", r => r.Product, 48),
+                        TextColumn<ProductionReportRowModel>("Вариант", r => r.Variant, 16),
+                        QuantityColumn<ProductionReportRowModel>("Планирано", r => r.PlannedQuantity),
+                        QuantityColumn<ProductionReportRowModel>("Годно", r => r.GoodQuantity),
+                        QuantityColumn<ProductionReportRowModel>("Брак", r => r.RejectedQuantity),
+                        DateTimeColumn<ProductionReportRowModel>("Начало", r => r.Start),
+                        DateTimeColumn<ProductionReportRowModel>("Край", r => r.End),
+                        TextColumn<ProductionReportRowModel>("Статус", r => r.Status, 22),
+                        PercentPointsColumn<ProductionReportRowModel>("Прогрес", r => r.ProgressPercent)
+                    });
                     break;
                 case "consumption":
-                    filter.PageSize = 10000;
-                    WriteRows(ws, (await GetMaterialConsumptionAsync(filter)).Rows, new[] { "Поръчка", "Артикул", "Материал", "Прехвърлено", "Потребено", "Върнато", "Остатък", "МЕ", "PMC" },
-                        r => new object?[] { r.ProductionOrder, r.Product, r.Material, r.Transferred, r.Consumed, r.Returned, r.Remainder, r.Unit, r.PmcDocument });
+                    WriteRows(ws, (await GetMaterialConsumptionAsync(filter)).Rows, new[]
+                    {
+                        TextColumn<MaterialConsumptionReportRowModel>("Поръчка", r => r.ProductionOrder, 24),
+                        TextColumn<MaterialConsumptionReportRowModel>("Артикул", r => r.Product, 48),
+                        TextColumn<MaterialConsumptionReportRowModel>("Материал", r => r.Material, 48),
+                        QuantityColumn<MaterialConsumptionReportRowModel>("Прехвърлено", r => r.Transferred),
+                        QuantityColumn<MaterialConsumptionReportRowModel>("Потребено", r => r.Consumed),
+                        QuantityColumn<MaterialConsumptionReportRowModel>("Върнато", r => r.Returned),
+                        QuantityColumn<MaterialConsumptionReportRowModel>("Остатък", r => r.Remainder),
+                        TextColumn<MaterialConsumptionReportRowModel>("МЕ", r => r.Unit, 12),
+                        TextColumn<MaterialConsumptionReportRowModel>("PMC", r => r.PmcDocument, 24)
+                    });
                     break;
                 case "barcodes":
-                    filter.PageSize = 10000;
-                    WriteRows(ws, (await GetBarcodesAsync(filter)).Rows, new[] { "SKU", "Артикул", "Вариант", "Баркод", "Тип", "Генериран", "Генериран от", "Последен печат", "Брой печат", "Наличност" },
-                        r => new object?[] { r.SKU, r.Product, r.Variant, r.BarcodeValue, r.BarcodeType, r.GeneratedOn, r.GeneratedBy, r.LastPrintedOn, r.PrintCount, r.CurrentStock });
+                    WriteRows(ws, (await GetBarcodesAsync(filter)).Rows, new[]
+                    {
+                        TextColumn<BarcodeReportRowModel>("SKU", r => r.SKU, 18),
+                        TextColumn<BarcodeReportRowModel>("Артикул", r => r.Product, 44),
+                        TextColumn<BarcodeReportRowModel>("Вариант", r => r.Variant, 16),
+                        TextColumn<BarcodeReportRowModel>("Баркод", r => r.BarcodeValue, 24),
+                        TextColumn<BarcodeReportRowModel>("Тип", r => r.BarcodeType, 16),
+                        DateTimeColumn<BarcodeReportRowModel>("Генериран", r => r.GeneratedOn),
+                        TextColumn<BarcodeReportRowModel>("Генериран от", r => r.GeneratedBy, 28),
+                        DateTimeColumn<BarcodeReportRowModel>("Последен печат", r => r.LastPrintedOn),
+                        IntegerColumn<BarcodeReportRowModel>("Брой печат", r => r.PrintCount),
+                        IntegerColumn<BarcodeReportRowModel>("Наличност", r => r.CurrentStock)
+                    });
                     break;
                 default:
                     ws.Cells[1, 1].Value = "Непозната справка.";
                     break;
             }
 
-            ws.Cells[ws.Dimension.Address].AutoFitColumns();
             return package.GetAsByteArray();
         }
 
@@ -533,6 +608,25 @@ namespace WarehouseManagment.Services
                 .Where(x => !filter.PaymentMethod.HasValue || x.PaymentMethod == filter.PaymentMethod)
                 .Where(x => !filter.PosStatus.HasValue || x.Status == filter.PosStatus)
                 .Where(x => string.IsNullOrWhiteSpace(filter.Search) || x.Lines.Any(l => l.ProductSKU.Contains(filter.Search) || (l.ProductDescriptionSnapshot != null && l.ProductDescriptionSnapshot.Contains(filter.Search)) || l.SizeSnapshot.Contains(filter.Search)));
+        }
+
+        private async Task<Dictionary<string, string>> GetUserDisplayNamesAsync(IEnumerable<string?> userIds)
+        {
+            var ids = userIds
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x!)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<string, string>();
+            }
+
+            return await _dbContext.Users.AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new { x.Id, Name = x.UserName ?? x.Email ?? x.Id })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
         }
 
         private static void Normalize(ReportFilterModel filter)
@@ -578,20 +672,105 @@ namespace WarehouseManagment.Services
             return description?.Description ?? method.ToString();
         }
 
-        private static void WriteRows<T>(ExcelWorksheet ws, IReadOnlyList<T> rows, IReadOnlyList<string> headers, Func<T, object?[]> selector)
+        private sealed class ExcelColumn<T>
         {
-            for (var i = 0; i < headers.Count; i++)
+            public ExcelColumn(string header, Func<T, object?> value, string? numberFormat = null, double maxWidth = 42)
             {
-                ws.Cells[1, i + 1].Value = headers[i];
+                Header = header;
+                Value = value;
+                NumberFormat = numberFormat;
+                MaxWidth = maxWidth;
+            }
+
+            public string Header { get; }
+            public Func<T, object?> Value { get; }
+            public string? NumberFormat { get; }
+            public double MaxWidth { get; }
+        }
+
+        private static ExcelColumn<T> TextColumn<T>(string header, Func<T, object?> value, double maxWidth = 42)
+        {
+            return new ExcelColumn<T>(header, value, null, maxWidth);
+        }
+
+        private static ExcelColumn<T> DateTimeColumn<T>(string header, Func<T, object?> value)
+        {
+            return new ExcelColumn<T>(header, value, "dd.MM.yyyy HH:mm", 20);
+        }
+
+        private static ExcelColumn<T> MoneyColumn<T>(string header, Func<T, object?> value)
+        {
+            return new ExcelColumn<T>(header, value, "#,##0.00 \"EUR\"", 18);
+        }
+
+        private static ExcelColumn<T> IntegerColumn<T>(string header, Func<T, object?> value)
+        {
+            return new ExcelColumn<T>(header, value, "#,##0", 14);
+        }
+
+        private static ExcelColumn<T> QuantityColumn<T>(string header, Func<T, object?> value)
+        {
+            return new ExcelColumn<T>(header, value, "#,##0.####", 16);
+        }
+
+        private static ExcelColumn<T> SignedQuantityColumn<T>(string header, Func<T, object?> value)
+        {
+            return new ExcelColumn<T>(header, value, "+#,##0.####;-#,##0.####;0", 16);
+        }
+
+        private static ExcelColumn<T> PercentPointsColumn<T>(string header, Func<T, object?> value)
+        {
+            return new ExcelColumn<T>(header, value, "0.00\"%\"", 14);
+        }
+
+        private static void WriteRows<T>(ExcelWorksheet ws, IReadOnlyList<T> rows, IReadOnlyList<ExcelColumn<T>> columns)
+        {
+            for (var i = 0; i < columns.Count; i++)
+            {
+                ws.Cells[1, i + 1].Value = columns[i].Header;
             }
 
             for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
             {
-                var values = selector(rows[rowIndex]);
-                for (var col = 0; col < values.Length; col++)
+                for (var col = 0; col < columns.Count; col++)
                 {
-                    ws.Cells[rowIndex + 2, col + 1].Value = values[col];
+                    ws.Cells[rowIndex + 2, col + 1].Value = columns[col].Value(rows[rowIndex]);
                 }
+            }
+
+            var lastRow = rows.Count + 1;
+            var lastColumn = Math.Max(1, columns.Count);
+
+            using (var header = ws.Cells[1, 1, 1, lastColumn])
+            {
+                header.Style.Font.Bold = true;
+            }
+
+            for (var col = 1; col <= columns.Count; col++)
+            {
+                var numberFormat = columns[col - 1].NumberFormat;
+                if (!string.IsNullOrWhiteSpace(numberFormat))
+                {
+                    ws.Column(col).Style.Numberformat.Format = numberFormat;
+                    if (rows.Count > 0)
+                    {
+                        ws.Cells[2, col, lastRow, col].Style.Numberformat.Format = numberFormat;
+                    }
+                }
+            }
+
+            ws.Cells[1, 1, lastRow, lastColumn].AutoFilter = true;
+            ws.View.FreezePanes(2, 1);
+
+            if (ws.Dimension != null)
+            {
+                ws.Cells[ws.Dimension.Address].AutoFitColumns(10, 45);
+            }
+
+            for (var col = 1; col <= columns.Count; col++)
+            {
+                var column = ws.Column(col);
+                column.Width = Math.Max(10, Math.Min(column.Width, columns[col - 1].MaxWidth));
             }
         }
     }

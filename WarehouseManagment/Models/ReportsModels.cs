@@ -106,6 +106,7 @@ namespace WarehouseManagment.Models
     public class WarehouseMovementReportRowModel
     {
         public DateTime Date { get; set; }
+        public MovementType MovementType { get; set; }
         public string Movement { get; set; } = string.Empty;
         public string Item { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
@@ -113,6 +114,7 @@ namespace WarehouseManagment.Models
         public string Destination { get; set; } = string.Empty;
         public string? ReferenceType { get; set; }
         public string? DocumentNumber { get; set; }
+        public string? UserId { get; set; }
         public string User { get; set; } = string.Empty;
     }
 
