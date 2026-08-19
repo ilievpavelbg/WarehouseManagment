@@ -111,6 +111,14 @@ namespace WarehouseManagment.Data
                 .HasMaxLength(450);
 
             builder.Entity<Sale>()
+                .Property(x => x.UnitPrice)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<Sale>()
+                .Property(x => x.TotalPrice)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<Sale>()
                 .HasOne(x => x.Warehouse)
                 .WithMany()
                 .HasForeignKey(x => x.WarehouseId)
@@ -148,6 +156,14 @@ namespace WarehouseManagment.Data
             builder.Entity<Courier>()
                 .Property(x => x.ReversedByUserId)
                 .HasMaxLength(450);
+
+            builder.Entity<Courier>()
+                .Property(x => x.UnitPrice)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<Courier>()
+                .Property(x => x.TotalPrice)
+                .HasColumnType("decimal(18,2)");
 
             builder.Entity<Courier>()
                 .HasOne(x => x.Warehouse)

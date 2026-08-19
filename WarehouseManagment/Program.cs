@@ -9,9 +9,15 @@ using WarehouseManagment.Repository;
 using WarehouseManagment.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Logging.ClearProviders();
+builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+builder.Logging.AddEventSourceLogger();
 
 // Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection_localhost");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection_localhost")
+    ?? builder.Configuration.GetConnectionString("DefaultConnection");
 //var connectionString = builder.Configuration.GetConnectionString("DefaultConnection_ASP_Hostingbg");
 //var connectionString = builder.Configuration.GetConnectionString("DefaultConnection_AWS");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
