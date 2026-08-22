@@ -1,93 +1,66 @@
-﻿@model ProductModel
+@model ProductModel
 
 @{
-    ViewData["Title"] = $"Детайли за артикул #{Model.SKU}";
+    ViewData["Title"] = $"Артикул {Model.SKU}";
+    var isAdministrator = User.IsInRole(ApplicationRoles.Administrator);
 }
 
-<h1 class="text-center">@ViewData["Title"]</h1>
-
-@{
-    var barcodeExist = true;
-}
-
-<div class="container mt-5">
-    <div class="row justify-content-around">
-        <div class="col-4">
-            <table class="table table-striped text-large customFontSizeDetails">
-                <tbody>
-                    <tr>
-                        <td>ID :</td>
-                        <td>@Model.Id</td>
-                    </tr>
-                    <tr>
-                        <td>Описание :</td>
-                        <td>@Model.Description</td>
-                    </tr>
-                    <tr>
-                        <td>Цена на дребно :</td>
-                        <td>@Model.RetailPrice лв.</td>
-                    </tr>
-                    <tr>
-                        <td>Цена на едро :</td>
-                        <td>@Model.WholesalePrice лв.</td>
-                    </tr>
-                    <tr>
-                        <td>Цвят :</td>
-                        <td>@Model.Color</td>
-                    </tr>
-                    <tr>
-                        <td>Пол :</td>
-                        <td>@Model.Genre</td>
-                    </tr>
-                    <tr>
-                        <td>Състав 1 :</td>
-                        <td>@Model.FirstComposition</td>
-                    </tr>
-                    <tr>
-                        <td>Състав 2 :</td>
-                        <td>@Model.SecondComposition</td>
-                    </tr>
-                    <tr>
-                        <td>Категория :</td>
-                        <td>@Model.Category</td>
-                    </tr>
-@*                    @if(Model.Size != null){
-                        <tr>
-                            <td>Размер :</td>
-                            <td>@Model.Size</td>
-                        </tr>
-                    } *@
-@*                     else
-                    {
-                        <tr>
-                            <td>Размер :</td>
-                            <td>@Model.JeansSize</td>
-                        </tr>
-                    } *@
-@*                     <tr>
-                        <td>Баркод :</td>
-                        @if (barcodeExist)
-                        {
-                            <td><img src="data:image/jpeg;base64, @Convert.ToBase64String(Model.Barcode)" alt="Barcode" style="height : 50px;width : 200px;" /></td>
-                        }
-                        else
-                        {
-                            <td>N/A</td>
-                        }
-
-                    </tr> *@
-                </tbody>
-            </table>
-            <div class="col-3 mt-3">
-                <a class="btn btn-primary" href="/Product/All">Назад</a>
-            </div>
-            @if (barcodeExist)
-            {
-                <div class="col-6 mt-3">
-                    <a class="btn btn-secondary btn-lg" asp-action="SaveBarcodeImage" asp-controller="Product" asp-route-Id="@Model.Id">Запази баркод като снимка</a>
-                </div>
-            }
-        </div>
+<div class="app-page-header">
+    <div>
+        <h1>@Model.SKU</h1>
+        <p>@(string.IsNullOrWhiteSpace(Model.Description) ? "Артикул без описание" : Model.Description)</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-outline-secondary" asp-controller="Product" asp-action="Index">Назад</a>
+        @if (isAdministrator)
+        {
+            <a class="btn btn-outline-primary" asp-controller="Product" asp-action="Edit" asp-route-id="@Model.Id">Редакция</a>
+        }
+        <a class="btn btn-primary" asp-controller="Product" asp-action="Availability" asp-route-id="@Model.Id">Наличност / варианти</a>
     </div>
 </div>
 
+<div class="row">
+    <div class="col-lg-8 mb-3">
+        <div class="app-card h-100">
+            <h5 class="mb-3">Основни данни</h5>
+            <dl class="row mb-0">
+                <dt class="col-sm-4">SKU</dt>
+                <dd class="col-sm-8">@Model.SKU</dd>
+
+                <dt class="col-sm-4">Описание</dt>
+                <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Description) ? "-" : Model.Description)</dd>
+
+                <dt class="col-sm-4">Категория</dt>
+                <dd class="col-sm-8">@(Model.Category?.ToString() ?? "-")</dd>
+
+                <dt class="col-sm-4">Пол</dt>
+                <dd class="col-sm-8">@(Model.Genre?.ToString() ?? "-")</dd>
+
+                <dt class="col-sm-4">Цвят</dt>
+                <dd class="col-sm-8">@Model.Color</dd>
+
+                <dt class="col-sm-4">Състав 1</dt>
+                <dd class="col-sm-8">@(Model.FirstComposition?.ToString() ?? "-")</dd>
+
+                <dt class="col-sm-4">Състав 2</dt>
+                <dd class="col-sm-8">@(Model.SecondComposition?.ToString() ?? "-")</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="col-lg-4 mb-3">
+        <div class="app-card h-100">
+            <h5 class="mb-3">Търговски данни</h5>
+            <dl class="row mb-0">
+                <dt class="col-6">Цена дребно</dt>
+                <dd class="col-6 text-end">@(Model.RetailPrice.HasValue ? Model.RetailPrice.Value.ToString("N2") : "-")</dd>
+
+                <dt class="col-6">Цена едро</dt>
+                <dd class="col-6 text-end">@(Model.WholesalePrice.HasValue ? Model.WholesalePrice.Value.ToString("N2") : "-")</dd>
+
+                <dt class="col-6">Обща наличност</dt>
+                <dd class="col-6 text-end">@Model.TotalQuantity бр</dd>
+            </dl>
+        </div>
+    </div>
+</div>

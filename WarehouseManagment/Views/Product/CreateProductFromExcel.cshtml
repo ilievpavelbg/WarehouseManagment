@@ -1,8 +1,14 @@
-﻿@{
-    ViewData["Title"] = "Създаване на артикули от EXCEL";
+@{
+    ViewData["Title"] = "Импорт артикули от Excel";
 }
 
-<h1 class="text-center">@ViewData["Title"]</h1>
+<div class="app-page-header">
+    <div>
+        <h1>Импорт артикули от Excel</h1>
+        <p>Импортът запазва съществуващата структура и използва SKU от Excel файла.</p>
+    </div>
+    <a class="btn btn-outline-secondary" asp-controller="Product" asp-action="Index">Назад</a>
+</div>
 
 @if (!ViewData.ModelState.IsValid)
 {
@@ -11,19 +17,23 @@
         {
             foreach (var error in modelState.Errors)
             {
-                @error.ErrorMessage
+                <div>@error.ErrorMessage</div>
             }
         }
     </div>
 }
-<form asp-action="CreateProductFromExcel" asp-controller="Product" method="post" enctype="multipart/form-data">
-    <div class="col-6 mt-5">
-        <div class="input-group">
-            <input type="file" class="form-control" name="excelFile" id="inputGroupFile04" aria-describedby="inputGroupFileAddon04" aria-label="Upload">
-            <button class="btn btn-outline-secondary" type="submit" id="inputGroupFileAddon04">Напред =></button>
+
+<div class="app-card">
+    <form asp-action="CreateProductFromExcel" asp-controller="Product" method="post" enctype="multipart/form-data">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-8">
+                <label for="excelFile" class="form-label">Excel файл</label>
+                <input type="file" class="form-control" name="excelFile" id="excelFile" accept=".xlsx,.xls" />
+                <div class="form-text">Семантиката на импорта не е променяна: SKU остава водещият код от файла.</div>
+            </div>
+            <div class="col-md-4 d-grid">
+                <button class="btn btn-primary" type="submit">Импортирай</button>
+            </div>
         </div>
-    </div>
-</form>
-
-
-
+    </form>
+</div>

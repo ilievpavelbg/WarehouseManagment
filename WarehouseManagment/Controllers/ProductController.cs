@@ -21,17 +21,15 @@ namespace WarehouseManagment.Controllers
             _productService = productService;
             _productInventoryService = productInventoryService;
         }
-        public IActionResult Index()
+        public async Task<IActionResult> Index(ProductIndexFilterModel filter)
         {
-            return View();
+            var model = await _productService.GetProductIndexAsync(filter);
+            return View(model);
         }
 
-        public async Task<IActionResult> All()
+        public IActionResult All()
         {
-            var products = await _productService.GetAllProductsAsync();
-            var productsModel = await _factoryService.PrepareProductListModel(products);
-
-            return View(productsModel);
+            return RedirectToAction(nameof(Index));
         }
 
         [Authorize(Policy = ApplicationPolicies.RequireAdministrator)]
@@ -154,7 +152,7 @@ namespace WarehouseManagment.Controllers
             {
                 await _productService.CreateProductFromExcelAsync(excelFile);
 
-                return RedirectToAction("All");
+                return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {

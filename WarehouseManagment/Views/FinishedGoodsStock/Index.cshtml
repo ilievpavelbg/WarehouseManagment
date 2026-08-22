@@ -92,7 +92,6 @@
                         <th>Артикул</th>
                         <th class="text-end">Обща наличност</th>
                         <th class="text-end">Брой варианти</th>
-                        <th>Склад</th>
                         <th>Последно приемане</th>
                         <th>Последен FGR</th>
                         <th></th>
@@ -106,7 +105,6 @@
                             <td>@row.ProductName</td>
                             <td class="text-end">@QuantityDisplayFormatter.Format(row.Quantity, row.UnitOfMeasureName, true)</td>
                             <td class="text-end">@row.VariantCount</td>
-                            <td>@row.FinishedGoodsWarehouseName</td>
                             <td>@(row.LastReceiptOn.HasValue ? row.LastReceiptOn.Value.ToString("dd.MM.yyyy HH:mm") : "-")</td>
                             <td>
                                 @if (string.IsNullOrWhiteSpace(row.LastFgrDocumentNumber))

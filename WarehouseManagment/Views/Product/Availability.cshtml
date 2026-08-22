@@ -1,13 +1,35 @@
 @using WarehouseManagment.Constants
-@using WarehouseManagment.Extensions;
 @model ProductModel
 
 @{
-    ViewData["Title"] = $"Наличност на артикул #{Model.SKU}";
+    ViewData["Title"] = $"Наличност на артикул {Model.SKU}";
     var canGenerateBarcodes = User.IsInRole(ApplicationRoles.Administrator) || User.IsInRole(ApplicationRoles.SalesManager);
+    var totalQuantity = Model.ProductInventoriesModel.Sum(x => x.Quantity);
 }
 
-<h1 class="text-center">@ViewData["Title"]</h1>
+<div class="app-page-header">
+    <div>
+        <h1>Наличност / варианти</h1>
+        <p>@Model.SKU - @(string.IsNullOrWhiteSpace(Model.Description) ? "без описание" : Model.Description)</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-outline-secondary" asp-controller="Product" asp-action="Index">Назад</a>
+        <a class="btn btn-primary" asp-action="Create" asp-controller="ProductInventory" asp-route-id="@Model.Id">Добави размер</a>
+        @if (canGenerateBarcodes)
+        {
+            <form asp-controller="ProductInventory" asp-action="GenerateMissingBarcodes" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnProductId" value="@Model.Id" />
+                <button type="submit" class="btn btn-outline-primary">Генерирай липсващи баркодове</button>
+            </form>
+            <form asp-controller="ProductInventory" asp-action="FillMissingBarcodeMetadata" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnProductId" value="@Model.Id" />
+                <button type="submit" class="btn btn-outline-secondary">Попълни липсващи метаданни</button>
+            </form>
+        }
+    </div>
+</div>
 
 @if (TempData["SuccessMessage"] != null)
 {
@@ -15,45 +37,48 @@
 }
 <div class="alert alert-danger" id="errorMessage" style="display:none"></div>
 
-<div class="d-flex flex-wrap gap-2 mb-4">
-    <a class="btn btn-danger" asp-action="Create" asp-controller="ProductInventory" asp-route-Id="@Model.Id">Добави размер</a>
-    @if (canGenerateBarcodes)
-    {
-        <form asp-controller="ProductInventory" asp-action="GenerateMissingBarcodes" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="returnProductId" value="@Model.Id" />
-            <button type="submit" class="btn btn-outline-primary">Генерирай липсващи баркодове</button>
-        </form>
-        <form asp-controller="ProductInventory" asp-action="FillMissingBarcodeMetadata" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="returnProductId" value="@Model.Id" />
-            <button type="submit" class="btn btn-outline-secondary">Попълни липсващи метаданни</button>
-        </form>
-    }
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <div class="app-stat-card">
+            <div class="text-muted">Обща наличност</div>
+            <strong>@totalQuantity бр</strong>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="app-stat-card">
+            <div class="text-muted">Варианти</div>
+            <strong>@Model.ProductInventoriesModel.Count</strong>
+        </div>
+    </div>
 </div>
 
-<div class="row">
-    <div class="col-12">
+<div class="app-card">
+    @if (!Model.ProductInventoriesModel.Any())
+    {
+        <div class="alert alert-info mb-0">Няма създадени варианти за този артикул.</div>
+    }
+    else
+    {
         <div class="table-responsive">
-            <table class="table table-striped table-bordered align-middle">
-                <thead class="table-dark">
-                    <tr class="text-center">
-                        <th scope="col">Размер</th>
-                        <th scope="col">Количество</th>
-                        <th scope="col">Баркод</th>
-                        <th scope="col">Метаданни</th>
-                        <th scope="col">Действия</th>
+            <table class="table app-table product-table align-middle">
+                <thead>
+                    <tr>
+                        <th>Размер</th>
+                        <th class="text-end">Количество</th>
+                        <th>Баркод</th>
+                        <th>Метаданни</th>
+                        <th class="text-end">Действия</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var productInventory in Model.ProductInventoriesModel)
                     {
-                        <tr class="text-center">
+                        <tr>
                             <td><span class="prodSize" data-size="@productInventory.Size">@productInventory.Size</span></td>
-                            <td>
+                            <td class="text-end">
                                 <span class="display-span">
-                                    <span style="display:block" class="ProdInv">@productInventory.Quantity бр.</span>
-                                    <input style="display:none" type="number" min="0" value="@productInventory.Quantity" class="form-control form-control-sm text-center">
+                                    <span style="display:block" class="ProdInv">@productInventory.Quantity бр</span>
+                                    <input style="display:none" type="number" min="0" value="@productInventory.Quantity" class="form-control form-control-sm text-end">
                                 </span>
                             </td>
                             <td>
@@ -68,7 +93,7 @@
                                     <span class="badge bg-warning text-dark">Липсва</span>
                                 }
                             </td>
-                            <td class="small text-start">
+                            <td class="small">
                                 @if (!string.IsNullOrWhiteSpace(productInventory.BarcodeValue))
                                 {
                                     <div><strong>Тип:</strong> @(productInventory.BarcodeType ?? "-")</div>
@@ -82,29 +107,17 @@
                                     <span class="text-muted">-</span>
                                 }
                             </td>
-                            <td style="width:263px;" data-product-id="@productInventory.ProductId" data-product-sku="@productInventory.ProductSKU">
-                                <a class="btn btn-sm btn-primary ChangeQty" style="display: block">Промени количество</a>
-                                <a class="btn btn-sm btn-success SaveQty" style="display: none" data-id="@productInventory.Id" data-confirm="Сигурни ли сте, че искате да запазите това количество?">Запази промените</a>
-                                <a class="btn btn-sm btn-danger mt-2 CancelChange" style="display: none">Отмени промените</a>
+                            <td class="text-end" data-product-id="@productInventory.ProductId" data-product-sku="@productInventory.ProductSKU">
+                                <a class="btn btn-sm btn-outline-primary ChangeQty" style="display: inline-block">Промени количество</a>
+                                <a class="btn btn-sm btn-success SaveQty" style="display: none" data-id="@productInventory.Id" data-confirm="Сигурни ли сте, че искате да запазите това количество?">Запази</a>
+                                <a class="btn btn-sm btn-outline-secondary CancelChange" style="display: none">Отказ</a>
                             </td>
                         </tr>
                     }
-                    <tr style="background-color:#C0C0C0">
-                        <td colspan="1" class="h4 text-center">
-                            Тотал:
-                        </td>
-                        <td class="h4 text-center">
-                            @Model.ProductInventoriesModel.Sum(x => x.Quantity) бр.
-                        </td>
-                        <td colspan="3"></td>
-                    </tr>
                 </tbody>
             </table>
         </div>
-        <div class="col-3 mt-4">
-            <a class="btn btn-primary" href="/Product/All">Назад</a>
-        </div>
-    </div>
+    }
 </div>
 
 @section Scripts{
@@ -122,8 +135,8 @@
                 var displaySpan = row.find('.display-span');
                 displaySpan.find('.ProdInv').css("display", "none");
                 displaySpan.find('input').css("display", "block");
-                row.find('.SaveQty').css("display", "block");
-                row.find('.CancelChange').css("display", "block");
+                row.find('.SaveQty').css("display", "inline-block");
+                row.find('.CancelChange').css("display", "inline-block");
                 row.find('.ChangeQty').css("display", "none");
             })
 
@@ -134,7 +147,7 @@
                 var displaySpan = row.find('.display-span');
                 displaySpan.find('.ProdInv').css("display", "block");
                 displaySpan.find('input').css("display", "none");
-                row.find('.ChangeQty').css("display", "block");
+                row.find('.ChangeQty').css("display", "inline-block");
                 row.find('.SaveQty').css("display", "none");
                 row.find('.CancelChange').css("display", "none");
             })
@@ -184,7 +197,7 @@
 
                 displaySpan.find('.ProdInv').css("display", "block");
                 displaySpan.find('input').css("display", "none");
-                row.find('.ChangeQty').css("display", "block");
+                row.find('.ChangeQty').css("display", "inline-block");
                 row.find('.SaveQty').css("display", "none");
                 row.find('.CancelChange').css("display", "none");
             })

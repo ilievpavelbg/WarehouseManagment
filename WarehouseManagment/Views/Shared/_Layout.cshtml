@@ -32,6 +32,7 @@
         var canManageProduction = isAdministrator || isProductionManager;
         var canWorkProduction = canManageProduction || isProductionWorker;
         var canAccessSales = isAdministrator || isSalesManager || isSalesOperator;
+        var canAccessNomenclatures = isAdministrator || isSalesManager || isSalesOperator || canReadWarehouse || canManageProduction;
         var canViewReports = isAdministrator || isWarehouseManager || isProductionManager || isSalesManager;
         var isProductionWorkerOnly = isProductionWorker && !canManageProduction;
         var brandController = isProductionWorkerOnly ? "ProductionWork" : "Home";
@@ -71,12 +72,10 @@
 
                         @if (canReadWarehouse)
                         {
-                            <button class="app-nav-group" type="button" data-bs-toggle="collapse" data-bs-target="#wmsMenu" aria-expanded="true">Склад</button>
-                            <div class="collapse @GroupOpen("Warehouse", "WarehouseSettings", "Material", "StockInquiry", "FinishedGoodsStock", "LowStock", "InventoryMovement", "MaterialStockCard")" id="wmsMenu">
-                                <a class="@Active("Home")" asp-controller="Home" asp-action="Index">WMS табло</a>
-                                <a asp-controller="Material" asp-action="Index">Материали</a>
+                            <button class="app-nav-group" type="button" data-bs-toggle="collapse" data-bs-target="#wmsMenu" aria-expanded="true">Склад материали</button>
+                            <div class="collapse @GroupOpen("Warehouse", "WarehouseSettings", "Material", "StockInquiry", "LowStock", "InventoryMovement", "MaterialStockCard")" id="wmsMenu">
+                                <a class="@Active("Material")" asp-controller="Material" asp-action="Index">Материали</a>
                                 <a class="@Active("StockInquiry")" asp-controller="StockInquiry" asp-action="Index">Наличности</a>
-                                <a class="@Active("FinishedGoodsStock")" asp-controller="FinishedGoodsStock" asp-action="Index">Готова продукция</a>
                                 <a class="@Active("InventoryMovement")" asp-controller="InventoryMovement" asp-action="Index">Движения</a>
                                 @if (canViewLowStock)
                                 {
@@ -87,6 +86,14 @@
                                     <a class="@Active("Warehouse")" asp-controller="Warehouse" asp-action="Index">Складове</a>
                                     <a class="@Active("WarehouseSettings")" asp-controller="WarehouseSettings" asp-action="Index">Настройки складове</a>
                                 }
+                            </div>
+                        }
+
+                        @if (canReadWarehouse)
+                        {
+                            <button class="app-nav-group" type="button" data-bs-toggle="collapse" data-bs-target="#finishedGoodsMenu">Склад готова продукция</button>
+                            <div class="collapse @GroupOpen("FinishedGoodsStock")" id="finishedGoodsMenu">
+                                <a class="@Active("FinishedGoodsStock")" asp-controller="FinishedGoodsStock" asp-action="Index">Готова продукция</a>
                             </div>
                         }
 
@@ -111,15 +118,28 @@
                         @if (canAccessSales)
                         {
                             <button class="app-nav-group" type="button" data-bs-toggle="collapse" data-bs-target="#salesMenu">Продажби</button>
-                            <div class="collapse @GroupOpen("Product", "Sale", "Courier", "Pos", "Label")" id="salesMenu">
+                            <div class="collapse @GroupOpen("Sale", "Courier", "Pos", "Label")" id="salesMenu">
                                 <a class="@Active("Pos", "Index")" asp-controller="Pos" asp-action="Index">POS</a>
                                 <a class="@Active("Pos", "Sales")" asp-controller="Pos" asp-action="Sales">POS продажби</a>
-                                <a class="@Active("Product")" asp-controller="Product" asp-action="Index">Артикули</a>
                                 <a class="@Active("Label")" asp-controller="Label" asp-action="Index">Печат на етикети</a>
                                 @if (isSalesManager || isAdministrator)
                                 {
                                     <a asp-controller="Sale" asp-action="AllSales">Стари продажби</a>
                                     <a asp-controller="Courier" asp-action="AllCouriers">Куриер / доставки</a>
+                                }
+                            </div>
+                        }
+
+                        @if (canAccessNomenclatures)
+                        {
+                            <button class="app-nav-group" type="button" data-bs-toggle="collapse" data-bs-target="#nomenclatureMenu">Номенклатури</button>
+                            <div class="collapse @GroupOpen("Product", "MaterialCategory", "UnitOfMeasure", "Supplier")" id="nomenclatureMenu">
+                                <a class="@Active("Product")" asp-controller="Product" asp-action="Index">Артикули</a>
+                                @if (canManageWarehouse)
+                                {
+                                    <a class="@Active("MaterialCategory")" asp-controller="MaterialCategory" asp-action="Index">Категории материали</a>
+                                    <a class="@Active("UnitOfMeasure")" asp-controller="UnitOfMeasure" asp-action="Index">Мерни единици</a>
+                                    <a class="@Active("Supplier")" asp-controller="Supplier" asp-action="Index">Доставчици</a>
                                 }
                             </div>
                         }
@@ -149,12 +169,9 @@
                         @if (isAdministrator)
                         {
                             <button class="app-nav-group" type="button" data-bs-toggle="collapse" data-bs-target="#adminMenu">Администрация</button>
-                            <div class="collapse @GroupOpen("UserRoles", "AuditLog", "MaterialCategory", "UnitOfMeasure", "Supplier")" id="adminMenu">
+                            <div class="collapse @GroupOpen("UserRoles", "AuditLog")" id="adminMenu">
                                 <a class="@Active("UserRoles")" asp-controller="UserRoles" asp-action="Index">Потребители и роли</a>
                                 <a class="@Active("AuditLog")" asp-controller="AuditLog" asp-action="Index">Audit Log</a>
-                                <a asp-controller="MaterialCategory" asp-action="Index">Категории</a>
-                                <a asp-controller="UnitOfMeasure" asp-action="Index">Мерни единици</a>
-                                <a asp-controller="Supplier" asp-action="Index">Доставчици</a>
                             </div>
                         }
                     }

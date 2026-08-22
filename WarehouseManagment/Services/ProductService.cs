@@ -250,6 +250,56 @@ namespace WarehouseManagment.Services
             return await _repository.All<Product>().ToListAsync();
         }
 
+        public async Task<ProductIndexModel> GetProductIndexAsync(ProductIndexFilterModel filter)
+        {
+            filter.Page = Math.Max(1, filter.Page);
+            filter.PageSize = filter.PageSize <= 0 ? 50 : Math.Min(filter.PageSize, 200);
+            filter.SKU = filter.SKU?.Trim();
+            filter.Search = filter.Search?.Trim();
+
+            var query = _dbContext.Products.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(filter.SKU))
+            {
+                var sku = filter.SKU.ToUpper();
+                query = query.Where(x => x.SKU.ToUpper().Contains(sku));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.Search))
+            {
+                var search = filter.Search.ToUpper();
+                query = query.Where(x =>
+                    (x.Description != null && x.Description.ToUpper().Contains(search)) ||
+                    x.SKU.ToUpper().Contains(search));
+            }
+
+            var totalItems = await query.CountAsync();
+
+            var rows = await query
+                .OrderBy(x => x.SKU)
+                .Skip((filter.Page - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .Select(x => new ProductIndexRowModel
+                {
+                    Id = x.Id,
+                    SKU = x.SKU,
+                    Description = x.Description ?? string.Empty,
+                    RetailPrice = x.RetailPrice,
+                    WholesalePrice = x.WholesalePrice,
+                    Category = x.Category.HasValue ? x.Category.Value.ToString() : string.Empty,
+                    VariantCount = x.ProductInventories.Count,
+                    TotalQuantity = x.ProductInventories.Sum(i => (int?)i.Quantity) ?? 0
+                })
+                .ToListAsync();
+
+            return new ProductIndexModel
+            {
+                Filter = filter,
+                Rows = rows,
+                TotalItems = totalItems
+            };
+        }
+
         public async Task<Product> GetProductByIdAsync(int id)
         {
             var product = await _repository.GetByIdAsync<Product>(id);

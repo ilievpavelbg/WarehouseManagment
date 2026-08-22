@@ -11,6 +11,7 @@ namespace WarehouseManagment.Interfaces
         Task<Product?> GetProductBySKUAsync(string SKU);
         Task<Product> GetProductByIdAsync(int id);
         Task<List<Product>> GetAllProductsAsync();
+        Task<ProductIndexModel> GetProductIndexAsync(ProductIndexFilterModel filter);
         Task DeleteProduct(int id);
     }
 }

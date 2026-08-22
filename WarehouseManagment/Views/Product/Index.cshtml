@@ -1,5 +1,138 @@
-﻿<div class="d-grid gap-2 mt-5">
-    <a class="btn btn-secondary" type="button" asp-controller="Product" asp-action="All"><span class="h2">Списък на всички Артикули</span></a>
-    <a class="btn btn-secondary" type="button" asp-controller="Product" asp-action="Create"><span class="h2">Създай артикул от форма</span></a>
-    <a class="btn btn-secondary" type="button" asp-controller="Product" asp-action="CreateProductFromExcel"><span class="h2">Създай артикул от EXCEL</span></a>
+@model ProductIndexModel
+
+@{
+    ViewData["Title"] = "Артикули";
+    var isAdministrator = User.IsInRole(ApplicationRoles.Administrator);
+    var previousPage = Math.Max(1, Model.Filter.Page - 1);
+    var nextPage = Math.Min(Model.TotalPages, Model.Filter.Page + 1);
+}
+
+<div class="app-page-header">
+    <div>
+        <h1>Артикули</h1>
+        <p>Номенклатура готови артикули, използвана от производство, POS, продажби и баркод етикети.</p>
+    </div>
+    @if (isAdministrator)
+    {
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-primary" asp-controller="Product" asp-action="Create">Нов артикул</a>
+            <a class="btn btn-outline-primary" asp-controller="Product" asp-action="CreateProductFromExcel">Импорт от Excel</a>
+        </div>
+    }
+</div>
+
+<form asp-controller="Product" asp-action="Index" method="get" class="app-filter-panel row g-2 align-items-end">
+    <div class="col-md-3">
+        <label for="SKU" class="form-label">SKU</label>
+        <input id="SKU" name="SKU" value="@Model.Filter.SKU" class="form-control" placeholder="Напр. 019" />
+    </div>
+    <div class="col-md-5">
+        <label for="Search" class="form-label">Наименование / описание</label>
+        <input id="Search" name="Search" value="@Model.Filter.Search" class="form-control" placeholder="Търсене по SKU или описание" />
+    </div>
+    <div class="col-md-2">
+        <label for="PageSize" class="form-label">Редове</label>
+        <select id="PageSize" name="PageSize" class="form-select">
+            @foreach (var pageSize in new[] { 25, 50, 100, 200 })
+            {
+                if (Model.Filter.PageSize == pageSize)
+                {
+                    <option value="@pageSize" selected="selected">@pageSize</option>
+                }
+                else
+                {
+                    <option value="@pageSize">@pageSize</option>
+                }
+            }
+        </select>
+    </div>
+    <div class="col-md-2 d-grid">
+        <input type="hidden" name="Page" value="1" />
+        <button type="submit" class="btn btn-primary">Филтър</button>
+    </div>
+    <div class="col-12">
+        <a class="btn btn-outline-secondary btn-sm" asp-controller="Product" asp-action="Index">Изчисти</a>
+    </div>
+</form>
+
+<div class="app-card">
+    <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+        <div>
+            <h5 class="mb-1">Списък артикули</h5>
+            <div class="text-muted">SKU остава бизнес код и не се променя автоматично.</div>
+        </div>
+        <div class="text-end">
+            <div class="text-muted">Общо артикули</div>
+            <strong>@Model.TotalItems</strong>
+        </div>
+    </div>
+
+    @if (!Model.Rows.Any())
+    {
+        <div class="alert alert-info mb-0">Няма намерени артикули по избраните филтри.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table app-table product-table align-middle">
+                <thead>
+                    <tr>
+                        <th>SKU</th>
+                        <th>Артикул / описание</th>
+                        <th>Категория</th>
+                        <th class="text-end">Варианти</th>
+                        <th class="text-end">Наличност</th>
+                        <th class="text-end">Цена дребно</th>
+                        <th class="text-end">Цена едро</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Rows)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@item.SKU</td>
+                            <td>@(string.IsNullOrWhiteSpace(item.Description) ? "-" : item.Description)</td>
+                            <td>@(string.IsNullOrWhiteSpace(item.Category) ? "-" : item.Category)</td>
+                            <td class="text-end">@item.VariantCount</td>
+                            <td class="text-end">@item.TotalQuantity бр</td>
+                            <td class="text-end">@(item.RetailPrice.HasValue ? item.RetailPrice.Value.ToString("N2") : "-")</td>
+                            <td class="text-end">@(item.WholesalePrice.HasValue ? item.WholesalePrice.Value.ToString("N2") : "-")</td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a class="btn btn-outline-info" asp-controller="Product" asp-action="Details" asp-route-id="@item.Id">Детайли</a>
+                                    @if (isAdministrator)
+                                    {
+                                        <a class="btn btn-outline-primary" asp-controller="Product" asp-action="Edit" asp-route-id="@item.Id">Редакция</a>
+                                    }
+                                    <a class="btn btn-outline-success" asp-controller="Product" asp-action="Availability" asp-route-id="@item.Id">Наличност</a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>Общо редове: @Model.TotalItems</div>
+            <div>
+                <a class="btn btn-sm btn-outline-secondary @(Model.Filter.Page <= 1 ? "disabled" : string.Empty)"
+                   asp-controller="Product"
+                   asp-action="Index"
+                   asp-route-Page="@previousPage"
+                   asp-route-PageSize="@Model.Filter.PageSize"
+                   asp-route-SKU="@Model.Filter.SKU"
+                   asp-route-Search="@Model.Filter.Search">Назад</a>
+                <span class="mx-2">Страница @Model.Filter.Page от @Model.TotalPages</span>
+                <a class="btn btn-sm btn-outline-secondary @(Model.Filter.Page >= Model.TotalPages ? "disabled" : string.Empty)"
+                   asp-controller="Product"
+                   asp-action="Index"
+                   asp-route-Page="@nextPage"
+                   asp-route-PageSize="@Model.Filter.PageSize"
+                   asp-route-SKU="@Model.Filter.SKU"
+                   asp-route-Search="@Model.Filter.Search">Напред</a>
+            </div>
+        </div>
+    }
 </div>
