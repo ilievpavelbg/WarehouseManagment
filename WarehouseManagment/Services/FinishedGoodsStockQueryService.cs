@@ -43,6 +43,8 @@ namespace WarehouseManagment.Services
             }
 
             var totalItems = await query.CountAsync();
+            ClampPage(filter, totalItems);
+
             var productRows = await query
                 .OrderBy(x => x.ProductSku)
                 .Skip((filter.Page - 1) * filter.PageSize)
@@ -270,6 +272,18 @@ namespace WarehouseManagment.Services
             if (filter.PageSize < 1 || filter.PageSize > 200)
             {
                 filter.PageSize = 25;
+            }
+        }
+
+        private static void ClampPage(FinishedGoodsStockFilterModel filter, int totalItems)
+        {
+            var totalPages = totalItems == 0
+                ? 1
+                : (int)Math.Ceiling(totalItems / (double)filter.PageSize);
+
+            if (filter.Page > totalPages)
+            {
+                filter.Page = totalPages;
             }
         }
 

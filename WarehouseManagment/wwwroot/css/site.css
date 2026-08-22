@@ -402,6 +402,12 @@ body {
     background: #f8fafc;
 }
 
+.finished-goods-table thead th {
+    position: static;
+    top: auto;
+    z-index: auto;
+}
+
 .app-empty-state {
     padding: 2rem;
     text-align: center;

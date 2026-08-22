@@ -20,7 +20,14 @@
             <option value="">Всички</option>
             @foreach (var product in Model.Products)
             {
-                <option value="@product.Id" selected="@(Model.Filter.ProductId == product.Id)">@product.SKU - @product.Description</option>
+                if (Model.Filter.ProductId == product.Id)
+                {
+                    <option value="@product.Id" selected="selected">@product.SKU - @product.Description</option>
+                }
+                else
+                {
+                    <option value="@product.Id">@product.SKU - @product.Description</option>
+                }
             }
         </select>
     </div>
@@ -31,9 +38,17 @@
     <div class="col-md-2">
         <label for="PageSize" class="form-label">Редове</label>
         <select id="PageSize" name="PageSize" class="form-select">
-            <option value="25" selected="@(Model.Filter.PageSize == 25)">25</option>
-            <option value="50" selected="@(Model.Filter.PageSize == 50)">50</option>
-            <option value="100" selected="@(Model.Filter.PageSize == 100)">100</option>
+            @foreach (var pageSize in new[] { 25, 50, 100 })
+            {
+                if (Model.Filter.PageSize == pageSize)
+                {
+                    <option value="@pageSize" selected="selected">@pageSize</option>
+                }
+                else
+                {
+                    <option value="@pageSize">@pageSize</option>
+                }
+            }
         </select>
     </div>
     <div class="col-md-2">
@@ -70,7 +85,7 @@
     else
     {
         <div class="table-responsive">
-            <table class="table app-table align-middle">
+            <table class="table app-table finished-goods-table align-middle">
                 <thead>
                     <tr>
                         <th>Код / SKU</th>
