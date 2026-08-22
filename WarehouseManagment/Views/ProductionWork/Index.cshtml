@@ -157,7 +157,7 @@ else
                     <div class="row mt-3 small">
                         <div class="col-6 mb-2"><span class="text-muted">Налично</span><br /><strong>@row.AvailableQuantity.ToString("N4") @row.UnitOfMeasure</strong></div>
                         <div class="col-6 mb-2"><span class="text-muted">Завършено</span><br /><strong>@row.CompletedQuantity.ToString("N4") @row.UnitOfMeasure</strong></div>
-                        <div class="col-6 mb-2"><span class="text-muted">Брак</span><br /><strong>@row.RejectedQuantity.ToString("N4") @row.UnitOfMeasure</strong></div>
+                        <div class="col-6 mb-2"><span class="text-muted">Брак</span><br /><strong>@QuantityDisplayFormatter.Format(row.RejectedQuantity, row.UnitOfMeasure, true)</strong></div>
                         <div class="col-6 mb-2"><span class="text-muted">Планиран край</span><br /><strong>@(row.PlannedEndDate?.ToString("dd.MM.yyyy") ?? "-")</strong></div>
                     </div>
                     <div class="d-grid gap-2">

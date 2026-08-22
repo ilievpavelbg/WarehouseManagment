@@ -22,9 +22,9 @@
                 <dt class="col-sm-4">Поръчка</dt><dd class="col-sm-8">@Model.OrderNumber</dd>
                 <dt class="col-sm-4">Артикул</dt><dd class="col-sm-8">@Model.ProductDisplayName</dd>
                 <dt class="col-sm-4">Размер / вариант</dt><dd class="col-sm-8">@Model.SizeVariant</dd>
-                <dt class="col-sm-4">Планирано количество</dt><dd class="col-sm-8">@Model.PlannedQuantity.ToString("N4")</dd>
-                <dt class="col-sm-4">Готово добро количество</dt><dd class="col-sm-8">@Model.FinalGoodQuantity.ToString("N4")</dd>
-                <dt class="col-sm-4">Брак общо</dt><dd class="col-sm-8">@Model.TotalRejectQuantity.ToString("N4")</dd>
+                <dt class="col-sm-4">Планирано количество</dt><dd class="col-sm-8">@QuantityDisplayFormatter.Format(Model.PlannedQuantity, Model.UnitOfMeasure, true)</dd>
+                <dt class="col-sm-4">Готово добро количество</dt><dd class="col-sm-8">@QuantityDisplayFormatter.Format(Model.FinalGoodQuantity, Model.UnitOfMeasure, true)</dd>
+                <dt class="col-sm-4">Брак общо</dt><dd class="col-sm-8">@QuantityDisplayFormatter.Format(Model.TotalRejectQuantity, Model.UnitOfMeasure, true)</dd>
                 <dt class="col-sm-4">Склад готова продукция</dt><dd class="col-sm-8">@Model.FinishedGoodsWarehouse</dd>
                 <dt class="col-sm-4">Склад НЗП</dt><dd class="col-sm-8">@Model.WipWarehouse</dd>
             </dl>
@@ -72,13 +72,13 @@
                                     <input type="hidden" asp-for="Materials[i].AlreadyConsumedQuantity" />
                                     <input type="hidden" asp-for="Materials[i].ReturnedQuantity" />
                                 </td>
-                                <td class="text-end">@Model.Materials[i].RequiredQuantity.ToString("N4")</td>
-                                <td class="text-end">@Model.Materials[i].TransferredQuantity.ToString("N4")</td>
-                                <td class="text-end">@Model.Materials[i].AlreadyConsumedQuantity.ToString("N4")</td>
+                                <td class="text-end">@QuantityDisplayFormatter.Format(Model.Materials[i].RequiredQuantity, Model.Materials[i].Unit, true)</td>
+                                <td class="text-end">@QuantityDisplayFormatter.Format(Model.Materials[i].TransferredQuantity, Model.Materials[i].Unit, true)</td>
+                                <td class="text-end">@QuantityDisplayFormatter.Format(Model.Materials[i].AlreadyConsumedQuantity, Model.Materials[i].Unit, true)</td>
                                 <td>
                                     <input asp-for="Materials[i].ProposedConsumedQuantity" class="form-control text-end" />
                                 </td>
-                                <td class="text-end">@Model.Materials[i].RemainingAfterFinalization.ToString("N4")</td>
+                                <td class="text-end">@QuantityDisplayFormatter.Format(Model.Materials[i].RemainingAfterFinalization, Model.Materials[i].Unit, true)</td>
                                 <td>@Model.Materials[i].Unit</td>
                             </tr>
                         }

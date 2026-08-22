@@ -10,8 +10,6 @@ namespace WarehouseManagment.Models
 
         public List<Product> Products { get; set; } = new List<Product>();
 
-        public List<ProductInventory> Variants { get; set; } = new List<ProductInventory>();
-
         public string FinishedGoodsWarehouseName { get; set; } = string.Empty;
 
         public int TotalItems { get; set; }

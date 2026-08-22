@@ -143,6 +143,20 @@
                 @Model.ProgressPercent.ToString("N0")%
             </div>
         </div>
+        <div class="row g-2 mt-3">
+            <div class="col-md-4">
+                <div class="small text-muted">Отчетено количество</div>
+                <div class="fw-semibold">@QuantityDisplayFormatter.Format(Model.GoodOutputQuantity + Model.ScrapQuantity, Model.UnitOfMeasure, true) / @QuantityDisplayFormatter.Format(Model.PlannedQuantity, Model.UnitOfMeasure, true)</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">Годно производство</div>
+                <div class="fw-semibold">@QuantityDisplayFormatter.Format(Model.GoodOutputQuantity, Model.UnitOfMeasure, true) / @QuantityDisplayFormatter.Format(Model.PlannedQuantity, Model.UnitOfMeasure, true) (@Model.GoodYieldPercent.ToString("N0")%)</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">Брак</div>
+                <div class="fw-semibold">@QuantityDisplayFormatter.Format(Model.ScrapQuantity, Model.UnitOfMeasure, true) / @QuantityDisplayFormatter.Format(Model.PlannedQuantity, Model.UnitOfMeasure, true) (@Model.ScrapPercent.ToString("N0")%)</div>
+            </div>
+        </div>
     </div>
 </div>
 

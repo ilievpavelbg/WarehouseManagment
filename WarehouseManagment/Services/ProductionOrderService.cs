@@ -819,6 +819,10 @@ namespace WarehouseManagment.Services
 
         private static ProductionOrderDetailsModel ToDetailsModel(ProductionOrder order)
         {
+            var finalOperation = order.Operations.OrderByDescending(x => x.Sequence).FirstOrDefault();
+            var goodOutputQuantity = finalOperation?.CompletedQuantity ?? 0;
+            var scrapQuantity = order.Operations.Sum(x => x.RejectedQuantity);
+
             return new ProductionOrderDetailsModel
             {
                 Id = order.Id,
@@ -880,6 +884,10 @@ namespace WarehouseManagment.Services
                     })
                     .ToList(),
                 ProgressPercent = CalculateProgress(order),
+                GoodOutputQuantity = goodOutputQuantity,
+                ScrapQuantity = scrapQuantity,
+                GoodYieldPercent = ProductionProgressHelper.CalculateGoodYieldPercent(order.PlannedQuantity, goodOutputQuantity),
+                ScrapPercent = ProductionProgressHelper.CalculateScrapPercent(order.PlannedQuantity, scrapQuantity),
                 Operations = order.Operations
                     .OrderBy(x => x.Sequence)
                     .Select(x => new ProductionOrderOperationModel
@@ -933,8 +941,10 @@ namespace WarehouseManagment.Services
             }
 
             var lastOperation = order.Operations.OrderByDescending(x => x.Sequence).First();
-            var progress = lastOperation.CompletedQuantity / order.PlannedQuantity * 100;
-            return Math.Min(100, Math.Max(0, progress));
+            return ProductionProgressHelper.CalculateAccountedProgressPercent(
+                order.PlannedQuantity,
+                lastOperation.CompletedQuantity,
+                order.Operations.Sum(x => x.RejectedQuantity));
         }
 
         private static decimal CalculateOperationProgress(ProductionOrderOperation operation)
@@ -944,8 +954,10 @@ namespace WarehouseManagment.Services
                 return 0;
             }
 
-            var progress = operation.CompletedQuantity / operation.PlannedQuantity * 100;
-            return Math.Min(100, Math.Max(0, progress));
+            return ProductionProgressHelper.CalculateAccountedProgressPercent(
+                operation.PlannedQuantity,
+                operation.CompletedQuantity,
+                operation.RejectedQuantity);
         }
 
         private static bool IsOverdue(ProductionOrder order)

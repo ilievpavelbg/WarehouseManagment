@@ -70,9 +70,9 @@ namespace WarehouseManagment.Controllers
 
             try
             {
-                var orderId = await _productionWorkService.ReportWorkAsync(model);
+                await _productionWorkService.ReportWorkAsync(model);
                 TempData["SuccessMessage"] = "Работата е отчетена успешно.";
-                return RedirectToAction(nameof(Details), "ProductionOrder", new { id = orderId });
+                return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {

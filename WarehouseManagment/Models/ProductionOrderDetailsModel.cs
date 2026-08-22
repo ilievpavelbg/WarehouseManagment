@@ -60,6 +60,14 @@ namespace WarehouseManagment.Models
 
         public decimal ProgressPercent { get; set; }
 
+        public decimal GoodOutputQuantity { get; set; }
+
+        public decimal ScrapQuantity { get; set; }
+
+        public decimal GoodYieldPercent { get; set; }
+
+        public decimal ScrapPercent { get; set; }
+
         public DateTime? MaterialsTransferredOn { get; set; }
 
         public string? MaterialsTransferredByUserId { get; set; }

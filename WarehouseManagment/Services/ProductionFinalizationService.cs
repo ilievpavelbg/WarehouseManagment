@@ -301,6 +301,7 @@ namespace WarehouseManagment.Services
                 ProductDisplayName = FormatProduct(order.ProductSkuSnapshot, order.ProductDescriptionSnapshot),
                 SizeVariant = order.ProductInventory?.Size.ToString() ?? string.Empty,
                 PlannedQuantity = order.PlannedQuantity,
+                UnitOfMeasure = order.ProductionUnitNameSnapshot,
                 FinalGoodQuantity = finalQuantity,
                 TotalRejectQuantity = order.Operations.Sum(x => x.RejectedQuantity),
                 FinishedGoodsWarehouse = FormatWarehouse(order.FinishedGoodsWarehouse),

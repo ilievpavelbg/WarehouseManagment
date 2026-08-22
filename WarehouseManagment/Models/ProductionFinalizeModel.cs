@@ -14,6 +14,8 @@ namespace WarehouseManagment.Models
 
         public decimal PlannedQuantity { get; set; }
 
+        public string UnitOfMeasure { get; set; } = string.Empty;
+
         public decimal FinalGoodQuantity { get; set; }
 
         public decimal TotalRejectQuantity { get; set; }

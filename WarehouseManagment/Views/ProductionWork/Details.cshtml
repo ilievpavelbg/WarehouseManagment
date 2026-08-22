@@ -14,10 +14,10 @@
             <dt class="col-sm-3">Артикул</dt><dd class="col-sm-9">@Model.Task.ProductDisplayName</dd>
             <dt class="col-sm-3">Операция</dt><dd class="col-sm-9">@Model.Task.OperationName</dd>
             <dt class="col-sm-3">Роля</dt><dd class="col-sm-9">@ProductionOrderDisplayHelper.RoleText(Model.Task.RequiredRole)</dd>
-            <dt class="col-sm-3">Планирано</dt><dd class="col-sm-9">@Model.Task.PlannedQuantity.ToString("N4") @Model.Task.UnitOfMeasure</dd>
-            <dt class="col-sm-3">Налично за работа</dt><dd class="col-sm-9">@Model.Task.AvailableQuantity.ToString("N4") @Model.Task.UnitOfMeasure</dd>
-            <dt class="col-sm-3">Завършено</dt><dd class="col-sm-9">@Model.Task.CompletedQuantity.ToString("N4") @Model.Task.UnitOfMeasure</dd>
-            <dt class="col-sm-3">Брак</dt><dd class="col-sm-9">@Model.Task.RejectedQuantity.ToString("N4") @Model.Task.UnitOfMeasure</dd>
+            <dt class="col-sm-3">Планирано</dt><dd class="col-sm-9">@QuantityDisplayFormatter.Format(Model.Task.PlannedQuantity, Model.Task.UnitOfMeasure, true)</dd>
+            <dt class="col-sm-3">Налично за работа</dt><dd class="col-sm-9">@QuantityDisplayFormatter.Format(Model.Task.AvailableQuantity, Model.Task.UnitOfMeasure, true)</dd>
+            <dt class="col-sm-3">Завършено</dt><dd class="col-sm-9">@QuantityDisplayFormatter.Format(Model.Task.CompletedQuantity, Model.Task.UnitOfMeasure, true)</dd>
+            <dt class="col-sm-3">Брак</dt><dd class="col-sm-9">@QuantityDisplayFormatter.Format(Model.Task.RejectedQuantity, Model.Task.UnitOfMeasure, true)</dd>
             <dt class="col-sm-3">Статус</dt><dd class="col-sm-9"><span class="badge @ProductionOrderDisplayHelper.OperationStatusCss(Model.Task.Status)">@ProductionOrderDisplayHelper.OperationStatusText(Model.Task.Status)</span></dd>
         </dl>
     </div>
@@ -54,8 +54,8 @@ else
                     <tr>
                         <td>@entry.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
                         <td>@(string.IsNullOrWhiteSpace(entry.Worker) ? "-" : entry.Worker)</td>
-                        <td class="text-end">@entry.ReportedCompletedQuantity.ToString("N4")</td>
-                        <td class="text-end">@entry.ReportedRejectedQuantity.ToString("N4")</td>
+                        <td class="text-end">@QuantityDisplayFormatter.Format(entry.ReportedCompletedQuantity, Model.Task.UnitOfMeasure, true)</td>
+                        <td class="text-end">@QuantityDisplayFormatter.Format(entry.ReportedRejectedQuantity, Model.Task.UnitOfMeasure, true)</td>
                         <td>@(entry.WorkStartedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
                         <td>@(entry.WorkEndedOn?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
                         <td>@(entry.Notes ?? "-")</td>

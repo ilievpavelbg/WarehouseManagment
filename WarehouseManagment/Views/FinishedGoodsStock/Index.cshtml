@@ -6,130 +6,133 @@
     var nextPage = Math.Min(Model.TotalPages, Model.Filter.Page + 1);
 }
 
-<h1 class="text-center">@ViewData["Title"]</h1>
-
-<div class="alert alert-info">
-    Текущата продаваема наличност се чете от ProductInventory. FGR документите показват последното приемане, но не се използват за преизчисляване на наличността, защото продажбите и куриерите намаляват ProductInventory директно.
-</div>
-
-<div class="card mb-3">
-    <div class="card-header">Филтри</div>
-    <div class="card-body">
-        <form asp-controller="FinishedGoodsStock" asp-action="Index" method="get">
-            <div class="row align-items-end">
-                <div class="col-md-3 mb-2">
-                    <label for="ProductId" class="form-label">Артикул</label>
-                    <select id="ProductId" name="ProductId" class="form-control">
-                        <option value="">Всички</option>
-                        @foreach (var product in Model.Products)
-                        {
-                            <option value="@product.Id" selected="@(Model.Filter.ProductId == product.Id)">@product.SKU - @product.Description</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-3 mb-2">
-                    <label for="ProductInventoryId" class="form-label">Размер / вариант</label>
-                    <select id="ProductInventoryId" name="ProductInventoryId" class="form-control">
-                        <option value="">Всички</option>
-                        @foreach (var variant in Model.Variants)
-                        {
-                            <option value="@variant.Id" selected="@(Model.Filter.ProductInventoryId == variant.Id)">@variant.Product.SKU - @variant.Size</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-3 mb-2">
-                    <label for="Search" class="form-label">Търсене</label>
-                    <input id="Search" name="Search" value="@Model.Filter.Search" class="form-control" />
-                </div>
-                <div class="col-md-2 mb-2">
-                    <label for="PageSize" class="form-label">Редове</label>
-                    <select id="PageSize" name="PageSize" class="form-control">
-                        <option value="25" selected="@(Model.Filter.PageSize == 25)">25</option>
-                        <option value="50" selected="@(Model.Filter.PageSize == 50)">50</option>
-                        <option value="100" selected="@(Model.Filter.PageSize == 100)">100</option>
-                    </select>
-                </div>
-                <div class="col-md-1 mb-2">
-                    <div class="form-check">
-                        <input id="ShowZeroStock" name="ShowZeroStock" value="true" class="form-check-input" type="checkbox" checked="@Model.Filter.ShowZeroStock" />
-                        <label for="ShowZeroStock" class="form-check-label">Нулеви</label>
-                    </div>
-                </div>
-            </div>
-            <input type="hidden" name="Page" value="1" />
-            <button type="submit" class="btn btn-primary">Филтрирай</button>
-            <a class="btn btn-outline-secondary" asp-controller="FinishedGoodsStock" asp-action="Index">Изчисти</a>
-        </form>
+<div class="app-page-header">
+    <div>
+        <h1>Готова продукция</h1>
+        <p>Агрегирана продаваема наличност по артикул. Текущата наличност се чете от ProductInventory.</p>
     </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-header">Склад готова продукция: @Model.FinishedGoodsWarehouseName</div>
-    <div class="card-body">
-        @if (!Model.Rows.Any())
-        {
-            <p>Няма намерена готова продукция.</p>
-        }
-        else
-        {
-            <div class="table-responsive">
-                <table class="table table-striped table-bordered table-sm align-middle">
-                    <thead>
+<form asp-controller="FinishedGoodsStock" asp-action="Index" method="get" class="app-filter-panel row g-2 align-items-end">
+    <div class="col-md-3">
+        <label for="ProductId" class="form-label">Артикул</label>
+        <select id="ProductId" name="ProductId" class="form-select">
+            <option value="">Всички</option>
+            @foreach (var product in Model.Products)
+            {
+                <option value="@product.Id" selected="@(Model.Filter.ProductId == product.Id)">@product.SKU - @product.Description</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label for="Search" class="form-label">Търсене</label>
+        <input id="Search" name="Search" value="@Model.Filter.Search" class="form-control" placeholder="SKU или име на артикул" />
+    </div>
+    <div class="col-md-2">
+        <label for="PageSize" class="form-label">Редове</label>
+        <select id="PageSize" name="PageSize" class="form-select">
+            <option value="25" selected="@(Model.Filter.PageSize == 25)">25</option>
+            <option value="50" selected="@(Model.Filter.PageSize == 50)">50</option>
+            <option value="100" selected="@(Model.Filter.PageSize == 100)">100</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <div class="form-check mt-4">
+            <input id="ZeroStockOnly" name="ZeroStockOnly" value="true" class="form-check-input" type="checkbox" checked="@Model.Filter.ZeroStockOnly" />
+            <label for="ZeroStockOnly" class="form-check-label">Само нулева наличност</label>
+        </div>
+    </div>
+    <div class="col-md-1 d-grid">
+        <input type="hidden" name="Page" value="1" />
+        <button type="submit" class="btn btn-primary">Филтър</button>
+    </div>
+    <div class="col-12">
+        <a class="btn btn-outline-secondary btn-sm" asp-controller="FinishedGoodsStock" asp-action="Index">Изчисти</a>
+    </div>
+</form>
+
+<div class="app-card mb-3">
+    <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+        <div>
+            <h5 class="mb-1">Склад готова продукция</h5>
+            <div class="text-muted">@Model.FinishedGoodsWarehouseName</div>
+        </div>
+        <div class="text-end">
+            <div class="text-muted">Общо артикули</div>
+            <strong>@Model.TotalItems</strong>
+        </div>
+    </div>
+
+    @if (!Model.Rows.Any())
+    {
+        <div class="alert alert-info mb-0">Няма намерена готова продукция по избраните филтри.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table app-table align-middle">
+                <thead>
+                    <tr>
+                        <th>Код / SKU</th>
+                        <th>Артикул</th>
+                        <th class="text-end">Обща наличност</th>
+                        <th class="text-end">Брой варианти</th>
+                        <th>Склад</th>
+                        <th>Последно приемане</th>
+                        <th>Последен FGR</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
                         <tr>
-                            <th>Код / SKU</th>
-                            <th>Артикул</th>
-                            <th>Размер / вариант</th>
-                            <th class="text-end">Наличност</th>
-                            <th>Мерна единица</th>
-                            <th>Склад готова продукция</th>
-                            <th>Последно приемане</th>
-                            <th>Последен FGR документ</th>
-                            <th></th>
+                            <td class="fw-semibold">@row.ProductSku</td>
+                            <td>@row.ProductName</td>
+                            <td class="text-end">@QuantityDisplayFormatter.Format(row.Quantity, row.UnitOfMeasureName, true)</td>
+                            <td class="text-end">@row.VariantCount</td>
+                            <td>@row.FinishedGoodsWarehouseName</td>
+                            <td>@(row.LastReceiptOn.HasValue ? row.LastReceiptOn.Value.ToString("dd.MM.yyyy HH:mm") : "-")</td>
+                            <td>
+                                @if (string.IsNullOrWhiteSpace(row.LastFgrDocumentNumber))
+                                {
+                                    <span>-</span>
+                                }
+                                else
+                                {
+                                    <a asp-controller="ProductionDocuments" asp-action="ViewDocument" asp-route-documentNumber="@row.LastFgrDocumentNumber">@row.LastFgrDocumentNumber</a>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-info" asp-controller="FinishedGoodsStock" asp-action="Details" asp-route-id="@row.ProductId">Детайли</a>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var row in Model.Rows)
-                        {
-                            <tr>
-                                <td>@row.ProductSku</td>
-                                <td>@row.ProductName</td>
-                                <td>@row.Size</td>
-                                <td class="text-end">@QuantityDisplayFormatter.Format(row.Quantity, row.UnitOfMeasureName)</td>
-                                <td>@row.UnitOfMeasureName</td>
-                                <td>@row.FinishedGoodsWarehouseName</td>
-                                <td>@(row.LastReceiptOn.HasValue ? row.LastReceiptOn.Value.ToString("dd.MM.yyyy HH:mm") : "-")</td>
-                                <td>@(string.IsNullOrWhiteSpace(row.LastFgrDocumentNumber) ? "-" : row.LastFgrDocumentNumber)</td>
-                                <td><a class="btn btn-sm btn-outline-info" asp-controller="FinishedGoodsStock" asp-action="Details" asp-route-id="@row.ProductInventoryId">Детайли</a></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                    }
+                </tbody>
+            </table>
+        </div>
 
-            <div class="d-flex justify-content-between align-items-center">
-                <div>Общо редове: @Model.TotalItems</div>
-                <div>
-                    <a class="btn btn-sm btn-outline-secondary @(Model.Filter.Page <= 1 ? "disabled" : string.Empty)"
-                       asp-controller="FinishedGoodsStock"
-                       asp-action="Index"
-                       asp-route-Page="@previousPage"
-                       asp-route-PageSize="@Model.Filter.PageSize"
-                       asp-route-ProductId="@Model.Filter.ProductId"
-                       asp-route-ProductInventoryId="@Model.Filter.ProductInventoryId"
-                       asp-route-Search="@Model.Filter.Search"
-                       asp-route-ShowZeroStock="@Model.Filter.ShowZeroStock">Назад</a>
-                    <span class="mx-2">Страница @Model.Filter.Page от @Model.TotalPages</span>
-                    <a class="btn btn-sm btn-outline-secondary @(Model.Filter.Page >= Model.TotalPages ? "disabled" : string.Empty)"
-                       asp-controller="FinishedGoodsStock"
-                       asp-action="Index"
-                       asp-route-Page="@nextPage"
-                       asp-route-PageSize="@Model.Filter.PageSize"
-                       asp-route-ProductId="@Model.Filter.ProductId"
-                       asp-route-ProductInventoryId="@Model.Filter.ProductInventoryId"
-                       asp-route-Search="@Model.Filter.Search"
-                       asp-route-ShowZeroStock="@Model.Filter.ShowZeroStock">Напред</a>
-                </div>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>Общо редове: @Model.TotalItems</div>
+            <div>
+                <a class="btn btn-sm btn-outline-secondary @(Model.Filter.Page <= 1 ? "disabled" : string.Empty)"
+                   asp-controller="FinishedGoodsStock"
+                   asp-action="Index"
+                   asp-route-Page="@previousPage"
+                   asp-route-PageSize="@Model.Filter.PageSize"
+                   asp-route-ProductId="@Model.Filter.ProductId"
+                   asp-route-Search="@Model.Filter.Search"
+                   asp-route-ZeroStockOnly="@Model.Filter.ZeroStockOnly">Назад</a>
+                <span class="mx-2">Страница @Model.Filter.Page от @Model.TotalPages</span>
+                <a class="btn btn-sm btn-outline-secondary @(Model.Filter.Page >= Model.TotalPages ? "disabled" : string.Empty)"
+                   asp-controller="FinishedGoodsStock"
+                   asp-action="Index"
+                   asp-route-Page="@nextPage"
+                   asp-route-PageSize="@Model.Filter.PageSize"
+                   asp-route-ProductId="@Model.Filter.ProductId"
+                   asp-route-Search="@Model.Filter.Search"
+                   asp-route-ZeroStockOnly="@Model.Filter.ZeroStockOnly">Напред</a>
             </div>
-        }
-    </div>
+        </div>
+    }
 </div>

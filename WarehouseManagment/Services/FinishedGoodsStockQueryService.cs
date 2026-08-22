@@ -21,96 +21,105 @@ namespace WarehouseManagment.Services
             NormalizeFilter(filter);
 
             var finishedGoodsWarehouseName = await GetFinishedGoodsWarehouseNameAsync();
-            var query = ApplyFilters(BaseInventoryQuery(), filter);
+            var query = ApplyFilters(BaseInventoryQuery(), filter)
+                .GroupBy(x => new
+                {
+                    x.ProductId,
+                    ProductSku = x.Product.SKU,
+                    ProductName = x.Product.Description
+                })
+                .Select(x => new
+                {
+                    x.Key.ProductId,
+                    x.Key.ProductSku,
+                    x.Key.ProductName,
+                    Quantity = x.Sum(row => row.Quantity),
+                    VariantCount = x.Count()
+                });
 
-            if (!filter.ShowZeroStock)
+            if (filter.ZeroStockOnly)
             {
-                query = query.Where(x => x.Quantity > 0);
+                query = query.Where(x => x.Quantity <= 0);
             }
 
             var totalItems = await query.CountAsync();
-            var inventoryRows = await query
-                .OrderBy(x => x.Product.SKU)
-                .ThenBy(x => x.Size)
+            var productRows = await query
+                .OrderBy(x => x.ProductSku)
                 .Skip((filter.Page - 1) * filter.PageSize)
                 .Take(filter.PageSize)
-                .Select(x => new
-                {
-                    x.Id,
-                    x.ProductId,
-                    ProductSku = x.Product.SKU,
-                    ProductName = x.Product.Description,
-                    x.Size,
-                    x.Quantity
-                })
                 .ToListAsync();
 
-            var inventoryIds = inventoryRows.Select(x => x.Id).ToList();
-            var latestReceipts = await _dbContext.ProductionFinishedGoodsReceipts
-                .AsNoTracking()
-                .Where(x => inventoryIds.Contains(x.ProductInventoryId))
-                .GroupBy(x => x.ProductInventoryId)
-                .Select(x => x
-                    .OrderByDescending(r => r.CreatedOn)
-                    .ThenByDescending(r => r.Id)
-                    .Select(r => new
-                    {
-                        r.ProductInventoryId,
-                        r.CreatedOn,
-                        r.DocumentNumber
-                    })
-                    .FirstOrDefault())
-                .ToDictionaryAsync(x => x!.ProductInventoryId, x => x!);
+            var productIds = productRows.Select(x => x.ProductId).ToList();
+            var latestReceipts = await GetLatestReceiptsByProductAsync(productIds);
 
             return new FinishedGoodsStockIndexModel
             {
                 Filter = filter,
-                Rows = inventoryRows.Select(row =>
+                Rows = productRows.Select(row =>
                 {
-                    latestReceipts.TryGetValue(row.Id, out var latestReceipt);
+                    latestReceipts.TryGetValue(row.ProductId, out var latestReceipt);
 
                     return new FinishedGoodsStockRowModel
                     {
-                        ProductInventoryId = row.Id,
                         ProductId = row.ProductId,
                         ProductSku = row.ProductSku,
                         ProductName = row.ProductName ?? string.Empty,
-                        Size = row.Size.ToString(),
                         Quantity = row.Quantity,
                         UnitOfMeasureName = PieceUnit,
+                        VariantCount = row.VariantCount,
                         FinishedGoodsWarehouseName = finishedGoodsWarehouseName,
                         LastReceiptOn = latestReceipt?.CreatedOn,
                         LastFgrDocumentNumber = latestReceipt?.DocumentNumber ?? string.Empty
                     };
                 }).ToList(),
                 Products = await GetProductsAsync(),
-                Variants = await GetVariantsAsync(filter.ProductId),
                 FinishedGoodsWarehouseName = finishedGoodsWarehouseName,
                 TotalItems = totalItems
             };
         }
 
-        public async Task<FinishedGoodsStockDetailsModel> GetDetailsAsync(int productInventoryId)
+        public async Task<FinishedGoodsStockDetailsModel> GetDetailsAsync(int productId)
         {
-            var inventory = await BaseInventoryQuery()
-                .FirstOrDefaultAsync(x => x.Id == productInventoryId);
+            var product = await _dbContext.Products
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == productId);
 
-            if (inventory == null)
+            if (product == null)
             {
-                throw new ArgumentException("Размерът / вариантът не е намерен.", nameof(productInventoryId));
+                throw new ArgumentException("Артикулът не е намерен.", nameof(productId));
             }
+
+            var variants = await _dbContext.ProductInventory
+                .AsNoTracking()
+                .Where(x => x.ProductId == productId)
+                .OrderBy(x => x.Size)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.Size,
+                    x.Quantity,
+                    x.BarcodeValue
+                })
+                .ToListAsync();
+
+            var inventoryIds = variants.Select(x => x.Id).ToList();
+            var latestReceiptsByVariant = await GetLatestReceiptsByVariantAsync(inventoryIds);
+            var latestReceiptsByProduct = await GetLatestReceiptsByProductAsync(new List<int> { productId });
+            latestReceiptsByProduct.TryGetValue(productId, out var latestProductReceipt);
 
             var receiptRows = await _dbContext.ProductionFinishedGoodsReceipts
                 .AsNoTracking()
                 .Include(x => x.ProductionOrder)
                 .Include(x => x.Warehouse)
-                .Where(x => x.ProductInventoryId == productInventoryId)
+                .Where(x => x.ProductId == productId)
                 .OrderByDescending(x => x.CreatedOn)
                 .ThenByDescending(x => x.Id)
                 .Take(20)
                 .Select(x => new FinishedGoodsReceiptRowModel
                 {
                     DocumentNumber = x.DocumentNumber,
+                    ProductInventoryId = x.ProductInventoryId,
+                    Size = x.SizeSnapshot,
                     Quantity = x.Quantity,
                     CreatedOn = x.CreatedOn,
                     ProductionOrderNumber = x.ProductionOrder.OrderNumber,
@@ -127,13 +136,28 @@ namespace WarehouseManagment.Services
 
             return new FinishedGoodsStockDetailsModel
             {
-                ProductInventoryId = inventory.Id,
-                ProductSku = inventory.Product.SKU,
-                ProductName = inventory.Product.Description ?? string.Empty,
-                Size = inventory.Size.ToString(),
-                Quantity = inventory.Quantity,
+                ProductId = product.Id,
+                ProductSku = product.SKU,
+                ProductName = product.Description ?? string.Empty,
+                Quantity = variants.Sum(x => x.Quantity),
                 UnitOfMeasureName = PieceUnit,
+                VariantCount = variants.Count,
+                LastReceiptOn = latestProductReceipt?.CreatedOn,
+                LastFgrDocumentNumber = latestProductReceipt?.DocumentNumber ?? string.Empty,
                 FinishedGoodsWarehouseName = await GetFinishedGoodsWarehouseNameAsync(),
+                Variants = variants.Select(variant =>
+                {
+                    latestReceiptsByVariant.TryGetValue(variant.Id, out var latestReceipt);
+                    return new FinishedGoodsVariantStockRowModel
+                    {
+                        ProductInventoryId = variant.Id,
+                        Size = variant.Size.ToString(),
+                        Quantity = variant.Quantity,
+                        BarcodeValue = variant.BarcodeValue ?? string.Empty,
+                        LastReceiptOn = latestReceipt?.CreatedOn,
+                        LastFgrDocumentNumber = latestReceipt?.DocumentNumber ?? string.Empty
+                    };
+                }).ToList(),
                 RecentReceipts = receiptRows
             };
         }
@@ -141,8 +165,7 @@ namespace WarehouseManagment.Services
         private IQueryable<ProductInventory> BaseInventoryQuery()
         {
             return _dbContext.ProductInventory
-                .AsNoTracking()
-                .Include(x => x.Product);
+                .AsNoTracking();
         }
 
         private static IQueryable<ProductInventory> ApplyFilters(IQueryable<ProductInventory> query, FinishedGoodsStockFilterModel filter)
@@ -150,11 +173,6 @@ namespace WarehouseManagment.Services
             if (filter.ProductId.HasValue)
             {
                 query = query.Where(x => x.ProductId == filter.ProductId.Value);
-            }
-
-            if (filter.ProductInventoryId.HasValue)
-            {
-                query = query.Where(x => x.Id == filter.ProductInventoryId.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(filter.Search))
@@ -166,6 +184,58 @@ namespace WarehouseManagment.Services
             }
 
             return query;
+        }
+
+        private async Task<Dictionary<int, LatestFinishedGoodsReceiptModel>> GetLatestReceiptsByProductAsync(List<int> productIds)
+        {
+            if (!productIds.Any())
+            {
+                return new Dictionary<int, LatestFinishedGoodsReceiptModel>();
+            }
+
+            var receipts = await _dbContext.ProductionFinishedGoodsReceipts
+                .AsNoTracking()
+                .Where(x => productIds.Contains(x.ProductId))
+                .Select(x => new LatestFinishedGoodsReceiptModel
+                {
+                    ProductId = x.ProductId,
+                    ProductInventoryId = x.ProductInventoryId,
+                    CreatedOn = x.CreatedOn,
+                    DocumentNumber = x.DocumentNumber,
+                    Id = x.Id
+                })
+                .ToListAsync();
+
+            return receipts
+                .GroupBy(x => x.ProductId)
+                .Select(x => x.OrderByDescending(r => r.CreatedOn).ThenByDescending(r => r.Id).First())
+                .ToDictionary(x => x.ProductId, x => x);
+        }
+
+        private async Task<Dictionary<int, LatestFinishedGoodsReceiptModel>> GetLatestReceiptsByVariantAsync(List<int> productInventoryIds)
+        {
+            if (!productInventoryIds.Any())
+            {
+                return new Dictionary<int, LatestFinishedGoodsReceiptModel>();
+            }
+
+            var receipts = await _dbContext.ProductionFinishedGoodsReceipts
+                .AsNoTracking()
+                .Where(x => productInventoryIds.Contains(x.ProductInventoryId))
+                .Select(x => new LatestFinishedGoodsReceiptModel
+                {
+                    ProductId = x.ProductId,
+                    ProductInventoryId = x.ProductInventoryId,
+                    CreatedOn = x.CreatedOn,
+                    DocumentNumber = x.DocumentNumber,
+                    Id = x.Id
+                })
+                .ToListAsync();
+
+            return receipts
+                .GroupBy(x => x.ProductInventoryId)
+                .Select(x => x.OrderByDescending(r => r.CreatedOn).ThenByDescending(r => r.Id).First())
+                .ToDictionary(x => x.ProductInventoryId, x => x);
         }
 
         private async Task<string> GetFinishedGoodsWarehouseNameAsync()
@@ -187,24 +257,6 @@ namespace WarehouseManagment.Services
             return await _dbContext.Products
                 .AsNoTracking()
                 .OrderBy(x => x.SKU)
-                .ToListAsync();
-        }
-
-        private async Task<List<ProductInventory>> GetVariantsAsync(int? productId)
-        {
-            var query = _dbContext.ProductInventory
-                .AsNoTracking()
-                .Include(x => x.Product)
-                .AsQueryable();
-
-            if (productId.HasValue)
-            {
-                query = query.Where(x => x.ProductId == productId.Value);
-            }
-
-            return await query
-                .OrderBy(x => x.Product.SKU)
-                .ThenBy(x => x.Size)
                 .ToListAsync();
         }
 
@@ -244,6 +296,19 @@ namespace WarehouseManagment.Services
             return users.TryGetValue(userId, out var userName) && !string.IsNullOrWhiteSpace(userName)
                 ? userName
                 : "Неизвестен потребител";
+        }
+
+        private class LatestFinishedGoodsReceiptModel
+        {
+            public int Id { get; set; }
+
+            public int ProductId { get; set; }
+
+            public int ProductInventoryId { get; set; }
+
+            public DateTime CreatedOn { get; set; }
+
+            public string DocumentNumber { get; set; } = string.Empty;
         }
     }
 }

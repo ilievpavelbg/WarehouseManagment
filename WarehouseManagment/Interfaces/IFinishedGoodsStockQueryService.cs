@@ -6,6 +6,6 @@ namespace WarehouseManagment.Interfaces
     {
         Task<FinishedGoodsStockIndexModel> GetIndexAsync(FinishedGoodsStockFilterModel filter);
 
-        Task<FinishedGoodsStockDetailsModel> GetDetailsAsync(int productInventoryId);
+        Task<FinishedGoodsStockDetailsModel> GetDetailsAsync(int productId);
     }
 }

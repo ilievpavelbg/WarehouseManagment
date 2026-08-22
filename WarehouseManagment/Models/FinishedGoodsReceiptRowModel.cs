@@ -4,6 +4,10 @@ namespace WarehouseManagment.Models
     {
         public string DocumentNumber { get; set; } = string.Empty;
 
+        public int ProductInventoryId { get; set; }
+
+        public string Size { get; set; } = string.Empty;
+
         public int Quantity { get; set; }
 
         public DateTime CreatedOn { get; set; }

@@ -261,24 +261,32 @@ namespace WarehouseManagment.Services
                 .Where(x => string.IsNullOrWhiteSpace(filter.Search) || x.OrderNumber.Contains(filter.Search) || x.ProductSkuSnapshot.Contains(filter.Search) || (x.ProductDescriptionSnapshot != null && x.ProductDescriptionSnapshot.Contains(filter.Search)));
 
             var totalItems = await query.CountAsync();
-            var rows = await query.OrderByDescending(x => x.CreatedOn)
+            var productionOrders = await query.OrderByDescending(x => x.CreatedOn)
                 .Skip((filter.Page - 1) * filter.PageSize)
                 .Take(filter.PageSize)
-                .Select(x => new ProductionReportRowModel
-                {
-                    Id = x.Id,
-                    OrderNumber = x.OrderNumber,
-                    Product = x.ProductSkuSnapshot + " - " + x.ProductDescriptionSnapshot,
-                    Variant = x.ProductInventory != null ? x.ProductInventory.Size.ToString() : "-",
-                    PlannedQuantity = x.PlannedQuantity,
-                    GoodQuantity = x.Operations.Sum(o => o.CompletedQuantity),
-                    RejectedQuantity = x.Operations.Sum(o => o.RejectedQuantity),
-                    Start = x.ActualStartDate,
-                    End = x.ActualEndDate,
-                    Status = x.Status.ToString(),
-                    ProgressPercent = x.PlannedQuantity <= 0 ? 0 : Math.Min(100, x.Operations.Sum(o => o.CompletedQuantity) / x.PlannedQuantity * 100)
-                })
                 .ToListAsync();
+            var rows = productionOrders
+                .Select(x =>
+                {
+                    var lastOperation = x.Operations.OrderByDescending(o => o.Sequence).FirstOrDefault();
+                    var goodQuantity = lastOperation?.CompletedQuantity ?? 0;
+                    var rejectedQuantity = x.Operations.Sum(o => o.RejectedQuantity);
+                    return new ProductionReportRowModel
+                    {
+                        Id = x.Id,
+                        OrderNumber = x.OrderNumber,
+                        Product = x.ProductSkuSnapshot + " - " + x.ProductDescriptionSnapshot,
+                        Variant = x.ProductInventory != null ? x.ProductInventory.Size.ToString() : "-",
+                        PlannedQuantity = x.PlannedQuantity,
+                        GoodQuantity = goodQuantity,
+                        RejectedQuantity = rejectedQuantity,
+                        Start = x.ActualStartDate,
+                        End = x.ActualEndDate,
+                        Status = x.Status.ToString(),
+                        ProgressPercent = ProductionProgressHelper.CalculateAccountedProgressPercent(x.PlannedQuantity, goodQuantity, rejectedQuantity)
+                    };
+                })
+                .ToList();
 
             var active = await query.CountAsync(x => x.Status == ProductionOrderStatus.Released || x.Status == ProductionOrderStatus.InProgress);
             var completed = await query.CountAsync(x => x.Status == ProductionOrderStatus.Completed);
