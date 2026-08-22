@@ -288,6 +288,7 @@ namespace WarehouseManagment.Services
 
             var model = ToDetailsModel(order);
             model.MaterialReadiness = await _productionMaterialService.GetReadinessAsync(id);
+            await PopulateMaterialReturnDocumentsAsync(model);
             await PopulateUserDisplayNamesAsync(model);
             return model;
         }
@@ -621,6 +622,33 @@ namespace WarehouseManagment.Services
                     .ThenInclude(x => x.WorkEntries);
         }
 
+        private async Task PopulateMaterialReturnDocumentsAsync(ProductionOrderDetailsModel model)
+        {
+            var movements = await _dbContext.InventoryMovements
+                .AsNoTracking()
+                .Include(x => x.Warehouse)
+                .Include(x => x.DestinationWarehouse)
+                .Where(x => x.ReferenceType == "ProductionMaterialReturn"
+                    && x.ReferenceId == model.Id
+                    && x.ReferenceNumber != null)
+                .OrderBy(x => x.CreatedOn)
+                .ToListAsync();
+
+            model.MaterialReturnDocuments = movements
+                .GroupBy(x => x.ReferenceNumber!)
+                .Select(group => new ProductionMaterialReturnDocumentModel
+                {
+                    DocumentNumber = group.Key,
+                    CreatedOn = group.Min(x => x.CreatedOn),
+                    Quantity = group.Sum(x => x.Quantity),
+                    SourceWarehouse = JoinDistinct(group.Select(x => FormatWarehouse(x.Warehouse))),
+                    DestinationWarehouse = JoinDistinct(group.Select(x => FormatWarehouse(x.DestinationWarehouse))),
+                    CreatedByUserId = group.Select(x => x.UserId).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))
+                })
+                .OrderBy(x => x.CreatedOn)
+                .ToList();
+        }
+
         private async Task PopulateUserDisplayNamesAsync(ProductionOrderDetailsModel model)
         {
             var userIds = new[]
@@ -633,6 +661,7 @@ namespace WarehouseManagment.Services
                     model.CancelledByUserId,
                     model.ProductionFinalizedByUserId
                 }
+                .Concat(model.MaterialReturnDocuments.Select(x => x.CreatedByUserId))
                 .Where(x => !string.IsNullOrWhiteSpace(x))
                 .Distinct()
                 .ToList();
@@ -650,6 +679,11 @@ namespace WarehouseManagment.Services
             if (model.FinishedGoodsReceipt != null)
             {
                 model.FinishedGoodsReceipt.CreatedByUserName = ResolveUserName(model.FinishedGoodsReceipt.CreatedByUserId, users);
+            }
+
+            foreach (var returnDocument in model.MaterialReturnDocuments)
+            {
+                returnDocument.CreatedByUserName = ResolveUserName(returnDocument.CreatedByUserId, users);
             }
         }
 
@@ -1005,6 +1039,16 @@ namespace WarehouseManagment.Services
         private static string FormatWarehouse(Warehouse? warehouse)
         {
             return warehouse == null ? string.Empty : $"{warehouse.Code} - {warehouse.Name}";
+        }
+
+        private static string JoinDistinct(IEnumerable<string> values)
+        {
+            var distinctValues = values
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .ToList();
+
+            return distinctValues.Any() ? string.Join("; ", distinctValues) : "-";
         }
 
         private static string? NormalizeOptional(string? value)

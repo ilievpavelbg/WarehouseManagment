@@ -35,6 +35,11 @@ namespace WarehouseManagment.Services
                 return await GetPmcDocumentAsync(normalizedDocumentNumber);
             }
 
+            if (normalizedDocumentNumber.StartsWith(ProductionDocumentPrefix.ProductionMaterialReturn + "-", StringComparison.OrdinalIgnoreCase))
+            {
+                return await GetPmrDocumentAsync(normalizedDocumentNumber);
+            }
+
             if (normalizedDocumentNumber.StartsWith(ProductionDocumentPrefix.FinishedGoodsReceipt + "-", StringComparison.OrdinalIgnoreCase))
             {
                 return await GetFgrDocumentAsync(normalizedDocumentNumber);
@@ -141,6 +146,60 @@ namespace WarehouseManagment.Services
             };
         }
 
+        private async Task<ProductionDocumentModel?> GetPmrDocumentAsync(string documentNumber)
+        {
+            var movements = await _dbContext.InventoryMovements
+                .AsNoTracking()
+                .Include(x => x.Material)
+                    .ThenInclude(x => x!.UnitOfMeasure)
+                .Include(x => x.Warehouse)
+                .Include(x => x.WarehouseLocation)
+                .Include(x => x.DestinationWarehouse)
+                .Include(x => x.DestinationWarehouseLocation)
+                .Where(x => x.ReferenceType == "ProductionMaterialReturn" && x.ReferenceNumber == documentNumber)
+                .OrderBy(x => x.CreatedOn)
+                .ToListAsync();
+
+            if (!movements.Any())
+            {
+                return null;
+            }
+
+            var first = movements.First();
+            var orderId = Convert.ToInt32(first.ReferenceId);
+            var order = await _dbContext.ProductionOrders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == orderId);
+
+            if (order == null)
+            {
+                return null;
+            }
+
+            return new ProductionDocumentModel
+            {
+                DocumentNumber = documentNumber,
+                DocumentType = ProductionDocumentPrefix.ProductionMaterialReturn,
+                Title = "Връщане на материали от производство",
+                ProductionOrderId = order.Id,
+                ProductionOrderNumber = order.OrderNumber,
+                Date = movements.Select(x => (DateTime?)x.CreatedOn).FirstOrDefault(),
+                UserName = await ResolveUserNameAsync(first.UserId),
+                SourceWarehouse = JoinDistinct(movements.Select(x => FormatWarehouse(x.Warehouse))),
+                DestinationWarehouse = JoinDistinct(movements.Select(x => FormatWarehouse(x.DestinationWarehouse))),
+                Lines = movements.Select(x => new ProductionDocumentLineModel
+                {
+                    MaterialCode = x.Material?.Code ?? string.Empty,
+                    MaterialName = x.Material?.Name ?? string.Empty,
+                    BatchLotDisplay = FormatBatchLot(x.BatchNumber, x.LotNumber),
+                    SourceLocation = FormatLocation(x.WarehouseLocation),
+                    DestinationLocation = FormatLocation(x.DestinationWarehouseLocation),
+                    Quantity = x.Quantity,
+                    UnitOfMeasure = FormatUnit(x.Material?.UnitOfMeasure)
+                }).ToList()
+            };
+        }
+
         private async Task<ProductionDocumentModel?> GetFgrDocumentAsync(string documentNumber)
         {
             var receipt = await _dbContext.ProductionFinishedGoodsReceipts
@@ -198,6 +257,7 @@ namespace WarehouseManagment.Services
             var value = documentNumber.Trim();
             return value.StartsWith(ProductionDocumentPrefix.ProductionMaterialTransfer + "-", StringComparison.OrdinalIgnoreCase)
                 || value.StartsWith(ProductionDocumentPrefix.ProductionMaterialConsumption + "-", StringComparison.OrdinalIgnoreCase)
+                || value.StartsWith(ProductionDocumentPrefix.ProductionMaterialReturn + "-", StringComparison.OrdinalIgnoreCase)
                 || value.StartsWith(ProductionDocumentPrefix.FinishedGoodsReceipt + "-", StringComparison.OrdinalIgnoreCase)
                 ? value
                 : null;
@@ -220,6 +280,16 @@ namespace WarehouseManagment.Services
                 .ToList();
 
             return values.Any() ? string.Join(" / ", values) : "-";
+        }
+
+        private static string FormatUnit(UnitOfMeasure? unit)
+        {
+            if (unit == null)
+            {
+                return string.Empty;
+            }
+
+            return string.IsNullOrWhiteSpace(unit.Symbol) ? unit.Name : unit.Symbol;
         }
 
         private static string JoinDistinct(IEnumerable<string> values)

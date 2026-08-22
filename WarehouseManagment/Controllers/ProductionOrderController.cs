@@ -211,6 +211,7 @@ namespace WarehouseManagment.Controllers
                     if (row != null)
                     {
                         row.ProposedConsumedQuantity = input.ProposedConsumedQuantity;
+                        row.ReturnQuantity = input.ReturnQuantity;
                     }
                 }
 
@@ -234,6 +235,7 @@ namespace WarehouseManagment.Controllers
                     if (row != null)
                     {
                         row.ProposedConsumedQuantity = input.ProposedConsumedQuantity;
+                        row.ReturnQuantity = input.ReturnQuantity;
                     }
                 }
 

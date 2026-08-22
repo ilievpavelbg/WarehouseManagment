@@ -82,6 +82,8 @@ namespace WarehouseManagment.Models
 
         public string? FinishedGoodsReceiptDocumentNumber { get; set; }
 
+        public List<ProductionMaterialReturnDocumentModel> MaterialReturnDocuments { get; set; } = new List<ProductionMaterialReturnDocumentModel>();
+
         public ProductionFinishedGoodsReceiptDetailsModel? FinishedGoodsReceipt { get; set; }
 
         public List<ProductionMaterialCompletionRowModel> MaterialCompletionRows { get; set; } = new List<ProductionMaterialCompletionRowModel>();
@@ -89,5 +91,24 @@ namespace WarehouseManagment.Models
         public ProductionMaterialReadinessModel? MaterialReadiness { get; set; }
 
         public List<ProductionOrderOperationModel> Operations { get; set; } = new List<ProductionOrderOperationModel>();
+    }
+
+    public class ProductionMaterialReturnDocumentModel
+    {
+        public string DocumentNumber { get; set; } = string.Empty;
+
+        public DateTime CreatedOn { get; set; }
+
+        public decimal Quantity { get; set; }
+
+        public string Unit { get; set; } = string.Empty;
+
+        public string SourceWarehouse { get; set; } = string.Empty;
+
+        public string DestinationWarehouse { get; set; } = string.Empty;
+
+        public string? CreatedByUserId { get; set; }
+
+        public string? CreatedByUserName { get; set; }
     }
 }

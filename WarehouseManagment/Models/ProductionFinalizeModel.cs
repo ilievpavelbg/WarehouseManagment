@@ -50,6 +50,11 @@ namespace WarehouseManagment.Models
         [Range(typeof(decimal), "0", "79228162514264337593543950335", ErrorMessage = "Потребеното количество не може да бъде отрицателно.")]
         public decimal ProposedConsumedQuantity { get; set; }
 
+        [Range(typeof(decimal), "0", "79228162514264337593543950335", ErrorMessage = "Върнатото количество не може да бъде отрицателно.")]
+        public decimal ReturnQuantity { get; set; }
+
         public decimal RemainingAfterFinalization => TransferredQuantity - AlreadyConsumedQuantity - ReturnedQuantity - ProposedConsumedQuantity;
+
+        public decimal RemainingInWipAfterReturn => RemainingAfterFinalization - ReturnQuantity;
     }
 }

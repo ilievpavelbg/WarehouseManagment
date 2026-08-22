@@ -31,6 +31,7 @@ namespace WarehouseManagment.Models
             [AuditActionType.ProductionMaterialTransfer] = "Прехвърляне на материали към производство",
             [AuditActionType.ProductionMaterialSnapshotCreate] = "Създаване на материални изисквания",
             [AuditActionType.ProductionMaterialConsumption] = "Разход на материали за производство",
+            [AuditActionType.ProductionMaterialReturn] = "Връщане на материали от производство",
             [AuditActionType.FinishedGoodsReceipt] = "Приемане на готова продукция",
             [AuditActionType.ProductionOrderFinalized] = "Финално приключване на производствена поръчка",
             [AuditActionType.PosSaleCreate] = "POS продажба",
@@ -69,6 +70,7 @@ namespace WarehouseManagment.Models
             ["OrderNumber"] = "Производствена поръчка",
             ["PmtNumber"] = "PMT документ",
             ["PmcNumber"] = "PMC документ",
+            ["PmrNumber"] = "PMR документ",
             ["FgrNumber"] = "FGR документ",
             ["DocumentNumber"] = "Документ",
             ["SourceWarehouse"] = "Склад източник",
@@ -153,6 +155,7 @@ namespace WarehouseManagment.Models
         {
             return StartsWithPrefix(documentNumber, "PMT")
                 || StartsWithPrefix(documentNumber, "PMC")
+                || StartsWithPrefix(documentNumber, "PMR")
                 || StartsWithPrefix(documentNumber, "FGR");
         }
 

@@ -62,6 +62,8 @@ namespace WarehouseManagment.Services
                 var fgrNumber = await _documentNumberService.GetNextNumberAsync(DocumentType.FinishedGoodsReceipt);
                 var now = DateTime.Now;
                 var consumptionAuditRows = new List<object>();
+                var returnAuditRows = new List<object>();
+                string? pmrNumber = null;
 
                 foreach (var material in order.Materials.OrderBy(x => x.MaterialCodeSnapshot))
                 {
@@ -83,6 +85,7 @@ namespace WarehouseManagment.Services
                     }
 
                     var remaining = requested;
+                    var currentConsumptionByAllocation = new Dictionary<int, decimal>();
                     var previousConsumptionByAllocation = await _dbContext.ProductionOrderMaterialConsumptions
                         .Where(x => x.ProductionOrderMaterialId == material.Id && x.ProductionOrderMaterialAllocationId.HasValue)
                         .GroupBy(x => x.ProductionOrderMaterialAllocationId!.Value)
@@ -160,6 +163,7 @@ namespace WarehouseManagment.Services
                             allocation.LotNumberSnapshot
                         });
 
+                        currentConsumptionByAllocation[allocation.Id] = currentConsumptionByAllocation.GetValueOrDefault(allocation.Id) + quantity;
                         remaining -= quantity;
                     }
 
@@ -168,7 +172,34 @@ namespace WarehouseManagment.Services
                         throw new InvalidOperationException($"Не може да се разпредели потвърденото потребление за материал {material.MaterialCodeSnapshot}.");
                     }
 
+                    var returnQuantity = input.ReturnQuantity;
+                    if (returnQuantity < 0)
+                    {
+                        throw new InvalidOperationException($"Върнатото количество за материал {material.MaterialCodeSnapshot} не може да бъде отрицателно.");
+                    }
+
+                    var remainingAfterFinalization = outstanding - requested;
+                    if (returnQuantity > remainingAfterFinalization)
+                    {
+                        throw new InvalidOperationException($"Върнатото количество за материал {material.MaterialCodeSnapshot} надвишава остатъка в НЗП.");
+                    }
+
+                    if (returnQuantity > 0)
+                    {
+                        pmrNumber ??= await _documentNumberService.GetNextNumberAsync(DocumentType.ProductionMaterialReturn);
+                        await ReturnMaterialToSourceAsync(
+                            order,
+                            material,
+                            returnQuantity,
+                            pmrNumber,
+                            now,
+                            previousConsumptionByAllocation,
+                            currentConsumptionByAllocation,
+                            returnAuditRows);
+                    }
+
                     material.ConsumedQuantity += requested;
+                    material.ReturnedQuantity += returnQuantity;
                 }
 
                 var productInventory = await LockProductInventoryAsync(order.ProductInventoryId!.Value);
@@ -221,7 +252,7 @@ namespace WarehouseManagment.Services
                 order.FinishedGoodsReceiptDocumentNumber = fgrNumber;
                 order.UpdatedOn = now;
 
-                await AddAuditEntriesAsync(order, productInventory, finishedQuantity, pmcNumber, fgrNumber, consumptionAuditRows);
+                await AddAuditEntriesAsync(order, productInventory, finishedQuantity, pmcNumber, fgrNumber, pmrNumber, consumptionAuditRows, returnAuditRows);
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
@@ -232,7 +263,118 @@ namespace WarehouseManagment.Services
             }
         }
 
-        private async Task AddAuditEntriesAsync(ProductionOrder order, ProductInventory productInventory, int finishedQuantity, string pmcNumber, string fgrNumber, List<object> consumptionRows)
+        private async Task ReturnMaterialToSourceAsync(
+            ProductionOrder order,
+            ProductionOrderMaterial material,
+            decimal requestedReturnQuantity,
+            string pmrNumber,
+            DateTime now,
+            IReadOnlyDictionary<int, decimal> previousConsumptionByAllocation,
+            IReadOnlyDictionary<int, decimal> currentConsumptionByAllocation,
+            List<object> returnAuditRows)
+        {
+            var remainingReturnQuantity = requestedReturnQuantity;
+            var alreadyReturnedQuantity = material.ReturnedQuantity;
+
+            foreach (var allocation in material.Allocations.OrderBy(x => x.CreatedOn).ThenBy(x => x.Id))
+            {
+                if (remainingReturnQuantity <= 0)
+                {
+                    break;
+                }
+
+                var consumedQuantity = previousConsumptionByAllocation.GetValueOrDefault(allocation.Id)
+                    + currentConsumptionByAllocation.GetValueOrDefault(allocation.Id);
+                var allocationAvailable = allocation.Quantity - consumedQuantity;
+                if (allocationAvailable <= 0)
+                {
+                    continue;
+                }
+
+                if (alreadyReturnedQuantity > 0)
+                {
+                    var returnedFromAllocation = Math.Min(alreadyReturnedQuantity, allocationAvailable);
+                    allocationAvailable -= returnedFromAllocation;
+                    alreadyReturnedQuantity -= returnedFromAllocation;
+                }
+
+                if (allocationAvailable <= 0)
+                {
+                    continue;
+                }
+
+                var quantity = Math.Min(remainingReturnQuantity, allocationAvailable);
+                var wipStock = await LockMaterialStockAsync(material.MaterialId, order.WipWarehouseId, allocation.DestinationWarehouseLocationId, allocation.MaterialBatchId);
+                if (wipStock == null || wipStock.Quantity < quantity)
+                {
+                    throw new InvalidOperationException($"Няма достатъчна наличност в НЗП за връщане на материал {material.MaterialCodeSnapshot}.");
+                }
+
+                var destinationStock = await LockMaterialStockAsync(material.MaterialId, allocation.SourceWarehouseId, allocation.SourceWarehouseLocationId, allocation.MaterialBatchId);
+                if (destinationStock == null)
+                {
+                    destinationStock = new MaterialStock
+                    {
+                        MaterialId = material.MaterialId,
+                        WarehouseId = allocation.SourceWarehouseId,
+                        WarehouseLocationId = allocation.SourceWarehouseLocationId,
+                        MaterialBatchId = allocation.MaterialBatchId,
+                        Quantity = 0,
+                        LastUpdatedOn = now
+                    };
+                    await _dbContext.MaterialStocks.AddAsync(destinationStock);
+                }
+
+                wipStock.Quantity -= quantity;
+                wipStock.LastUpdatedOn = now;
+                destinationStock.Quantity += quantity;
+                destinationStock.LastUpdatedOn = now;
+
+                await _dbContext.InventoryMovements.AddAsync(new InventoryMovement
+                {
+                    MovementType = MovementType.Return,
+                    StockItemType = StockItemType.RawMaterial,
+                    MaterialId = material.MaterialId,
+                    MaterialBatchId = allocation.MaterialBatchId,
+                    WarehouseId = order.WipWarehouseId,
+                    WarehouseLocationId = allocation.DestinationWarehouseLocationId,
+                    DestinationWarehouseId = allocation.SourceWarehouseId,
+                    DestinationWarehouseLocationId = allocation.SourceWarehouseLocationId,
+                    Quantity = quantity,
+                    MovementDate = now,
+                    CreatedOn = now,
+                    ReferenceType = "ProductionMaterialReturn",
+                    ReferenceId = order.Id,
+                    ReferenceNumber = pmrNumber,
+                    BatchNumber = allocation.BatchNumberSnapshot,
+                    LotNumber = allocation.LotNumberSnapshot,
+                    Notes = $"Връщане на неизползван материал от НЗП по производствена поръчка {order.OrderNumber}.",
+                    UserId = _currentUserService.UserId
+                });
+
+                returnAuditRows.Add(new
+                {
+                    material.MaterialCodeSnapshot,
+                    material.MaterialNameSnapshot,
+                    Quantity = quantity,
+                    material.UnitNameSnapshot,
+                    SourceWarehouse = FormatWarehouse(order.WipWarehouse),
+                    DestinationWarehouseId = allocation.SourceWarehouseId,
+                    allocation.SourceWarehouseLocationId,
+                    allocation.BatchNumberSnapshot,
+                    allocation.LotNumberSnapshot
+                });
+
+                remainingReturnQuantity -= quantity;
+            }
+
+            if (remainingReturnQuantity > 0)
+            {
+                throw new InvalidOperationException($"Не може да се разпредели върнатото количество за материал {material.MaterialCodeSnapshot}.");
+            }
+        }
+
+        private async Task AddAuditEntriesAsync(ProductionOrder order, ProductInventory productInventory, int finishedQuantity, string pmcNumber, string fgrNumber, string? pmrNumber, List<object> consumptionRows, List<object> returnRows)
         {
             await _auditLogService.AddAsync(new AuditLogEntryModel
             {
@@ -243,6 +385,19 @@ namespace WarehouseManagment.Services
                 Description = $"Потвърдено потребление на материали по производствена поръчка {order.OrderNumber}.",
                 NewValues = ToJson(new { order.OrderNumber, PmcNumber = pmcNumber, Materials = consumptionRows })
             });
+
+            if (!string.IsNullOrWhiteSpace(pmrNumber) && returnRows.Any())
+            {
+                await _auditLogService.AddAsync(new AuditLogEntryModel
+                {
+                    ActionType = AuditActionType.ProductionMaterialReturn,
+                    EntityType = "ProductionOrder",
+                    EntityId = order.Id,
+                    DocumentNumber = pmrNumber,
+                    Description = $"Върнати неизползвани материали от НЗП по производствена поръчка {order.OrderNumber}.",
+                    NewValues = ToJson(new { order.OrderNumber, PmrNumber = pmrNumber, Materials = returnRows })
+                });
+            }
 
             await _auditLogService.AddAsync(new AuditLogEntryModel
             {
@@ -261,7 +416,7 @@ namespace WarehouseManagment.Services
                 EntityId = order.Id,
                 DocumentNumber = order.OrderNumber,
                 Description = $"Финално приключена производствена поръчка {order.OrderNumber}.",
-                NewValues = ToJson(new { order.Status, order.ActualEndDate, PmcNumber = pmcNumber, FgrNumber = fgrNumber })
+                NewValues = ToJson(new { order.Status, order.ActualEndDate, PmcNumber = pmcNumber, PmrNumber = pmrNumber, FgrNumber = fgrNumber })
             });
         }
 
@@ -388,6 +543,21 @@ namespace WarehouseManagment.Services
 
         private async Task<MaterialStock?> LockWipStockAsync(int materialId, int warehouseId, int? locationId, int? batchId)
         {
+            return await LockMaterialStockAsync(materialId, warehouseId, locationId, batchId);
+        }
+
+        private async Task<MaterialStock?> LockMaterialStockAsync(int materialId, int warehouseId, int? locationId, int? batchId)
+        {
+            var localStock = _dbContext.MaterialStocks.Local.FirstOrDefault(x =>
+                x.MaterialId == materialId
+                && x.WarehouseId == warehouseId
+                && x.WarehouseLocationId == locationId
+                && x.MaterialBatchId == batchId);
+            if (localStock != null)
+            {
+                return localStock;
+            }
+
             return await _dbContext.MaterialStocks
                 .FromSqlInterpolated($"SELECT * FROM MaterialStocks WITH (UPDLOCK, HOLDLOCK) WHERE MaterialId = {materialId} AND WarehouseId = {warehouseId}")
                 .FirstOrDefaultAsync(x => x.WarehouseLocationId == locationId && x.MaterialBatchId == batchId);

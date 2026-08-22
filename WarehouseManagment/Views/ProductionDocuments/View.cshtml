@@ -3,6 +3,8 @@
 @{
     ViewData["Title"] = Model.Title;
     var isFgr = Model.DocumentType == ProductionDocumentPrefix.FinishedGoodsReceipt;
+    var isMaterialTransferDocument = Model.DocumentType == ProductionDocumentPrefix.ProductionMaterialTransfer
+        || Model.DocumentType == ProductionDocumentPrefix.ProductionMaterialReturn;
 }
 
 <style>
@@ -74,10 +76,10 @@
             <dt class="col-sm-3">Дата</dt><dd class="col-sm-9">@(Model.Date?.ToString("dd.MM.yyyy HH:mm") ?? "-")</dd>
             <dt class="col-sm-3">Потребител</dt><dd class="col-sm-9">@Model.UserName</dd>
 
-            @if (Model.DocumentType == ProductionDocumentPrefix.ProductionMaterialTransfer)
+            @if (isMaterialTransferDocument)
             {
                 <dt class="col-sm-3">Склад източник</dt><dd class="col-sm-9">@Model.SourceWarehouse</dd>
-                <dt class="col-sm-3">Дестинация / НЗП</dt><dd class="col-sm-9">@Model.DestinationWarehouse</dd>
+                <dt class="col-sm-3">Склад получател</dt><dd class="col-sm-9">@Model.DestinationWarehouse</dd>
             }
             else if (Model.DocumentType == ProductionDocumentPrefix.ProductionMaterialConsumption)
             {
@@ -102,7 +104,7 @@
                             <th>Код</th>
                             <th>Материал</th>
                             <th>Партида / Lot</th>
-                            @if (Model.DocumentType == ProductionDocumentPrefix.ProductionMaterialTransfer)
+                            @if (isMaterialTransferDocument)
                             {
                                 <th>Източник локация</th>
                                 <th>Дестинация локация</th>
@@ -122,7 +124,7 @@
                                 <td>@line.MaterialCode</td>
                                 <td>@line.MaterialName</td>
                                 <td>@line.BatchLotDisplay</td>
-                                @if (Model.DocumentType == ProductionDocumentPrefix.ProductionMaterialTransfer)
+                                @if (isMaterialTransferDocument)
                                 {
                                     <td>@line.SourceLocation</td>
                                     <td>@line.DestinationLocation</td>

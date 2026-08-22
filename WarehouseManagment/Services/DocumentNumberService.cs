@@ -92,6 +92,7 @@ namespace WarehouseManagment.Services
                 DocumentType.FinishedGoodsReceipt => "FGR",
                 DocumentType.PosSale => "POS",
                 DocumentType.CourierShipment => "CSH",
+                DocumentType.ProductionMaterialReturn => "PMR",
                 _ => throw new InvalidOperationException("Invalid document type.")
             };
         }

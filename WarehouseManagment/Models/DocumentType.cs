@@ -10,6 +10,7 @@ namespace WarehouseManagment.Models
         ProductionMaterialConsumption = 6,
         FinishedGoodsReceipt = 7,
         PosSale = 8,
-        CourierShipment = 9
+        CourierShipment = 9,
+        ProductionMaterialReturn = 10
     }
 }

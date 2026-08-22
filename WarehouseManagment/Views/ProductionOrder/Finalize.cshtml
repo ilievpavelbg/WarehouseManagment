@@ -32,7 +32,7 @@
     </div>
 
     <div class="alert alert-info">
-        Непотребените материали ще останат в склада НЗП. Те няма да бъдат автоматично върнати в основния склад.
+        Непотребените материали остават в склада НЗП, освен ако изрично не въведете количество за връщане към склада източник. Връщането създава отделен PMR документ.
     </div>
 
     <div class="card mb-3">
@@ -55,6 +55,8 @@
                             <th class="text-end">Вече потребено</th>
                             <th class="text-end">Потвърдено потребление</th>
                             <th class="text-end">Остава в НЗП</th>
+                            <th class="text-end">Връщане към източник</th>
+                            <th class="text-end">НЗП след връщане</th>
                             <th>Мерна единица</th>
                         </tr>
                     </thead>
@@ -76,9 +78,20 @@
                                 <td class="text-end">@QuantityDisplayFormatter.Format(Model.Materials[i].TransferredQuantity, Model.Materials[i].Unit, true)</td>
                                 <td class="text-end">@QuantityDisplayFormatter.Format(Model.Materials[i].AlreadyConsumedQuantity, Model.Materials[i].Unit, true)</td>
                                 <td>
-                                    <input asp-for="Materials[i].ProposedConsumedQuantity" class="form-control text-end" />
+                                    <input asp-for="Materials[i].ProposedConsumedQuantity" class="form-control text-end js-consumed-quantity" />
                                 </td>
-                                <td class="text-end">@QuantityDisplayFormatter.Format(Model.Materials[i].RemainingAfterFinalization, Model.Materials[i].Unit, true)</td>
+                                <td class="text-end js-remaining-before-return"
+                                    data-transferred="@Model.Materials[i].TransferredQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                    data-consumed="@Model.Materials[i].AlreadyConsumedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                    data-returned="@Model.Materials[i].ReturnedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                    data-unit="@Model.Materials[i].Unit">
+                                    @QuantityDisplayFormatter.Format(Model.Materials[i].RemainingAfterFinalization, Model.Materials[i].Unit, true)
+                                </td>
+                                <td>
+                                    <input asp-for="Materials[i].ReturnQuantity" class="form-control text-end js-return-quantity" />
+                                    <div class="form-text">0 = остава в НЗП</div>
+                                </td>
+                                <td class="text-end js-remaining-after-return">@QuantityDisplayFormatter.Format(Model.Materials[i].RemainingInWipAfterReturn, Model.Materials[i].Unit, true)</td>
                                 <td>@Model.Materials[i].Unit</td>
                             </tr>
                         }
@@ -93,6 +106,7 @@
         <div class="card-body">
             <ul class="mb-0">
                 <li>PMC документ за потребление на материали.</li>
+                <li>PMR документ за връщане на неизползвани материали, само ако е въведено количество за връщане.</li>
                 <li>FGR документ за приемане на готова продукция.</li>
             </ul>
         </div>
@@ -108,6 +122,52 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            function parseDecimal(value) {
+                const normalized = (value || '0').toString().replace(',', '.');
+                const parsed = Number.parseFloat(normalized);
+                return Number.isFinite(parsed) ? parsed : 0;
+            }
+
+            function formatQuantity(value, unit) {
+                const safeValue = Math.max(0, value);
+                if ((unit || '').trim().toLowerCase() === 'бр') {
+                    return Math.round(safeValue).toString() + ' ' + unit;
+                }
+
+                return safeValue.toFixed(2) + (unit ? ' ' + unit : '');
+            }
+
+            function refreshMaterialRemainder(row) {
+                const remainingCell = row.querySelector('.js-remaining-before-return');
+                const afterReturnCell = row.querySelector('.js-remaining-after-return');
+                const consumedInput = row.querySelector('.js-consumed-quantity');
+                const returnInput = row.querySelector('.js-return-quantity');
+                if (!remainingCell || !afterReturnCell || !consumedInput || !returnInput) {
+                    return;
+                }
+
+                const transferred = parseDecimal(remainingCell.dataset.transferred);
+                const alreadyConsumed = parseDecimal(remainingCell.dataset.consumed);
+                const alreadyReturned = parseDecimal(remainingCell.dataset.returned);
+                const proposedConsumed = parseDecimal(consumedInput.value);
+                const proposedReturn = parseDecimal(returnInput.value);
+                const unit = remainingCell.dataset.unit || '';
+                const remainingBeforeReturn = transferred - alreadyConsumed - alreadyReturned - proposedConsumed;
+                const remainingAfterReturn = remainingBeforeReturn - proposedReturn;
+
+                remainingCell.textContent = formatQuantity(remainingBeforeReturn, unit);
+                afterReturnCell.textContent = formatQuantity(remainingAfterReturn, unit);
+            }
+
+            document.querySelectorAll('tbody tr').forEach(function (row) {
+                row.querySelectorAll('.js-consumed-quantity, .js-return-quantity').forEach(function (input) {
+                    input.addEventListener('input', function () {
+                        refreshMaterialRemainder(row);
+                    });
+                });
+                refreshMaterialRemainder(row);
+            });
+
             document.querySelectorAll('form.js-safe-submit').forEach(function (form) {
                 form.addEventListener('submit', function () {
                     const button = form.querySelector('button[type="submit"]');

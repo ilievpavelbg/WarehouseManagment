@@ -449,6 +449,24 @@
                     <span class="text-muted">Няма създаден PMC документ.</span>
                 }
             </dd>
+            <dt class="col-sm-3">PMR</dt>
+            <dd class="col-sm-9">
+                @if (Model.MaterialReturnDocuments.Any())
+                {
+                    foreach (var returnDocument in Model.MaterialReturnDocuments)
+                    {
+                        <div class="mb-1">
+                            <a asp-controller="ProductionDocuments" asp-action="ViewDocument" asp-route-documentNumber="@returnDocument.DocumentNumber">@returnDocument.DocumentNumber</a>
+                            <span class="text-muted ms-2">@returnDocument.CreatedOn.ToString("dd.MM.yyyy HH:mm")</span>
+                            <a class="btn btn-sm btn-outline-info ms-2" asp-controller="AuditLog" asp-action="Index" asp-route-DocumentNumber="@returnDocument.DocumentNumber">Одит</a>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <span class="text-muted">Няма създаден PMR документ.</span>
+                }
+            </dd>
             <dt class="col-sm-3">FGR</dt>
             <dd class="col-sm-9">
                 @if (!string.IsNullOrWhiteSpace(Model.FinishedGoodsReceiptDocumentNumber))

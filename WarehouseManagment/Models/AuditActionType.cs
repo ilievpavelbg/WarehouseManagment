@@ -33,6 +33,7 @@ namespace WarehouseManagment.Models
         CourierShipmentReversal = 29,
         BarcodeGenerated = 30,
         BarcodeMetadataUpdated = 31,
-        BarcodeLabelsPrinted = 32
+        BarcodeLabelsPrinted = 32,
+        ProductionMaterialReturn = 33
     }
 }

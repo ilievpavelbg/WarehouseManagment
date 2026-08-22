@@ -37,6 +37,7 @@ namespace WarehouseManagment.Models
             ["ProductExcelImport"] = "Excel импорт",
             ["ProductionOrderMaterialTransfer"] = "Прехвърляне към производство",
             ["ProductionOrderMaterialConsumption"] = "Производствен разход",
+            ["ProductionMaterialReturn"] = "Връщане от производство",
             ["FinishedGoodsReceipt"] = "Приемане на готова продукция"
         };
 
